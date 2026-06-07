@@ -1,0 +1,70 @@
+import { Download, Users } from "lucide-react";
+import Link from "next/link";
+
+import { CategoryCreateForm, ExchangeRateCreateForm, HouseholdImportForm, MemberAddForm } from "@/components/create-forms";
+import { HouseholdSwitcher } from "@/components/household-switcher";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { DataTable } from "@/components/ui/data-table";
+import { PageHeader } from "@/components/ui/page-header";
+import { requirePageContext } from "@/lib/auth/page-context";
+import { prisma } from "@/lib/db/prisma";
+
+export const dynamic = "force-dynamic";
+
+export default async function SettingsPage() {
+  const context = await requirePageContext();
+  const [household, groups, members, memberships] = await Promise.all([
+    prisma.household.findUniqueOrThrow({ where: { id: context.householdId }, include: { entitlement: true } }),
+    prisma.categoryGroup.findMany({ where: { householdId: context.householdId, deletedAt: null }, select: { id: true, name: true }, orderBy: { sortOrder: "asc" } }),
+    prisma.householdMember.findMany({ where: { householdId: context.householdId }, include: { user: { select: { email: true, displayName: true } } }, orderBy: { createdAt: "asc" } }),
+    prisma.householdMember.findMany({ where: { userId: context.userId, active: true, household: { active: true } }, select: { household: { select: { id: true, name: true } } }, orderBy: { household: { name: "asc" } } }),
+  ]);
+  return (
+    <div className="mx-auto max-w-app space-y-6">
+      <PageHeader
+        description="Household profile, categories, membership, tier, and data portability."
+        title="Settings"
+      />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="p-5">
+          <h2 className="font-semibold">Household</h2>
+          <dl className="mt-4 grid grid-cols-2 gap-4 text-sm">
+            <div><dt className="text-subdued">Name</dt><dd className="mt-1">{household.name}</dd></div>
+            <div><dt className="text-subdued">Base currency</dt><dd className="mt-1">{household.baseCurrency}</dd></div>
+            <div><dt className="text-subdued">Country profile</dt><dd className="mt-1">{household.countryProfile}</dd></div>
+            <div><dt className="text-subdued">Tier</dt><dd className="mt-1"><Badge>{household.entitlement?.tier.toLowerCase() ?? "budget"}</Badge></dd></div>
+          </dl>
+        </Card>
+        <Card className="p-5">
+          <h2 className="font-semibold">Data portability</h2>
+          <p className="mt-2 text-sm text-subdued">Export contains the active household plan. Import creates a separate household with remapped IDs.</p>
+          <Link className="mt-5 inline-flex min-h-10 items-center gap-2 rounded border bg-muted px-4 text-sm font-semibold" href="/api/household/export">
+            <Download className="size-4" /> Export JSON
+          </Link>
+        </Card>
+      </div>
+      <HouseholdSwitcher activeHouseholdId={context.householdId} households={memberships.map((membership) => membership.household)} />
+      <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-4">
+        <CategoryCreateForm groups={groups} />
+        <MemberAddForm />
+        <ExchangeRateCreateForm baseCurrency={household.baseCurrency} />
+        <HouseholdImportForm />
+      </div>
+      <Card>
+        <div className="flex items-center gap-3 border-b px-5 py-4">
+          <Users className="size-4 text-brand-teal" />
+          <h2 className="font-semibold">Members</h2>
+        </div>
+        <DataTable
+          caption="Household members"
+          headers={["Member", "Role", "Status"]}
+          rows={members.map((member) => [
+            member.user.displayName ?? member.user.email, member.role.toLowerCase(),
+            <Badge key={member.id} tone={member.active ? "success" : "neutral"}>{member.active ? "Active" : "Inactive"}</Badge>,
+          ])}
+        />
+      </Card>
+    </div>
+  );
+}

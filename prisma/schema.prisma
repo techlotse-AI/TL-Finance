@@ -1,0 +1,567 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum HouseholdRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum ProductTier {
+  BUDGET
+  ANALYZE
+  OPTIMIZE
+}
+
+enum CategoryKind {
+  INCOME
+  EXPENSE
+  SAVING
+  INVESTMENT
+  RETIREMENT
+}
+
+enum AccountType {
+  PERSONAL
+  SAVINGS
+  INVESTMENT
+  RETIREMENT
+  CREDIT_CARD
+  CASH
+  OTHER
+}
+
+enum Recurrence {
+  ONCE
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+  CUSTOM_MONTHS
+}
+
+enum IncomeAllocationMethod {
+  FIXED
+  PERCENTAGE
+}
+
+enum StatementInstitution {
+  UBS
+  REVOLUT
+  ZUGER_KANTONALBANK
+  FNB
+  STANDARD_BANK
+  INVESTEC
+  FRANKLY
+  VIAC
+  SAXO
+  UNKNOWN
+}
+
+enum StatementImportStatus {
+  PREVIEWED
+  COMMITTED
+  FAILED
+}
+
+enum TransactionReviewState {
+  UNREVIEWED
+  PARTIAL
+  ALLOCATED
+  IGNORED
+}
+
+enum AllocationSource {
+  RULE
+  MANUAL
+  CASH
+  SYSTEM
+}
+
+enum TransferMatchStatus {
+  CANDIDATE
+  CONFIRMED
+  REJECTED
+}
+
+enum MatchConfidence {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum RuleMatchField {
+  DESCRIPTION
+  MERCHANT
+  COUNTERPARTY
+  REFERENCE
+}
+
+enum RuleMatchType {
+  EXACT
+  CONTAINS
+  PREFIX
+  REGEX
+}
+
+model User {
+  id                    String                   @id @default(cuid())
+  email                 String                   @unique
+  passwordHash          String
+  displayName           String?
+  instanceAdmin         Boolean                  @default(false)
+  emailVerifiedAt       DateTime?
+  active                Boolean                  @default(true)
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+  sessions              Session[]
+  householdMemberships  HouseholdMember[]
+  emailVerification     EmailVerificationToken[]
+  passwordReset         PasswordResetToken[]
+  auditEvents            AuditEvent[]
+}
+
+model Session {
+  id                String     @id @default(cuid())
+  userId            String
+  activeHouseholdId String?
+  tokenHash         String     @unique
+  expiresAt         DateTime
+  revokedAt         DateTime?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  user              User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activeHousehold   Household? @relation(fields: [activeHouseholdId], references: [id], onDelete: SetNull)
+
+  @@index([userId, expiresAt])
+  @@index([activeHouseholdId])
+}
+
+model Household {
+  id                String                   @id @default(cuid())
+  name              String
+  baseCurrency      String                   @db.VarChar(3)
+  countryProfile    String                   @default("generic")
+  active            Boolean                  @default(true)
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+  members           HouseholdMember[]
+  activeSessions    Session[]
+  entitlement       TierEntitlement?
+  auditEvents       AuditEvent[]
+  categoryGroups    CategoryGroup[]
+  categories        Category[]
+  accounts          Account[]
+  accountPockets    AccountPocket[]
+  incomeSources     IncomeSource[]
+  incomeAllocations IncomeAllocation[]
+  plannedTransfers  PlannedAccountTransfer[]
+  budgetItems       BudgetItem[]
+  statementImports  StatementImport[]
+  actualTransactions ActualTransaction[]
+  actualAllocations ActualTransactionAllocation[]
+  allocationRules   TransactionAllocationRule[]
+  transferMatches   TransactionTransferMatch[]
+  exchangeRates     ExchangeRate[]
+}
+
+model HouseholdMember {
+  id          String        @id @default(cuid())
+  householdId String
+  userId      String
+  role        HouseholdRole @default(MEMBER)
+  active      Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  household   Household     @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([householdId, userId])
+  @@index([userId, active])
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}
+
+model TierEntitlement {
+  id          String      @id @default(cuid())
+  householdId String      @unique
+  tier        ProductTier @default(BUDGET)
+  source      String      @default("manual")
+  active      Boolean     @default(true)
+  assignedBy  String?
+  expiresAt   DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  household   Household   @relation(fields: [householdId], references: [id], onDelete: Cascade)
+}
+
+model AuditEvent {
+  id           String    @id @default(cuid())
+  householdId  String?
+  userId       String?
+  action       String
+  resourceType String
+  resourceId   String?
+  metadata     Json?
+  ipHash       String?
+  createdAt    DateTime  @default(now())
+  household    Household? @relation(fields: [householdId], references: [id], onDelete: SetNull)
+  user         User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([householdId, createdAt])
+  @@index([userId, createdAt])
+  @@index([resourceType, resourceId])
+}
+
+model CategoryGroup {
+  id          String     @id @default(cuid())
+  householdId String
+  name        String
+  sortOrder   Int        @default(0)
+  active      Boolean    @default(true)
+  deletedAt   DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  household   Household  @relation(fields: [householdId], references: [id], onDelete: Restrict)
+  categories  Category[]
+
+  @@unique([householdId, name])
+  @@index([householdId, deletedAt, sortOrder])
+}
+
+model Category {
+  id            String         @id @default(cuid())
+  householdId   String
+  groupId       String
+  name          String
+  kind          CategoryKind
+  essential     Boolean        @default(false)
+  sortOrder     Int            @default(0)
+  active        Boolean        @default(true)
+  deletedAt     DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  household     Household      @relation(fields: [householdId], references: [id], onDelete: Restrict)
+  group         CategoryGroup  @relation(fields: [groupId], references: [id], onDelete: Restrict)
+  incomeSources IncomeSource[]
+  budgetItems   BudgetItem[]
+  actualAllocations ActualTransactionAllocation[]
+  allocationRules TransactionAllocationRule[]
+
+  @@unique([householdId, groupId, name])
+  @@index([householdId, kind, deletedAt, sortOrder])
+  @@index([householdId, groupId])
+}
+
+model Account {
+  id              String          @id @default(cuid())
+  householdId     String
+  name            String
+  type            AccountType
+  institution     String?
+  maskedReference String?
+  active          Boolean         @default(true)
+  deletedAt       DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  household       Household       @relation(fields: [householdId], references: [id], onDelete: Restrict)
+  pockets         AccountPocket[]
+
+  @@unique([householdId, name])
+  @@index([householdId, deletedAt, type])
+}
+
+model AccountPocket {
+  id                  String                   @id @default(cuid())
+  householdId         String
+  accountId           String
+  name                String
+  currency            String                   @db.VarChar(3)
+  active              Boolean                  @default(true)
+  deletedAt           DateTime?
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  household           Household                @relation(fields: [householdId], references: [id], onDelete: Restrict)
+  account             Account                  @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  incomeAllocations   IncomeAllocation[]
+  outgoingTransfers   PlannedAccountTransfer[] @relation("TransferSource")
+  incomingTransfers   PlannedAccountTransfer[] @relation("TransferDestination")
+  fundedBudgetItems   BudgetItem[]             @relation("BudgetItemSource")
+  receivingBudgetItems BudgetItem[]            @relation("BudgetItemDestination")
+  actualTransactions   ActualTransaction[]
+  statementImports     StatementImport[]
+
+  @@unique([householdId, accountId, currency])
+  @@index([householdId, deletedAt, currency])
+  @@index([householdId, accountId])
+}
+
+model IncomeSource {
+  id             String             @id @default(cuid())
+  householdId    String
+  name           String
+  categoryId     String
+  amount         Decimal            @db.Decimal(18, 4)
+  currency       String             @db.VarChar(3)
+  recurrence     Recurrence
+  selectedMonths Int[]              @default([])
+  startDate      DateTime           @db.Date
+  endDate        DateTime?          @db.Date
+  active         Boolean            @default(true)
+  deletedAt      DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  household      Household          @relation(fields: [householdId], references: [id], onDelete: Restrict)
+  category       Category           @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  allocations    IncomeAllocation[]
+
+  @@index([householdId, deletedAt, currency])
+  @@index([householdId, categoryId])
+}
+
+model IncomeAllocation {
+  id              String                 @id @default(cuid())
+  householdId     String
+  incomeSourceId  String
+  accountPocketId String
+  method          IncomeAllocationMethod
+  fixedAmount     Decimal?               @db.Decimal(18, 4)
+  percentage      Decimal?               @db.Decimal(8, 6)
+  sourceCurrency  String                 @db.VarChar(3)
+  active          Boolean                @default(true)
+  deletedAt       DateTime?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  household       Household              @relation(fields: [householdId], references: [id], onDelete: Restrict)
+  incomeSource    IncomeSource           @relation(fields: [incomeSourceId], references: [id], onDelete: Restrict)
+  accountPocket   AccountPocket          @relation(fields: [accountPocketId], references: [id], onDelete: Restrict)
+
+  @@unique([incomeSourceId, accountPocketId])
+  @@index([householdId, deletedAt])
+  @@index([householdId, accountPocketId])
+}
+
+model PlannedAccountTransfer {
+  id                    String        @id @default(cuid())
+  householdId           String
+  name                  String
+  fromAccountPocketId   String
+  toAccountPocketId     String
+  amount                Decimal       @db.Decimal(18, 4)
+  currency              String        @db.VarChar(3)
+  recurrence            Recurrence
+  selectedMonths        Int[]         @default([])
+  startDate             DateTime      @db.Date
+  endDate               DateTime?     @db.Date
+  active                Boolean       @default(true)
+  deletedAt             DateTime?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  household             Household     @relation(fields: [householdId], references: [id], onDelete: Restrict)
+  fromAccountPocket     AccountPocket @relation("TransferSource", fields: [fromAccountPocketId], references: [id], onDelete: Restrict)
+  toAccountPocket       AccountPocket @relation("TransferDestination", fields: [toAccountPocketId], references: [id], onDelete: Restrict)
+
+  @@index([householdId, deletedAt, currency])
+  @@index([householdId, fromAccountPocketId])
+  @@index([householdId, toAccountPocketId])
+}
+
+model BudgetItem {
+  id                        String         @id @default(cuid())
+  householdId               String
+  name                      String
+  categoryId                String
+  kind                      CategoryKind
+  amount                    Decimal        @db.Decimal(18, 4)
+  currency                  String         @db.VarChar(3)
+  recurrence                Recurrence
+  selectedMonths            Int[]          @default([])
+  paidFromAccountPocketId   String?
+  paidToAccountPocketId     String?
+  startDate                 DateTime        @db.Date
+  endDate                   DateTime?       @db.Date
+  essential                 Boolean         @default(false)
+  active                    Boolean         @default(true)
+  deletedAt                 DateTime?
+  createdAt                 DateTime        @default(now())
+  updatedAt                 DateTime        @updatedAt
+  household                 Household       @relation(fields: [householdId], references: [id], onDelete: Restrict)
+  category                  Category        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  paidFromAccountPocket     AccountPocket?  @relation("BudgetItemSource", fields: [paidFromAccountPocketId], references: [id], onDelete: Restrict)
+  paidToAccountPocket       AccountPocket?  @relation("BudgetItemDestination", fields: [paidToAccountPocketId], references: [id], onDelete: Restrict)
+  actualAllocations         ActualTransactionAllocation[]
+  allocationRules           TransactionAllocationRule[]
+
+  @@index([householdId, deletedAt, kind, currency])
+  @@index([householdId, categoryId])
+  @@index([householdId, paidFromAccountPocketId])
+  @@index([householdId, paidToAccountPocketId])
+}
+
+model ExchangeRate {
+  id             String    @id @default(cuid())
+  householdId    String
+  fromCurrency   String    @db.VarChar(3)
+  toCurrency     String    @db.VarChar(3)
+  rate           Decimal   @db.Decimal(18, 8)
+  asOf           DateTime
+  source         String
+  staleAfter     DateTime
+  createdAt      DateTime  @default(now())
+  household      Household @relation(fields: [householdId], references: [id], onDelete: Restrict)
+
+  @@unique([householdId, fromCurrency, toCurrency, asOf])
+  @@index([householdId, fromCurrency, toCurrency, asOf])
+}
+
+model StatementImport {
+  id                       String                @id @default(cuid())
+  householdId              String
+  accountPocketId          String?
+  originalFilename         String
+  contentHash              String
+  parserKey                String
+  parserVersion            String
+  institution              StatementInstitution
+  status                   StatementImportStatus
+  rowCount                 Int                   @default(0)
+  importedCount            Int                   @default(0)
+  duplicateCount           Int                   @default(0)
+  warningCount             Int                   @default(0)
+  warnings                 Json?
+  encryptedRetentionMetadata Json?
+  committedAt              DateTime?
+  createdAt                DateTime              @default(now())
+  updatedAt                DateTime              @updatedAt
+  household                Household             @relation(fields: [householdId], references: [id], onDelete: Restrict)
+  accountPocket            AccountPocket?        @relation(fields: [accountPocketId], references: [id], onDelete: Restrict)
+  transactions             ActualTransaction[]
+
+  @@unique([householdId, contentHash])
+  @@index([householdId, status, createdAt])
+  @@index([householdId, accountPocketId])
+}
+
+model ActualTransaction {
+  id                    String                 @id @default(cuid())
+  householdId           String
+  statementImportId     String
+  accountPocketId       String?
+  bookingDate           DateTime               @db.Date
+  valueDate             DateTime?              @db.Date
+  amount                Decimal                @db.Decimal(18, 4)
+  currency              String                 @db.VarChar(3)
+  description           String
+  counterparty          String?
+  reference             String?
+  balanceAfter          Decimal?               @db.Decimal(18, 4)
+  normalizedMerchantKey String?
+  sourceInstitution     StatementInstitution
+  parserVersion         String
+  originalRow           Json
+  dedupeHash            String
+  reviewState           TransactionReviewState @default(UNREVIEWED)
+  hidden                Boolean                @default(false)
+  ignored               Boolean                @default(false)
+  createdAt             DateTime               @default(now())
+  household             Household              @relation(fields: [householdId], references: [id], onDelete: Restrict)
+  statementImport       StatementImport        @relation(fields: [statementImportId], references: [id], onDelete: Restrict)
+  accountPocket         AccountPocket?         @relation(fields: [accountPocketId], references: [id], onDelete: Restrict)
+  allocations           ActualTransactionAllocation[]
+  outgoingTransferMatches TransactionTransferMatch[] @relation("ActualTransferDebit")
+  incomingTransferMatches TransactionTransferMatch[] @relation("ActualTransferCredit")
+
+  @@unique([householdId, dedupeHash])
+  @@index([householdId, bookingDate, id])
+  @@index([householdId, reviewState, bookingDate])
+  @@index([householdId, accountPocketId, bookingDate])
+}
+
+model ActualTransactionAllocation {
+  id            String           @id @default(cuid())
+  householdId   String
+  transactionId String
+  categoryId    String
+  budgetItemId  String?
+  amount        Decimal          @db.Decimal(18, 4)
+  source        AllocationSource
+  confirmed     Boolean          @default(false)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  household     Household        @relation(fields: [householdId], references: [id], onDelete: Restrict)
+  transaction   ActualTransaction @relation(fields: [transactionId], references: [id], onDelete: Restrict)
+  category      Category         @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  budgetItem    BudgetItem?      @relation(fields: [budgetItemId], references: [id], onDelete: Restrict)
+
+  @@index([householdId, transactionId])
+  @@index([householdId, categoryId])
+  @@index([householdId, budgetItemId])
+}
+
+model TransactionAllocationRule {
+  id               String           @id @default(cuid())
+  householdId      String
+  matchField       RuleMatchField
+  matchType        RuleMatchType
+  normalizedPattern String
+  institution      StatementInstitution?
+  categoryId       String
+  budgetItemId     String?
+  priority         Int              @default(0)
+  active           Boolean          @default(true)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  household        Household        @relation(fields: [householdId], references: [id], onDelete: Restrict)
+  category         Category         @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  budgetItem       BudgetItem?      @relation(fields: [budgetItemId], references: [id], onDelete: Restrict)
+
+  @@index([householdId, active, priority])
+}
+
+model TransactionTransferMatch {
+  id                    String              @id @default(cuid())
+  householdId           String
+  debitTransactionId    String
+  creditTransactionId   String
+  status                TransferMatchStatus
+  confidence            MatchConfidence
+  score                 Decimal             @db.Decimal(8, 6)
+  evidence              Json
+  confirmedByUserId     String?
+  confirmedAt           DateTime?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  household             Household           @relation(fields: [householdId], references: [id], onDelete: Restrict)
+  debitTransaction      ActualTransaction   @relation("ActualTransferDebit", fields: [debitTransactionId], references: [id], onDelete: Restrict)
+  creditTransaction     ActualTransaction   @relation("ActualTransferCredit", fields: [creditTransactionId], references: [id], onDelete: Restrict)
+
+  @@unique([debitTransactionId, creditTransactionId])
+  @@index([householdId, status, confidence])
+}

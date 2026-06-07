@@ -1,0 +1,28 @@
+# Security
+
+Baseline security is required from v0.1.0.
+
+- Sessions are database-backed, revocable, and represented by secure HTTP-only
+  cookies. Only token hashes are stored.
+- Passwords use a strong adaptive hash.
+- `HouseholdMember` is the authorization boundary for household data.
+- Unsafe requests require a trusted origin and CSRF validation.
+- Paid capability checks are server-side.
+- The account matching `INSTANCE_ADMIN_EMAIL` at signup becomes the initial
+  instance administrator; later tier changes require that server-side flag.
+- Mutations write append-only audit events.
+- IP metadata is hashed with a dedicated server secret before persistence.
+- Production errors do not expose Prisma errors, stack traces, or secrets.
+- Response headers enforce a same-origin content security policy, HSTS,
+  framing and MIME-sniffing protection, strict referrer behavior, and
+  restricted browser capabilities.
+- Authentication endpoints use a process-local baseline rate limiter. A
+  multi-instance deployment must replace it with a shared limiter before public
+  exposure.
+- CI installs from the lockfile, runs the dependency audit at moderate
+  severity, and pins third-party GitHub Actions to immutable verified commits.
+- Dependabot monitors npm, GitHub Actions, and Docker dependencies weekly.
+
+The complete public-ready threat model, independent review, reset and
+verification delivery, backup/restore validation, and incident response are
+planned for v0.4.0.

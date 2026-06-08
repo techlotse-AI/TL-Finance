@@ -1,0 +1,4 @@
+Type,Product,Started Date,Completed Date,Description,Amount,Fee,Currency,State,Balance
+CARD_PAYMENT,Current,2026-05-06 11:00:00,2026-05-06 11:00:03,Carrefour,-22.40,0.00,EUR,COMPLETED,477.60
+TRANSFER,Current,2026-05-07 09:00:00,2026-05-07 09:00:00,To savings vault,-150.00,0.00,EUR,COMPLETED,327.60
+CARD_REFUND,Current,2026-05-08 14:00:00,2026-05-08 14:00:00,Refund Uber,12.40,0.00,EUR,COMPLETED,340.00

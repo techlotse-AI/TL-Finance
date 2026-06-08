@@ -1,0 +1,6 @@
+Trade date;Booking date;Value date;Currency;Debit;Credit;Balance;Description1;Description2;Description3
+01.05.2026;01.05.2026;01.05.2026;CHF;;5'200.00;12'450.00;Salary;ACME AG;Payroll May
+02.05.2026;02.05.2026;02.05.2026;CHF;1'850.00;;10'600.00;Rent;Hausverwaltung Zug;Nebenkosten included
+03.05.2026;03.05.2026;03.05.2026;CHF;89.50;;10'510.50;Groceries;Migros Zug;
+05.05.2026;05.05.2026;05.05.2026;CHF;320.00;;10'190.50;Health insurance;CSS Versicherung;Premium
+06.05.2026;06.05.2026;06.05.2026;CHF;2'000.00;;8'190.50;Transfer to savings;UBS Savings CH93 0076 2011 6238 5295 7;Standing order

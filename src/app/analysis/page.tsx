@@ -1,41 +1,77 @@
+import { AnalysisWorkspace } from "@/components/analysis/analysis-workspace";
 import { LockedTierPage } from "@/components/locked-tier-page";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { requirePageContext } from "@/lib/auth/page-context";
+import { productionReadyParsers } from "@/lib/statements/parsers";
 import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
 
 export default async function AnalysisPage() {
   const context = await requirePageContext();
+
   if (context.tier === "budget") {
-  return (
-    <LockedTierPage
-      capabilities={[
-        "Statement import",
-        "Actual transactions",
-        "Review queue",
-        "Transfer and FX matching",
-        "Cash allocation",
-        "Budget adherence",
-      ]}
-      description="Actual activity, allocation, reconciliation, and planned-versus-actual adherence begin in v0.2.0."
-      tier="Analyze"
-      title="Analyze"
-    />
-  );
+    return (
+      <LockedTierPage
+        capabilities={[
+          "Statement import",
+          "Actual transactions",
+          "Review queue and allocation",
+          "Transfer and FX matching",
+          "Budget adherence",
+          "Money-leak findings",
+        ]}
+        description="Actual activity, allocation, reconciliation, planned-versus-actual adherence, and money-leak findings are part of the Analyze tier."
+        tier="Analyze"
+        title="Analyze"
+      />
+    );
   }
-  const [imports, transactions, review] = await Promise.all([
+
+  const [pocketRows, categoryRows, budgetItemRows, imports, transactions, review] = await Promise.all([
+    prisma.accountPocket.findMany({
+      where: { householdId: context.householdId, deletedAt: null, active: true },
+      include: { account: { select: { name: true } } },
+      orderBy: { name: "asc" },
+    }),
+    prisma.category.findMany({
+      where: { householdId: context.householdId, deletedAt: null, active: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, kind: true },
+    }),
+    prisma.budgetItem.findMany({
+      where: { householdId: context.householdId, deletedAt: null },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, categoryId: true, currency: true },
+    }),
     prisma.statementImport.count({ where: { householdId: context.householdId } }),
     prisma.actualTransaction.count({ where: { householdId: context.householdId } }),
-    prisma.actualTransaction.count({ where: { householdId: context.householdId, reviewState: { in: ["UNREVIEWED", "PARTIAL"] } } }),
+    prisma.actualTransaction.count({
+      where: { householdId: context.householdId, reviewState: { in: ["UNREVIEWED", "PARTIAL"] }, ignored: false },
+    }),
   ]);
-  return <div className="mx-auto max-w-app space-y-6">
-    <PageHeader title="Analyze foundation" description="Statement source facts and deterministic reconciliation foundations are enabled. No institution parser is production-ready without sanitized fixtures." />
-    <section className="grid gap-4 sm:grid-cols-3">
-      {[["Statement imports", imports], ["Actual transactions", transactions], ["Review queue", review]].map(([label, count]) => <Card className="p-5" key={label}><p className="text-sm text-subdued">{label}</p><p className="mt-2 text-2xl font-semibold">{count}</p></Card>)}
-    </section>
-    <Card className="p-5"><Badge tone="warning">No production-ready parsers</Badge><p className="mt-3 text-sm text-subdued">The preview API fails closed until at least two sanitized real fixtures support an institution parser.</p></Card>
-  </div>;
+
+  const pockets = pocketRows.map((pocket) => ({
+    id: pocket.id,
+    name: pocket.name,
+    currency: pocket.currency,
+    accountName: pocket.account.name,
+  }));
+
+  return (
+    <div className="mx-auto max-w-app space-y-6">
+      <PageHeader
+        eyebrow="Analyze tier"
+        title="Analyze"
+        description="Import statements, categorize real activity, reconcile internal transfers, and surface where money is leaking against your plan."
+      />
+      <AnalysisWorkspace
+        pockets={pockets}
+        categories={categoryRows}
+        budgetItems={budgetItemRows}
+        parsers={productionReadyParsers()}
+        initialStatus={{ imports, transactions, review }}
+      />
+    </div>
+  );
 }

@@ -1,0 +1,5 @@
+Trade date;Booking date;Value date;Currency;Debit;Credit;Balance;Description1;Description2;Description3
+10.05.2026;10.05.2026;10.05.2026;EUR;;1'000.00;1'000.00;Transfer in;Revolut;Top up
+11.05.2026;11.05.2026;;EUR;250.00;;750.00;Online order;Amazon EU;Order 123
+12.05.2026;12.05.2026;12.05.2026;EUR;50.00;50.00;1'000.00;Ambiguous row;Both columns set;Should be skipped
+13.05.2026;13.05.2026;13.05.2026;EUR;100.00;;650.00;Dining;Restaurant Bellevue;

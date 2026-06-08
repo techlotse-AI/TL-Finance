@@ -1,0 +1,9 @@
+Trade date;Booking date;Value date;Currency;Debit;Credit;Balance;Description1;Description2;Description3
+01.05.2026;01.05.2026;01.05.2026;CHF;;6'000.00;9'000.00;Salary;Employer AG;May payroll
+02.05.2026;02.05.2026;02.05.2026;CHF;1'900.00;;7'100.00;Rent;Hausverwaltung Zug;Nebenkosten included
+03.05.2026;03.05.2026;03.05.2026;CHF;54.00;;7'046.00;Coop;Coop Zug;Groceries
+05.05.2026;05.05.2026;05.05.2026;CHF;54.00;;6'992.00;Coop;Coop Zug;Groceries
+06.05.2026;06.05.2026;06.05.2026;CHF;82.40;;6'909.60;Migros;Migros Zug;Groceries
+08.05.2026;08.05.2026;08.05.2026;CHF;19.90;;6'889.70;Netflix;Netflix;Subscription
+10.05.2026;10.05.2026;10.05.2026;CHF;320.00;;6'569.70;Health insurance;CSS Versicherung;Premium
+15.05.2026;15.05.2026;15.05.2026;CHF;2'000.00;;4'569.70;Transfer to savings;UBS Savings;Standing order

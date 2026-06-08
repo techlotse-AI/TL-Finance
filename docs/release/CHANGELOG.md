@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- Completed the v0.2.0 Analyze tier: production-ready statement parsers
+  (UBS account CSV, UBS card CSV, Revolut CSV, and a generic CSV template),
+  each fixture-backed with golden tests and fail-closed on ambiguous dates,
+  signs, currency, or amounts.
+- Added an idempotent statement commit flow with content-hash and per-row
+  dedupe, batched writes, and import status counts.
+- Added the review queue, manual and split allocation, and deterministic
+  allocation rules (merchant/description/counterparty/reference;
+  exact/contains/prefix/regex) with bulk application. Unknown actuals never
+  auto-assign to a category.
+- Added internal-transfer and cross-currency FX matching with greedy
+  one-to-one assignment, high-confidence auto-confirmation, and manual
+  confirm/reject. Confirmed transfers are excluded from spending.
+- Added planned-versus-actual adherence per category and currency, and
+  deterministic money-leak findings (over-budget, duplicate charges,
+  recurring and rising subscriptions, review backlog).
+- Replaced the locked Analyze surface with an operational import, review,
+  transfers, adherence, and findings workspace.
 - Merged all local branch work into `main` and recorded the v0.3.0/v0.4.0
   release-readiness test results.
 - Preserved append-only audit history during platform database reset.

@@ -1,8 +1,10 @@
 import { detectStatementParser } from "@/lib/statements/registry";
+import { ensureParsersRegistered } from "@/lib/statements/parsers";
 import { statementContentHash, transactionDedupeHash } from "@/lib/statements/dedupe";
 import type { StatementInput } from "@/lib/statements/types";
 
 export async function previewStatement(input: StatementInput) {
+  ensureParsersRegistered();
   const parser = detectStatementParser(input);
   if (!parser) throw new Error("No statement parser could be selected with unambiguous confidence.");
   const statement = await parser.parse(input);

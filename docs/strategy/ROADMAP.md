@@ -8,8 +8,14 @@ household export/import, and baseline security.
 
 ## v0.2.0 - Analyze
 
-Foundation started. Add production-ready structured statement import, actual transactions, allocation, adherence,
-cash, transfer and FX reconciliation, and deterministic findings.
+Implemented. Production-ready structured statement import (UBS account, UBS card,
+Revolut, and a generic CSV template) with fail-closed parsing and idempotent
+commit; actual transactions and a review queue; deterministic allocation rules
+with bulk application; internal-transfer and cross-currency FX matching with
+high-confidence auto-confirmation; planned-versus-actual adherence; and
+deterministic money-leak findings. Remaining institution parsers (Zuger
+Kantonalbank, FNB, Standard Bank, Investec, Frankly/VIAC, Saxo) are added as
+sanitized fixtures become available.
 
 ## v0.3.0 - Optimize
 

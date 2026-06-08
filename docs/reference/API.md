@@ -19,6 +19,13 @@ Implemented endpoints:
 | `POST` | `/api/admin/platform-backup` | Instance-admin S3-compatible platform snapshot upload |
 | `GET` | `/api/admin/audit-export` | Instance-admin audit-event CSV export, limited to the newest 50,000 events |
 | `POST` | `/api/admin/database-reset` | Instance-admin destructive reset with exact confirmation and current-password verification |
-| `GET` | `/api/analysis/status` | Entitled Analyze foundation counts |
+| `GET` | `/api/analysis/status` | Entitled Analyze counts and production-ready parser catalog |
 | `POST` | `/api/analysis/imports/preview` | Fail-closed parser preview; writes import metadata but no transactions |
+| `GET, POST` | `/api/analysis/imports`, `/api/analysis/imports/commit` | Lists imports and idempotently commits parsed transactions |
+| `GET` | `/api/analysis/transactions` | Household-scoped actuals with review-state counts |
+| `POST` | `/api/analysis/transactions/{id}/allocate`, `/api/analysis/transactions/{id}/ignore` | Manual or split allocation and ignore toggle |
+| `GET, POST` | `/api/analysis/rules`, `/api/analysis/rules/apply` | Deterministic allocation rules and bulk application |
+| `GET, POST` | `/api/analysis/transfers`, `/api/analysis/transfers/scan` | Transfer/FX match listing and candidate scanning |
+| `PATCH` | `/api/analysis/transfers/{id}` | Confirm or reject a transfer match |
+| `GET` | `/api/analysis/adherence`, `/api/analysis/findings` | Planned-versus-actual adherence and deterministic money-leak findings |
 | `POST` | `/api/optimize/projections` | Entitled, non-persistent deterministic scenario comparison |

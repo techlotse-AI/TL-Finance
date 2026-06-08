@@ -11,21 +11,35 @@ export const dynamic = "force-dynamic";
 
 export default async function BudgetPage() {
   const context = await requirePageContext();
-  const [items, categories, pockets] = await Promise.all([
+  const [household, items, categories, pockets] = await Promise.all([
+    prisma.household.findUniqueOrThrow({ where: { id: context.householdId }, select: { baseCurrency: true } }),
     prisma.budgetItem.findMany({
       where: { householdId: context.householdId, deletedAt: null },
       include: { category: true, paidFromAccountPocket: { include: { account: true } }, paidToAccountPocket: { include: { account: true } } },
       orderBy: { name: "asc" },
     }),
     prisma.category.findMany({ where: { householdId: context.householdId, kind: { not: "INCOME" }, deletedAt: null }, select: { id: true, name: true, kind: true } }),
-    prisma.accountPocket.findMany({ where: { householdId: context.householdId, deletedAt: null }, select: { id: true, name: true, currency: true } }),
+    prisma.accountPocket.findMany({
+      where: { householdId: context.householdId, active: true, deletedAt: null, account: { active: true, deletedAt: null } },
+      select: { id: true, currency: true, account: { select: { name: true, type: true } } },
+      orderBy: [{ account: { name: "asc" } }, { currency: "asc" }],
+    }),
   ]);
   return (
     <EntityListPage
       caption="Normalized monthly budget items"
       description="Recurring expenses and routed saving, investment, and retirement allocations."
       headers={["Budget item", "Kind", "Category", "Paid from", "Paid to", "Monthly amount", "Route"]}
-      note={<BudgetItemCreateForm categories={categories.map((category) => ({ ...category, kind: category.kind }))} pockets={pockets} />}
+      note={<BudgetItemCreateForm
+        baseCurrency={household.baseCurrency}
+        categories={categories.map((category) => ({ ...category, kind: category.kind.toLowerCase() }))}
+        pockets={pockets.map((pocket) => ({
+          id: pocket.id,
+          currency: pocket.currency,
+          accountName: pocket.account.name,
+          accountType: pocket.account.type.toLowerCase(),
+        }))}
+      />}
       rows={items.map((item) => [
         <span className="font-medium" key={item.id}>{item.name}</span>,
         item.kind.toLowerCase(),

@@ -11,21 +11,38 @@ export const dynamic = "force-dynamic";
 
 export default async function IncomePage() {
   const context = await requirePageContext();
-  const [sources, categories, pockets] = await Promise.all([
+  const [household, sources, categories, pockets] = await Promise.all([
+    prisma.household.findUniqueOrThrow({
+      where: { id: context.householdId },
+      select: { baseCurrency: true },
+    }),
     prisma.incomeSource.findMany({
       where: { householdId: context.householdId, deletedAt: null },
       include: { allocations: { where: { deletedAt: null }, include: { accountPocket: { include: { account: { select: { name: true } } } } } } },
       orderBy: { name: "asc" },
     }),
     prisma.category.findMany({ where: { householdId: context.householdId, kind: "INCOME", deletedAt: null }, select: { id: true, name: true } }),
-    prisma.accountPocket.findMany({ where: { householdId: context.householdId, deletedAt: null }, select: { id: true, name: true, currency: true } }),
+    prisma.accountPocket.findMany({
+      where: { householdId: context.householdId, active: true, deletedAt: null, account: { active: true, deletedAt: null } },
+      select: { id: true, name: true, currency: true, account: { select: { name: true } } },
+      orderBy: [{ account: { name: "asc" } }, { currency: "asc" }],
+    }),
   ]);
   return (
     <EntityListPage
       caption="Planned income sources"
-      description="Expected income and its reconciled receiving-pocket allocations."
-      headers={["Income source", "Recurrence", "Native amount", "Receiving pocket", "Status"]}
-      note={<IncomeCreateForm categories={categories} pockets={pockets} />}
+      description="Expected income and its reconciled receiving-account allocations."
+      headers={["Income source", "Recurrence", "Native amount", "Receiving account", "Status"]}
+      note={<IncomeCreateForm
+        baseCurrency={household.baseCurrency}
+        categories={categories}
+        pockets={pockets.map((pocket) => ({
+          id: pocket.id,
+          name: pocket.name,
+          currency: pocket.currency,
+          accountName: pocket.account.name,
+        }))}
+      />}
       rows={sources.map((source) => {
         const normalized = normalizeMonthly({ amount: source.amount.toString(), recurrence: fromDbRecurrence(source.recurrence), selectedMonths: source.selectedMonths });
         return [

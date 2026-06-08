@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { CategoryCreateForm, ExchangeRateCreateForm, HouseholdImportForm, MemberAddForm } from "@/components/create-forms";
 import { HouseholdSwitcher } from "@/components/household-switcher";
+import { ExchangeRateRefreshButton, UserBackupImportForm } from "@/components/settings-actions";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
@@ -37,19 +38,24 @@ export default async function SettingsPage() {
           </dl>
         </Card>
         <Card className="p-5">
-          <h2 className="font-semibold">Data portability</h2>
-          <p className="mt-2 text-sm text-subdued">Export contains the active household plan. Import creates a separate household with remapped IDs.</p>
+          <h2 className="font-semibold">User backup</h2>
+          <p className="mt-2 text-sm text-subdued">Export the current live Budget plan and reporting rates for every household you can access. Import restores each backup household as a separate household you own.</p>
           <Link className="mt-5 inline-flex min-h-10 items-center gap-2 rounded border bg-muted px-4 text-sm font-semibold" href="/api/household/export">
-            <Download className="size-4" /> Export JSON
+            <Download className="size-4" /> Export active household
+          </Link>
+          <Link className="ml-3 mt-5 inline-flex min-h-10 items-center gap-2 rounded border bg-muted px-4 text-sm font-semibold" href="/api/user/backup/export">
+            <Download className="size-4" /> Export user backup
           </Link>
         </Card>
       </div>
       <HouseholdSwitcher activeHouseholdId={context.householdId} households={memberships.map((membership) => membership.household)} />
-      <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
         <CategoryCreateForm groups={groups} />
         <MemberAddForm />
         <ExchangeRateCreateForm baseCurrency={household.baseCurrency} />
         <HouseholdImportForm />
+        <UserBackupImportForm />
+        <ExchangeRateRefreshButton />
       </div>
       <Card>
         <div className="flex items-center gap-3 border-b px-5 py-4">

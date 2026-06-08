@@ -21,7 +21,37 @@ export async function exportHousehold(client: ExportClient, householdId: string)
       client.budgetItem.findMany({ where: { householdId, deletedAt: null }, orderBy: { name: "asc" } }),
       client.exchangeRate.findMany({ where: { householdId }, orderBy: { asOf: "desc" } }),
     ]);
-  return { format: "tl-finance-household", version: 1, exportedAt: new Date().toISOString(), household, categoryGroups, categories, accounts, accountPockets, incomeSources, plannedTransfers, budgetItems, exchangeRates };
+  return {
+    format: "tl-finance-household",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    household,
+    categoryGroups,
+    categories,
+    accounts,
+    accountPockets,
+    incomeSources: incomeSources.map((source) => ({
+      ...source,
+      amount: source.amount.toFixed(4),
+      allocations: source.allocations.map((allocation) => ({
+        ...allocation,
+        fixedAmount: allocation.fixedAmount?.toFixed(4) ?? null,
+        percentage: allocation.percentage?.toFixed(6) ?? null,
+      })),
+    })),
+    plannedTransfers: plannedTransfers.map((transfer) => ({
+      ...transfer,
+      amount: transfer.amount.toFixed(4),
+    })),
+    budgetItems: budgetItems.map((item) => ({
+      ...item,
+      amount: item.amount.toFixed(4),
+    })),
+    exchangeRates: exchangeRates.map((rate) => ({
+      ...rate,
+      rate: rate.rate.toFixed(8),
+    })),
+  };
 }
 
 const id = z.string().min(1).max(64);

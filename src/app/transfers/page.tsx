@@ -23,15 +23,19 @@ export default async function TransfersPage() {
       },
       orderBy: { name: "asc" },
     }),
-    prisma.accountPocket.findMany({ where: { householdId: context.householdId, deletedAt: null }, select: { id: true, name: true, currency: true } }),
+    prisma.accountPocket.findMany({
+      where: { householdId: context.householdId, active: true, deletedAt: null, account: { active: true, deletedAt: null } },
+      select: { id: true, currency: true, account: { select: { name: true } } },
+      orderBy: [{ account: { name: "asc" } }, { currency: "asc" }],
+    }),
   ]);
   return (
     <EntityListPage
-      caption="Planned account-pocket transfers"
-      description="Internal movements between household account pockets. They are never counted as income or spending."
+      caption="Planned account transfers"
+      description="Internal movements between household account currencies. They are never counted as income or spending."
       headers={["Transfer", "From", "To", "Recurrence", "Monthly amount", "Treatment"]}
       note={
-        <div className="grid gap-4 lg:grid-cols-2"><TransferCreateForm pockets={pockets} /><Card className="flex items-center gap-3 border-brand-violet/30 bg-brand-violet/5 px-4 py-3 text-sm text-subdued"><ArrowLeftRight className="size-4 shrink-0 text-brand-teal" strokeWidth={1.5} />Cross-currency transfers are routing allocations, not predicted destination balances.</Card></div>
+        <div className="grid gap-4 lg:grid-cols-2"><TransferCreateForm pockets={pockets.map((pocket) => ({ id: pocket.id, currency: pocket.currency, accountName: pocket.account.name }))} /><Card className="flex items-center gap-3 border-brand-violet/30 bg-brand-violet/5 px-4 py-3 text-sm text-subdued"><ArrowLeftRight className="size-4 shrink-0 text-brand-teal" strokeWidth={1.5} />Cross-currency transfers are routing allocations, not predicted destination balances.</Card></div>
       }
       rows={transfers.map((transfer) => [
         transfer.name, `${transfer.fromAccountPocket.account.name} · ${transfer.fromAccountPocket.currency}`,

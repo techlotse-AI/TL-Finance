@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { budgetItemSchema, plannedTransferSchema } from "@/lib/budget/schemas";
+import { accountCreateSchema, budgetItemSchema, plannedTransferSchema } from "@/lib/budget/schemas";
 
 const dated = {
   recurrence: "monthly" as const,
@@ -9,6 +9,15 @@ const dated = {
 };
 
 describe("Budget mutation schemas", () => {
+  it("requires at least one supported currency when creating an account", () => {
+    const base = { name: "Daily account", type: "personal" as const };
+
+    expect(accountCreateSchema.safeParse({ ...base, supportedCurrencies: [] }).success).toBe(false);
+    expect(accountCreateSchema.parse({ ...base, supportedCurrencies: ["EUR", "CHF"] }).supportedCurrencies).toEqual(["EUR", "CHF"]);
+    expect(accountCreateSchema.safeParse({ ...base, supportedCurrencies: ["AUD"] }).success).toBe(false);
+    expect(accountCreateSchema.safeParse({ ...base, supportedCurrencies: ["EUR", "EUR"] }).success).toBe(false);
+  });
+
   it("allows an expense without a funding pocket", () => {
     expect(
       budgetItemSchema.parse({

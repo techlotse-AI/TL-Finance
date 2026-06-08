@@ -8,23 +8,26 @@ export const dynamic = "force-dynamic";
 
 export default async function AccountsPage() {
   const context = await requirePageContext();
-  const accounts = await prisma.account.findMany({
-    where: { householdId: context.householdId, deletedAt: null },
-    include: { pockets: { where: { deletedAt: null }, orderBy: { currency: "asc" } } },
-    orderBy: { name: "asc" },
-  });
+  const [household, accounts] = await Promise.all([
+    prisma.household.findUniqueOrThrow({ where: { id: context.householdId }, select: { baseCurrency: true } }),
+    prisma.account.findMany({
+      where: { householdId: context.householdId, deletedAt: null },
+      include: { pockets: { where: { deletedAt: null }, orderBy: { currency: "asc" } } },
+      orderBy: { name: "asc" },
+    }),
+  ]);
   return (
     <EntityListPage
-      caption="Planned payment-route accounts and currency pockets"
-      description="Account containers and currency-specific flow nodes. Budget does not store balances."
-      headers={["Account", "Type", "Institution", "Currency pockets", "Status"]}
-      note={<div className="grid gap-4 lg:grid-cols-2"><AccountCreateForm /><PocketCreateForm accounts={accounts.map(({ id, name }) => ({ id, name }))} /></div>}
+      caption="Planned payment-route accounts and supported currencies"
+      description="Add each account and select the currencies it supports. TL Finance manages the internal currency routes automatically. Budget does not store balances."
+      headers={["Account", "Type", "Institution", "Supported currencies", "Status"]}
+      note={<div className="grid gap-4 lg:grid-cols-2"><AccountCreateForm baseCurrency={household.baseCurrency} /><PocketCreateForm accounts={accounts.map(({ id, name }) => ({ id, name }))} baseCurrency={household.baseCurrency} /></div>}
       rows={accounts.map((account) => [
         account.name, account.type.toLowerCase().replace("_", " "), account.institution ?? "—",
-        account.pockets.map((pocket) => pocket.currency).join(", ") || "No pockets",
+        account.pockets.map((pocket) => pocket.currency).join(", ") || "No currencies",
         <Badge key={account.id} tone={account.active ? "success" : "neutral"}>{account.active ? "Active" : "Inactive"}</Badge>,
       ])}
-      title="Accounts and pockets"
+      title="Accounts"
     />
   );
 }

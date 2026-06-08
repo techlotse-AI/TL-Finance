@@ -30,8 +30,14 @@ export async function POST(request: Request) {
     const item = await prisma.$transaction(async (transaction) => {
       const category = await requireOwnedCategory(transaction, context.householdId, input.categoryId);
       if (category.kind !== toDbCategoryKind(input.kind)) throw new ApiError(400, "invalid_category_kind", "Budget item kind must match its category.");
-      if (input.paidFromAccountPocketId) await requireOwnedPocket(transaction, context.householdId, input.paidFromAccountPocketId);
-      if (input.paidToAccountPocketId) await requireOwnedPocket(transaction, context.householdId, input.paidToAccountPocketId);
+      const fromPocket = input.paidFromAccountPocketId
+        ? await requireOwnedPocket(transaction, context.householdId, input.paidFromAccountPocketId)
+        : null;
+      const toPocket = input.paidToAccountPocketId
+        ? await requireOwnedPocket(transaction, context.householdId, input.paidToAccountPocketId)
+        : null;
+      if (fromPocket && fromPocket.currency !== input.currency) throw new ApiError(400, "currency_mismatch", "Paid-from account must support the budget item currency.");
+      if (toPocket && toPocket.currency !== input.currency) throw new ApiError(400, "currency_mismatch", "Paid-to account must support the budget item currency.");
       const created = await transaction.budgetItem.create({
         data: {
           ...input, householdId: context.householdId, kind: toDbCategoryKind(input.kind),

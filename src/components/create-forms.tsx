@@ -1,17 +1,23 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { supportedCurrencies } from "@/lib/money/currencies";
 
 const input = "min-h-10 w-full rounded border bg-muted px-3 text-sm";
 
+function defaultSupportedCurrency(baseCurrency: string) {
+  return supportedCurrencies.find((currency) => currency === baseCurrency) ?? supportedCurrencies[0];
+}
+
 function ApiCreateForm({
-  endpoint, title, buildBody, children,
+  endpoint, title, buildBody, children, disabled = false, disabledMessage,
 }: {
   endpoint: string; title: string; buildBody: (data: FormData) => unknown; children: ReactNode;
+  disabled?: boolean; disabledMessage?: string;
 }) {
   const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
@@ -29,60 +35,158 @@ function ApiCreateForm({
   return (
     <Card className="p-5">
       <h2 className="mb-4 font-semibold">{title}</h2>
-      <form action={submit} className="grid gap-3">{children}<Button disabled={pending} type="submit">{pending ? "Saving…" : "Create"}</Button></form>
+      <form action={submit} className="grid gap-3">
+        {children}
+        {disabledMessage ? <p className="text-sm text-status-warning">{disabledMessage}</p> : null}
+        <Button disabled={pending || disabled} type="submit">{pending ? "Saving…" : "Create"}</Button>
+      </form>
       {message ? <p className="mt-3 text-sm text-subdued" role="status">{message}</p> : null}
     </Card>
   );
 }
 
-export function AccountCreateForm() {
+export function AccountCreateForm({ baseCurrency }: { baseCurrency: string }) {
+  const defaultCurrency = defaultSupportedCurrency(baseCurrency);
   return <ApiCreateForm endpoint="/api/accounts" title="Add account" buildBody={(d) => ({
     name: d.get("name"), type: d.get("type"), institution: d.get("institution") || null, maskedReference: null,
+    supportedCurrencies: d.getAll("supportedCurrencies"),
   })}>
-    <input className={input} name="name" placeholder="Account name" required />
-    <select className={input} name="type" defaultValue="personal">
+    <label className="grid gap-2 text-sm text-subdued">Account name<input className={input} name="name" required /></label>
+    <label className="grid gap-2 text-sm text-subdued">Account type<select className={input} name="type" defaultValue="personal">
       {["personal", "savings", "investment", "retirement", "credit_card", "cash", "other"].map((value) => <option key={value} value={value}>{value.replace("_", " ")}</option>)}
-    </select>
-    <input className={input} name="institution" placeholder="Institution (optional)" />
+    </select></label>
+    <label className="grid gap-2 text-sm text-subdued">Institution<input className={input} name="institution" placeholder="Optional" /></label>
+    <fieldset className="grid gap-2 rounded border bg-muted/30 p-3">
+      <legend className="px-1 text-sm font-semibold">Supported currencies</legend>
+      <div className="flex flex-wrap gap-4">
+        {supportedCurrencies.map((currency) => (
+          <label className="flex items-center gap-2 text-sm text-subdued" key={currency}>
+            <input defaultChecked={currency === defaultCurrency} name="supportedCurrencies" type="checkbox" value={currency} />
+            {currency}
+          </label>
+        ))}
+      </div>
+      <p className="text-xs text-subdued">Currency routes are created automatically inside this account.</p>
+    </fieldset>
   </ApiCreateForm>;
 }
 
-export function PocketCreateForm({ accounts }: { accounts: Array<{ id: string; name: string }> }) {
-  return <ApiCreateForm endpoint="/api/account-pockets" title="Add currency pocket" buildBody={(d) => ({
-    accountId: d.get("accountId"), name: d.get("name"), currency: d.get("currency"),
+export function PocketCreateForm({ accounts, baseCurrency }: { accounts: Array<{ id: string; name: string }>; baseCurrency: string }) {
+  const defaultCurrency = defaultSupportedCurrency(baseCurrency);
+  return <ApiCreateForm endpoint="/api/account-pockets" title="Add currency to existing account" buildBody={(d) => ({
+    accountId: d.get("accountId"), name: d.get("currency"), currency: d.get("currency"),
   })}>
-    <select className={input} name="accountId" required>{accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
-    <input className={input} name="name" placeholder="Pocket name" required />
-    <input className={input} defaultValue="CHF" maxLength={3} name="currency" required />
+    <label className="grid gap-2 text-sm text-subdued">Account<select className={input} name="accountId" required>{accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label>
+    <label className="grid gap-2 text-sm text-subdued">Currency<select className={input} defaultValue={defaultCurrency} name="currency">
+      {supportedCurrencies.map((currency) => <option key={currency}>{currency}</option>)}
+    </select></label>
+    <p className="text-xs text-subdued">Adds the selected currency route to the account.</p>
   </ApiCreateForm>;
 }
 
-export function IncomeCreateForm({ categories, pockets }: { categories: Array<{ id: string; name: string }>; pockets: Array<{ id: string; name: string; currency: string }> }) {
-  return <ApiCreateForm endpoint="/api/income-sources" title="Add monthly income" buildBody={(d) => ({
+export function IncomeCreateForm({
+  baseCurrency,
+  categories,
+  pockets,
+}: {
+  baseCurrency: string;
+  categories: Array<{ id: string; name: string }>;
+  pockets: Array<{ id: string; name: string; currency: string; accountName: string }>;
+}) {
+  const [currency, setCurrency] = useState<string>(defaultSupportedCurrency(baseCurrency));
+  const matchingPockets = useMemo(
+    () => pockets.filter((pocket) => pocket.currency === currency),
+    [currency, pockets],
+  );
+  const missing: string[] = [];
+  if (categories.length === 0) missing.push("an income category");
+  if (pockets.length === 0) missing.push("an active account with a supported currency");
+
+  return <ApiCreateForm
+    buildBody={(d) => ({
     name: d.get("name"), categoryId: d.get("categoryId"), amount: d.get("amount"), currency: d.get("currency"),
     recurrence: "monthly", selectedMonths: [], startDate: new Date().toISOString(),
     allocations: [{ accountPocketId: d.get("pocketId"), method: "percentage", percentage: "1.000000", sourceCurrency: d.get("currency") }],
-  })}>
-    <input className={input} name="name" placeholder="Income name" required />
-    <select className={input} name="categoryId" required>{categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
-    <div className="grid grid-cols-[1fr_96px] gap-3"><input className={input} name="amount" placeholder="Amount" required /><input className={input} defaultValue="CHF" name="currency" required /></div>
-    <select className={input} name="pocketId" required>{pockets.map((p) => <option key={p.id} value={p.id}>{p.name} · {p.currency}</option>)}</select>
+    })}
+    disabled={missing.length > 0}
+    disabledMessage={missing.length > 0 ? `Create ${missing.join(" and ")} before adding income.` : undefined}
+    endpoint="/api/income-sources"
+    title="Add monthly income"
+  >
+    <label className="grid gap-2 text-sm text-subdued">
+      Income name
+      <input className={input} name="name" required />
+    </label>
+    <label className="grid gap-2 text-sm text-subdued">
+      Income category
+      <select className={input} name="categoryId" required>
+        {categories.length === 0 ? <option value="">No income categories available</option> : null}
+        {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+      </select>
+    </label>
+    <div className="grid grid-cols-[1fr_96px] gap-3">
+      <label className="grid gap-2 text-sm text-subdued">
+        Amount
+        <input className={input} inputMode="decimal" name="amount" required />
+      </label>
+      <label className="grid gap-2 text-sm text-subdued">
+        Currency
+        <select className={input} name="currency" onChange={(event) => setCurrency(event.target.value)} value={currency}>
+          {supportedCurrencies.map((value) => <option key={value}>{value}</option>)}
+        </select>
+      </label>
+    </div>
+    <label className="grid gap-2 text-sm text-subdued">
+      Receiving account
+      <select className={input} key={currency} name="pocketId" required>
+        {matchingPockets.length === 0 ? <option value="">No accounts support {currency}</option> : null}
+        {matchingPockets.map((pocket) => (
+          <option key={pocket.id} value={pocket.id}>
+            {pocket.accountName} · {pocket.currency}
+          </option>
+        ))}
+      </select>
+    </label>
   </ApiCreateForm>;
 }
 
-export function TransferCreateForm({ pockets }: { pockets: Array<{ id: string; name: string; currency: string }> }) {
+export function TransferCreateForm({ pockets }: { pockets: Array<{ id: string; currency: string; accountName: string }> }) {
   return <ApiCreateForm endpoint="/api/planned-transfers" title="Add monthly transfer" buildBody={(d) => ({
     name: d.get("name"), fromAccountPocketId: d.get("from"), toAccountPocketId: d.get("to"),
     amount: d.get("amount"), currency: d.get("currency"), recurrence: "monthly", selectedMonths: [], startDate: new Date().toISOString(),
   })}>
     <input className={input} name="name" placeholder="Transfer name" required />
-    <select className={input} name="from" required>{pockets.map((p) => <option key={p.id} value={p.id}>From: {p.name} · {p.currency}</option>)}</select>
-    <select className={input} name="to" required>{pockets.map((p) => <option key={p.id} value={p.id}>To: {p.name} · {p.currency}</option>)}</select>
+    <select className={input} name="from" required>{pockets.map((p) => <option key={p.id} value={p.id}>From: {p.accountName} · {p.currency}</option>)}</select>
+    <select className={input} name="to" required>{pockets.map((p) => <option key={p.id} value={p.id}>To: {p.accountName} · {p.currency}</option>)}</select>
     <div className="grid grid-cols-[1fr_96px] gap-3"><input className={input} name="amount" placeholder="Amount" required /><input className={input} defaultValue="CHF" name="currency" required /></div>
   </ApiCreateForm>;
 }
 
-export function BudgetItemCreateForm({ categories, pockets }: { categories: Array<{ id: string; name: string; kind: string }>; pockets: Array<{ id: string; name: string; currency: string }> }) {
+export function BudgetItemCreateForm({
+  baseCurrency,
+  categories,
+  pockets,
+}: {
+  baseCurrency: string;
+  categories: Array<{ id: string; name: string; kind: string }>;
+  pockets: Array<{ id: string; currency: string; accountName: string; accountType: string }>;
+}) {
+  const [kind, setKind] = useState("expense");
+  const [currency, setCurrency] = useState<string>(defaultSupportedCurrency(baseCurrency));
+  const filteredCategories = useMemo(
+    () => categories.filter((category) => category.kind === kind),
+    [categories, kind],
+  );
+  const matchingRoutes = useMemo(
+    () => pockets.filter((pocket) => pocket.currency === currency),
+    [currency, pockets],
+  );
+  const destinationAccountType = kind === "saving" ? "savings" : kind;
+  const destinationRoutes = useMemo(
+    () => matchingRoutes.filter((pocket) => pocket.accountType === destinationAccountType),
+    [destinationAccountType, matchingRoutes],
+  );
+
   return <ApiCreateForm endpoint="/api/budget-items" title="Add monthly budget item" buildBody={(d) => {
     const kind = String(d.get("kind"));
     return {
@@ -91,13 +195,39 @@ export function BudgetItemCreateForm({ categories, pockets }: { categories: Arra
       paidFromAccountPocketId: d.get("from") || null, paidToAccountPocketId: kind === "expense" ? null : d.get("to") || null,
     };
   }}>
-    <input className={input} name="name" placeholder="Budget item name" required />
-    <select className={input} name="kind" defaultValue="expense">{["expense", "saving", "investment", "retirement"].map((k) => <option key={k}>{k}</option>)}</select>
-    <select className={input} name="categoryId" required>{categories.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.kind.toLowerCase()})</option>)}</select>
-    <div className="grid grid-cols-[1fr_96px] gap-3"><input className={input} name="amount" placeholder="Amount" required /><input className={input} defaultValue="CHF" name="currency" required /></div>
-    <select className={input} name="from"><option value="">Unallocated expense</option>{pockets.map((p) => <option key={p.id} value={p.id}>From: {p.name} · {p.currency}</option>)}</select>
-    <select className={input} name="to"><option value="">No destination</option>{pockets.map((p) => <option key={p.id} value={p.id}>To: {p.name} · {p.currency}</option>)}</select>
-    <label className="flex gap-2 text-sm text-subdued"><input name="essential" type="checkbox" /> Essential</label>
+    <label className="grid gap-2 text-sm text-subdued">Budget item name<input className={input} name="name" required /></label>
+    <label className="grid gap-2 text-sm text-subdued">Item kind<select
+      className={input}
+      name="kind"
+      onChange={(event) => setKind(event.target.value)}
+      value={kind}
+    >{["expense", "saving", "investment", "retirement"].map((value) => <option key={value}>{value}</option>)}</select></label>
+    <label className="grid gap-2 text-sm text-subdued">Category<select className={input} key={kind} name="categoryId" required>
+      {filteredCategories.length === 0 ? <option value="">No {kind} categories available</option> : null}
+      {filteredCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+    </select></label>
+    <div className="grid grid-cols-[1fr_112px] gap-3">
+      <label className="grid gap-2 text-sm text-subdued">Amount<input className={input} inputMode="decimal" name="amount" required /></label>
+      <label className="grid gap-2 text-sm text-subdued">Currency<select className={input} name="currency" onChange={(event) => setCurrency(event.target.value)} value={currency}>
+        {supportedCurrencies.map((value) => <option key={value}>{value}</option>)}
+      </select></label>
+    </div>
+    <label className="grid gap-2 text-sm text-subdued">Paid from account<select className={input} key={`from:${currency}`} name="from">
+      <option value="">{kind === "expense" ? "Unallocated expense" : "Select funding account"}</option>
+      {matchingRoutes.map((route) => <option key={route.id} value={route.id}>{route.accountName} · {route.currency}</option>)}
+    </select></label>
+    {kind === "expense" ? (
+      <p className="rounded border bg-muted/30 px-3 py-2 text-sm text-subdued">Expenses leave the household and do not need a destination account.</p>
+    ) : (
+      <label className="grid gap-2 text-sm text-subdued">Paid to {kind} account<select className={input} key={`to:${kind}:${currency}`} name="to" required>
+        <option value="">Select destination account</option>
+        {destinationRoutes.map((route) => <option key={route.id} value={route.id}>{route.accountName} · {route.currency}</option>)}
+      </select></label>
+    )}
+    <label className="flex items-start gap-2 text-sm text-subdued">
+      <input className="mt-1" name="essential" type="checkbox" />
+      <span><strong className="text-foreground">Essential</strong><span className="block text-xs">Marks required household spending for adherence and future emergency-fund calculations. It does not change the budget total.</span></span>
+    </label>
   </ApiCreateForm>;
 }
 

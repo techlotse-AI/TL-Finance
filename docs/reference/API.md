@@ -12,7 +12,13 @@ Implemented endpoints:
 | `GET, POST, PATCH, DELETE` | `/api/category-groups/*`, `/api/categories/*`, `/api/accounts/*`, `/api/account-pockets/*`, `/api/income-sources/*`, `/api/planned-transfers/*`, `/api/budget-items/*` | Household-scoped Budget resources |
 | `GET` | `/api/budget/monthly-summary`, `/api/budget/money-flow` | Persisted normalized plan and graph |
 | `GET, POST` | `/api/members/*`, `/api/admin/tiers`, `/api/exchange-rates` | Membership, manual entitlement, and reporting-rate administration |
+| `POST` | `/api/exchange-rates/refresh` | Household-admin refresh of free Frankfurter institutional reference rates |
 | `GET, POST` | `/api/household/export`, `/api/household/import` | Validated household portability |
+| `GET, POST` | `/api/user/backup/export`, `/api/user/backup/import` | Authenticated multi-household user Budget backup portability |
+| `POST` | `/api/admin/users` | Instance-admin user activation and administrator-role management |
+| `POST` | `/api/admin/platform-backup` | Instance-admin S3-compatible platform snapshot upload |
+| `GET` | `/api/admin/audit-export` | Instance-admin audit-event CSV export, limited to the newest 50,000 events |
+| `POST` | `/api/admin/database-reset` | Instance-admin destructive reset with exact confirmation and current-password verification |
 | `GET` | `/api/analysis/status` | Entitled Analyze foundation counts |
 | `POST` | `/api/analysis/imports/preview` | Fail-closed parser preview; writes import metadata but no transactions |
 | `POST` | `/api/optimize/projections` | Entitled, non-persistent deterministic scenario comparison |

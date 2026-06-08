@@ -1,14 +1,15 @@
 # TL Finance
 
 TL Finance is a Docker-first, privacy-focused household finance application.
-The **v0.1.0 Budget tier is implemented** and the v0.2.0 Analyze foundation has
-started. No institution statement parser is production-ready without its
+The **Budget tier is implemented**, the Analyze foundation and Optimize
+calculator have started, and v0.3.1 adds platform operations and data
+portability. No institution statement parser is production-ready without its
 required sanitized fixtures.
 
 Budget models planned money routes without account balances or forecasts:
 
 ```text
-Income source -> receiving account pocket -> planned transfers
+Income source -> receiving account currency -> planned transfers
               -> payment category -> budget item
 ```
 
@@ -17,7 +18,7 @@ Income source -> receiving account pocket -> planned transfers
 Requirements:
 
 - Docker Desktop with Compose
-- Node.js 22 when running outside Docker
+- Node.js 24.16.0 when running outside Docker
 
 ```bash
 cp .env.example .env

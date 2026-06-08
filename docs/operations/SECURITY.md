@@ -22,6 +22,23 @@ Baseline security is required from v0.1.0.
 - CI installs from the lockfile, runs the dependency audit at moderate
   severity, and pins third-party GitHub Actions to immutable verified commits.
 - Dependabot monitors npm, GitHub Actions, and Docker dependencies weekly.
+- Platform settings require the persisted `instanceAdmin` flag server-side.
+  Non-administrators receive an explicit access-denied page instead of a
+  server-component exception.
+- User activation and administrator-role changes are audited, revoke sessions
+  when a user is deactivated, prevent current-user self-lockout, and preserve
+  at least one active platform administrator.
+- Platform database reset requires instance-administrator access, the current
+  administrator password, and the exact `RESET PLATFORM DATABASE` confirmation.
+  It preserves only that administrator and current session, then writes a new
+  post-reset audit event.
+- Platform backup credentials remain server-side environment variables. Backup
+  objects request AES256 server-side encryption by default and include password
+  hashes, so the destination bucket must be private. The explicit `none`
+  compatibility mode is acceptable only when the storage provider enforces
+  encryption independently.
+- User-backup and audit-log exports emit security audit events. Audit-log CSV
+  export is instance-administrator-only and capped at the newest 50,000 events.
 
 The complete public-ready threat model, independent review, reset and
 verification delivery, backup/restore validation, and incident response are

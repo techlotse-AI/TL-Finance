@@ -18,8 +18,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       if (!existing) throw new ApiError(404, "not_found", "Budget item was not found.");
       const category = await requireOwnedCategory(transaction, context.householdId, input.categoryId);
       if (category.kind !== toDbCategoryKind(input.kind)) throw new ApiError(400, "invalid_category_kind", "Budget item kind must match its category.");
-      if (input.paidFromAccountPocketId) await requireOwnedPocket(transaction, context.householdId, input.paidFromAccountPocketId);
-      if (input.paidToAccountPocketId) await requireOwnedPocket(transaction, context.householdId, input.paidToAccountPocketId);
+      const fromPocket = input.paidFromAccountPocketId
+        ? await requireOwnedPocket(transaction, context.householdId, input.paidFromAccountPocketId)
+        : null;
+      const toPocket = input.paidToAccountPocketId
+        ? await requireOwnedPocket(transaction, context.householdId, input.paidToAccountPocketId)
+        : null;
+      if (fromPocket && fromPocket.currency !== input.currency) throw new ApiError(400, "currency_mismatch", "Paid-from account must support the budget item currency.");
+      if (toPocket && toPocket.currency !== input.currency) throw new ApiError(400, "currency_mismatch", "Paid-to account must support the budget item currency.");
       const updated = await transaction.budgetItem.update({
         where: { id },
         data: { ...input, kind: toDbCategoryKind(input.kind), recurrence: toDbRecurrence(input.recurrence) },

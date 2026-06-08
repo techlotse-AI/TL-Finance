@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { recurrenceValues } from "@/lib/budget/recurrence";
 import { money } from "@/lib/money/decimal";
+import { supportedCurrencies } from "@/lib/money/currencies";
 
 export const idSchema = z.string().min(1).max(64);
 export const nameSchema = z.string().trim().min(1).max(120);
@@ -43,6 +44,14 @@ export const accountSchema = z.object({
   ]),
   institution: z.string().trim().max(120).nullable().optional(),
   maskedReference: z.string().trim().max(32).nullable().optional(),
+});
+
+export const accountCreateSchema = accountSchema.extend({
+  supportedCurrencies: z
+    .array(z.enum(supportedCurrencies))
+    .min(1)
+    .max(supportedCurrencies.length)
+    .refine((currencies) => new Set(currencies).size === currencies.length, "Supported currencies must be unique."),
 });
 
 export const categoryGroupSchema = z.object({

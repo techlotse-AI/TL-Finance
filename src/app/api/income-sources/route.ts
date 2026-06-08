@@ -39,8 +39,9 @@ export async function POST(request: Request) {
       const category = await requireOwnedCategory(transaction, context.householdId, input.categoryId);
       if (category.kind !== "INCOME") throw new ApiError(400, "invalid_category_kind", "Income sources require an income category.");
       for (const allocation of input.allocations) {
-        await requireOwnedPocket(transaction, context.householdId, allocation.accountPocketId);
+        const pocket = await requireOwnedPocket(transaction, context.householdId, allocation.accountPocketId);
         if (allocation.sourceCurrency !== input.currency) throw new ApiError(400, "currency_mismatch", "Allocation source currency must match the income source.");
+        if (pocket.currency !== input.currency) throw new ApiError(400, "currency_mismatch", "Receiving account must support the income currency.");
       }
       const created = await transaction.incomeSource.create({
         data: {

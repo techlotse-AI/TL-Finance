@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+- Started v0.3.1 platform operations with instance-administrator user
+  management, audit-log CSV export, environment-configured S3-compatible
+  platform backups, and a password-plus-confirmation protected database reset.
+- Added authenticated user backup export/import for every accessible
+  household's current live Budget plan and reporting exchange rates.
+- Added account creation with supported currencies, while retaining
+  currency-specific account pockets as internal flow nodes.
+- Made income and budget-item currency routes display account names and
+  currencies, filter dependent options, and reject mismatched currencies
+  server-side.
+- Added free, no-key Frankfurter institutional reference-rate refreshes for
+  reporting exchange rates.
+- Documented that Essential marks required spending for adherence and future
+  emergency-fund calculations without changing budget totals.
+- Replaced the non-administrator Admin page exception with an explicit
+  access-denied state.
+- Labeled the income receiving-pocket selector, added explicit empty-state
+  guidance, included account and currency details in its options, and defaulted
+  new income currency to the active household base currency.
 - Established the v0.1.0 repository, documentation, Docker, Next.js, Prisma,
   TypeScript, Tailwind, ESLint, and Vitest foundations.
 - Added the initial planned Budget data model without balance or forecast

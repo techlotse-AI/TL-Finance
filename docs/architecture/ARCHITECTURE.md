@@ -8,6 +8,9 @@ authentication, authorization, audit, money arithmetic, and Budget behavior.
 
 - Budget owns planned income, account pockets, transfers, categories, items,
   monthly normalization, and planned money-flow.
+- Normal account workflows expose accounts and supported currencies. The
+  currency-specific `AccountPocket` remains the internal planned-flow node and
+  is not removed from the domain model.
 - Analyze foundation owns immutable imported source facts, parser contracts,
   deterministic dedupe, allocations, and transfer matching. Full Analyze
   workflows are not yet implemented.
@@ -20,6 +23,9 @@ authentication, authorization, audit, money arithmetic, and Budget behavior.
 - Manual administrator assignment is the only implemented entitlement source.
   `BillingProvider` defines the boundary for a future payment integration, but
   v0.1.0 does not ship a provider implementation or webhook route.
+- Platform operations own instance-level user state, audit export, protected
+  reset, and S3-compatible full-platform snapshots. User backups remain
+  separate, validated, portable exports of live Budget household data.
 
 ## Request path
 

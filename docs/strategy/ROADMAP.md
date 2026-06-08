@@ -21,6 +21,17 @@ Next, add emergency-fund calculations, persisted scenario comparison,
 account-derived forecasts after Analyze is complete, Swiss Pillar 3a
 calculations, and explainable recommendations.
 
+## v0.3.1 - Platform settings and portability
+
+Started with authenticated multi-household user Budget backup portability,
+instance-administrator user management, audit-log export, on-demand
+S3-compatible platform snapshots, protected database reset, supported-currency
+account setup, account-and-currency route UX, and free Frankfurter reporting
+rate refreshes.
+
+Automated platform restore, scheduled backups, and public-ready operational
+validation remain v0.4.0 work.
+
 ## v0.4.0 - Public-ready security
 
 Complete independent review and public operations, authentication, privacy, and

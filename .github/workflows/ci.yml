@@ -46,6 +46,7 @@ jobs:
       - run: npm run dependencies:check
       - run: npm run generate
       - run: npm run migration:check
+      - run: npm run api:security:check
       - run: npx prisma migrate deploy
       - run: npm run typecheck
       - run: npm run lint

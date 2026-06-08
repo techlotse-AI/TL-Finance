@@ -20,7 +20,8 @@ Baseline security is required from v0.1.0.
   multi-instance deployment must replace it with a shared limiter before public
   exposure.
 - CI installs from the lockfile, runs the dependency audit at moderate
-  severity, and pins third-party GitHub Actions to immutable verified commits.
+  severity, rejects unsafe API methods without an explicit trusted-origin
+  check, and pins third-party GitHub Actions to immutable verified commits.
 - Dependabot monitors npm, GitHub Actions, and Docker dependencies weekly.
 - Platform settings require the persisted `instanceAdmin` flag server-side.
   Non-administrators receive an explicit access-denied page instead of a
@@ -30,8 +31,8 @@ Baseline security is required from v0.1.0.
   at least one active platform administrator.
 - Platform database reset requires instance-administrator access, the current
   administrator password, and the exact `RESET PLATFORM DATABASE` confirmation.
-  It preserves only that administrator and current session, then writes a new
-  post-reset audit event.
+  It preserves that administrator, the current session, and the append-only
+  audit history, then writes a new post-reset audit event.
 - Platform backup credentials remain server-side environment variables. Backup
   objects request AES256 server-side encryption by default and include password
   hashes, so the destination bucket must be private. The explicit `none`

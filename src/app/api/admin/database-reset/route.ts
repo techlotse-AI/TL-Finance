@@ -36,7 +36,6 @@ export async function POST(request: Request) {
       await transaction.category.deleteMany();
       await transaction.categoryGroup.deleteMany();
       await transaction.tierEntitlement.deleteMany();
-      await transaction.auditEvent.deleteMany();
       await transaction.householdMember.deleteMany();
       await transaction.household.deleteMany();
       await transaction.emailVerificationToken.deleteMany();

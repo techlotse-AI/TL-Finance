@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Merged all local branch work into `main` and recorded the v0.3.0/v0.4.0
+  release-readiness test results.
+- Preserved append-only audit history during platform database reset.
+- Added missing trusted-origin enforcement to platform backup and
+  exchange-rate refresh.
+- Added a CI guard that rejects unsafe API methods without explicit
+  trusted-origin enforcement.
 - Started v0.3.1 platform operations with instance-administrator user
   management, audit-log CSV export, environment-configured S3-compatible
   platform backups, and a password-plus-confirmation protected database reset.

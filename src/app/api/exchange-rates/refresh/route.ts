@@ -2,6 +2,7 @@ import { json, routeError } from "@/lib/api/route";
 import { writeAuditEvent } from "@/lib/audit/write";
 import { assertRole } from "@/lib/auth/authorize";
 import { requireAuthenticatedContext } from "@/lib/auth/context";
+import { assertTrustedOrigin } from "@/lib/auth/origin";
 import { requestIp } from "@/lib/auth/request";
 import { prisma } from "@/lib/db/prisma";
 import { fetchFrankfurterRates } from "@/lib/money/frankfurter";
@@ -10,6 +11,7 @@ export async function POST(request: Request) {
   try {
     const context = await requireAuthenticatedContext("budget.write");
     assertRole(context.role, "admin");
+    assertTrustedOrigin(request);
     const [household, pockets] = await Promise.all([
       prisma.household.findUniqueOrThrow({
         where: { id: context.householdId },

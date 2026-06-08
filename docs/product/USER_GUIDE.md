@@ -29,7 +29,9 @@ and future emergency-fund calculations. It does not change normalized totals.
 
 Instance administrators use Platform settings for user management, household
 tier assignment, S3-compatible platform backup uploads, audit-log CSV export,
-and the protected platform-database reset.
+and the protected platform-database reset. Reset preserves the current
+administrator, current session, and append-only audit history while removing
+other platform operational and financial data.
 
 One-time items remain visible but are excluded from the recurring monthly
 baseline. Unallocated income, account funds, and expenses without a funding

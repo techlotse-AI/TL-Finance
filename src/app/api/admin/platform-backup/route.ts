@@ -1,6 +1,7 @@
 import { json, routeError } from "@/lib/api/route";
 import { writeAuditEvent } from "@/lib/audit/write";
 import { requireAuthenticatedSession } from "@/lib/auth/context";
+import { assertTrustedOrigin } from "@/lib/auth/origin";
 import { requestIp } from "@/lib/auth/request";
 import { prisma } from "@/lib/db/prisma";
 import { exportPlatformBackup } from "@/lib/platform/backup";
@@ -11,6 +12,7 @@ export async function POST(request: Request) {
   try {
     const session = await requireAuthenticatedSession();
     if (!session.instanceAdmin) throw new ApiError(403, "forbidden", "Instance administrator access is required.");
+    assertTrustedOrigin(request);
     const snapshot = await prisma.$transaction(
       (transaction) => exportPlatformBackup(transaction),
       { isolationLevel: "Serializable", timeout: 120_000 },

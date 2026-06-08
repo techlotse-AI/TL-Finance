@@ -13,6 +13,7 @@
     "start": "next start",
     "generate": "prisma generate",
     "dependencies:check": "npm ls --all",
+    "api:security:check": "node scripts/check-api-security.mjs",
     "migration:check": "node scripts/check-migrations.mjs",
     "security:audit": "npm audit --audit-level=moderate",
     "typecheck": "tsc --noEmit",

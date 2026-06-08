@@ -18,3 +18,4 @@ labels planned later-tier behavior.
 - [Transfer and FX matching strategy](strategy/TRANSFER_AND_FX_MATCHING.md)
 - [Changelog](release/CHANGELOG.md)
 - [v0.1.0 implementation status](release/V0_1_STATUS.md)
+- [v0.3.0 / v0.4.0 release test report](release/V0_3_V0_4_TEST_REPORT.md)

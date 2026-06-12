@@ -13,6 +13,12 @@ The Budget workflow plans where normalized monthly income goes.
 5. Add expense, saving, investment, and retirement budget items.
 6. Review the normalized monthly table and planned money-flow.
 
+The money-flow graph lays routes out from left to right. Internal transfers and
+contribution destinations may repeat an account in a later visual stage so the
+route direction remains explicit. Node height and route width reflect normalized
+monthly value, while connected nodes and attachment points are ordered to reduce
+crossing and overlap.
+
 Settings supports active-household switching, categories, members, reporting
 exchange rates, and validated JSON export/import. The user backup exports the
 user display name plus the current live Budget plan and reporting rates for

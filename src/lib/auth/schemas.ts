@@ -18,3 +18,15 @@ export const signInSchema = z.object({
   email: z.string().trim().email().max(254).transform((value) => value.toLowerCase()),
   password: z.string().min(1).max(128),
 });
+
+export const accountEmailRequestSchema = z.object({
+  email: z.string().trim().email().max(254).transform((value) => value.toLowerCase()),
+});
+
+export const tokenCompleteSchema = z.object({
+  token: z.string().min(32).max(256),
+});
+
+export const passwordResetCompleteSchema = tokenCompleteSchema.extend({
+  password: passwordSchema,
+});

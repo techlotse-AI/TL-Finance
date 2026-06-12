@@ -1,5 +1,5 @@
 import { LockedTierPage } from "@/components/locked-tier-page";
-import { ScenarioCalculator } from "@/components/optimize/scenario-calculator";
+import { OptimizeWorkspace } from "@/components/optimize/optimize-workspace";
 import { PageHeader } from "@/components/ui/page-header";
 import { requirePageContext } from "@/lib/auth/page-context";
 import { prisma } from "@/lib/db/prisma";
@@ -13,14 +13,12 @@ export default async function OptimizePage() {
     return (
       <LockedTierPage
         capabilities={[
-          "Scenarios",
-          "Account forecasts",
-          "Emergency fund",
-          "Pillar 3a calculations",
-          "Recommendations",
-          "Predictions",
+          "Scenario projections",
+          "Emergency-fund sizing",
+          "Swiss Pillar 3a planning",
+          "Explainable recommendations",
         ]}
-        description="Deterministic forecasts, scenarios, and explainable recommendations begin in v0.3.0."
+        description="Deterministic forecasts, scenarios, Swiss Pillar 3a planning, and explainable recommendations are part of the Optimize tier."
         tier="Optimize"
         title="Optimize"
       />
@@ -35,11 +33,11 @@ export default async function OptimizePage() {
   return (
     <div className="mx-auto max-w-app space-y-6">
       <PageHeader
-        description="Compare explicit financial assumptions with deterministic Decimal calculations. Optimize never changes the household budget automatically."
         eyebrow="Optimize tier"
-        title="Scenario projections"
+        title="Optimize"
+        description="Plan with explicit, deterministic Decimal calculations: scenarios, an emergency fund sized from your essentials, Swiss Pillar 3a, and ranked recommendations. Optimize never changes your budget automatically."
       />
-      <ScenarioCalculator currency={household.baseCurrency} />
+      <OptimizeWorkspace currency={household.baseCurrency} />
     </div>
   );
 }

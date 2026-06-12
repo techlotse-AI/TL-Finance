@@ -23,9 +23,13 @@ Started with an entitlement-protected, non-persistent deterministic scenario
 comparison calculator. It uses explicit starting amounts, monthly contributions,
 annual-return assumptions, and time horizons without changing Budget records.
 
-Next, add emergency-fund calculations, persisted scenario comparison,
-account-derived forecasts after Analyze is complete, Swiss Pillar 3a
-calculations, and explainable recommendations.
+Now also includes deterministic emergency-fund sizing (from Essential budget
+items), Swiss Pillar 3a calculations (2026 limits, remaining headroom, tax
+saving, and growth projection), and ranked, explainable recommendations that
+combine the emergency-fund gap, Pillar 3a headroom, and Analyze findings.
+
+Remaining v0.3.0 work: persisted scenario comparison and account-derived
+balance forecasts built on committed Analyze actuals.
 
 ## v0.3.1 - Platform settings and portability
 
@@ -40,5 +44,9 @@ validation remain v0.4.0 work.
 
 ## v0.4.0 - Public-ready security
 
-Complete independent review and public operations, authentication, privacy, and
-incident-response requirements.
+Implemented public email verification and password reset delivery, shared
+database-backed rate limiting, user session revocation, scheduled S3-compatible
+backups, offline full-platform restore, v0.4 readiness checks, and public
+operations/privacy/security runbooks. Every deployment still requires its own
+restore rehearsal, container scan, and independent security approval before
+public exposure.

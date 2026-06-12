@@ -1,10 +1,10 @@
 # TL Finance
 
 TL Finance is a Docker-first, privacy-focused household finance application.
-The **Budget tier is implemented**, the Analyze foundation and Optimize
-calculator have started, and v0.3.1 adds platform operations and data
-portability. No institution statement parser is production-ready without its
-required sanitized fixtures.
+The Budget and Analyze tiers are implemented. Optimize includes deterministic
+scenarios, emergency-fund sizing, Swiss Pillar 3a calculations, and explainable
+recommendations. v0.4.0 adds public-auth flows, shared rate limiting, session
+controls, scheduled backups, offline restore, and public deployment runbooks.
 
 Budget models planned money routes without account balances or forecasts:
 

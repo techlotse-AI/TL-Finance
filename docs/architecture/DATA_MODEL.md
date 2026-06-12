@@ -25,3 +25,7 @@ The additive v0.2.0 foundation adds `StatementImport`, immutable
 `ActualTransaction` source facts, `ActualTransactionAllocation`,
 `TransactionAllocationRule`, and `TransactionTransferMatch`. Source statement
 balances exist only for import reconciliation and do not add Budget balances.
+
+v0.4.0 adds `RateLimitBucket`, a shared PostgreSQL-backed authentication
+throttle keyed by an HMAC rather than raw email or IP values. Verification and
+password-reset token models store only token hashes and expiry/usage metadata.

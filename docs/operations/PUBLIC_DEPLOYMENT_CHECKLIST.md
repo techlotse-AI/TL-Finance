@@ -1,0 +1,17 @@
+# Public Deployment Checklist
+
+- [ ] TLS ingress is configured and `NEXT_PUBLIC_APP_URL` is the exact public origin.
+- [ ] `AUDIT_IP_HASH_SECRET`, `RATE_LIMIT_HASH_SECRET`, and
+      `SCHEDULED_BACKUP_TOKEN` are independent random values of at least 32
+      characters.
+- [ ] `EMAIL_VERIFICATION_REQUIRED=true` and SMTP delivery is tested.
+- [ ] Database is private, backed up, monitored, and restored successfully in a
+      rehearsal environment.
+- [ ] S3 backup bucket is private, encrypted, least-privilege, and lifecycle
+      protected.
+- [ ] Scheduled backup logs and failed jobs are monitored.
+- [ ] `npm run v0.4:readiness`, full CI, dependency audit, and container scan pass.
+- [ ] Cross-household and administrator access tests pass.
+- [ ] Threat model, privacy policy, incident response, and secret rotation are
+      reviewed by the operator.
+- [ ] An independent security reviewer has approved the deployment.

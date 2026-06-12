@@ -11,12 +11,11 @@ authentication, authorization, audit, money arithmetic, and Budget behavior.
 - Normal account workflows expose accounts and supported currencies. The
   currency-specific `AccountPocket` remains the internal planned-flow node and
   is not removed from the domain model.
-- Analyze foundation owns immutable imported source facts, parser contracts,
-  deterministic dedupe, allocations, and transfer matching. Full Analyze
-  workflows are not yet implemented.
-- Optimize owns deterministic scenario projections. The first v0.3.0 slice is
-  an on-demand, non-persistent calculator protected by `optimize.run`.
-  Account-derived forecasts remain blocked on completed Analyze data.
+- Analyze owns immutable imported source facts, fixture-backed parsers,
+  deterministic dedupe, allocations, transfer/FX matching, adherence, and
+  explainable findings.
+- Optimize owns deterministic scenario projections, emergency-fund sizing,
+  Swiss Pillar 3a calculations, and ranked explainable recommendations.
 - `Household` is the mandatory tenant boundary for every financial row.
 - Decimal values are persisted as PostgreSQL decimal values and serialized as
   strings at API and component boundaries.
@@ -24,7 +23,8 @@ authentication, authorization, audit, money arithmetic, and Budget behavior.
   `BillingProvider` defines the boundary for a future payment integration, but
   v0.1.0 does not ship a provider implementation or webhook route.
 - Platform operations own instance-level user state, audit export, protected
-  reset, and S3-compatible full-platform snapshots. User backups remain
+  reset, scheduled S3-compatible snapshots, and offline full-platform restore.
+  User backups remain
   separate, validated, portable exports of live Budget household data.
 
 ## Request path
@@ -38,3 +38,8 @@ Budget APIs use this request path and build persisted monthly reports from the
 active household. Analyze APIs additionally enforce `analysis.*` capability
 checks. Optimize calculation APIs enforce `optimize.run`, validate bounded
 assumptions, and return Decimal values as strings.
+
+Public authentication uses hashed one-time verification and password-reset
+tokens. Password reset revokes every active session. Authentication throttling
+uses PostgreSQL-backed `RateLimitBucket` rows so limits remain effective across
+multiple application instances.

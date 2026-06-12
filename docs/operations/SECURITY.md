@@ -16,9 +16,11 @@ Baseline security is required from v0.1.0.
 - Response headers enforce a same-origin content security policy, HSTS,
   framing and MIME-sniffing protection, strict referrer behavior, and
   restricted browser capabilities.
-- Authentication endpoints use a process-local baseline rate limiter. A
-  multi-instance deployment must replace it with a shared limiter before public
-  exposure.
+- Authentication endpoints use PostgreSQL-backed shared rate-limit buckets
+  keyed by HMAC values rather than raw identifiers.
+- Email-verification and password-reset links use random one-time tokens that
+  are hashed at rest. Password reset revokes every active user session.
+- Users can list and revoke their other active sessions.
 - CI installs from the lockfile, runs the dependency audit at moderate
   severity, rejects unsafe API methods without an explicit trusted-origin
   check, and pins third-party GitHub Actions to immutable verified commits.
@@ -41,6 +43,6 @@ Baseline security is required from v0.1.0.
 - User-backup and audit-log exports emit security audit events. Audit-log CSV
   export is instance-administrator-only and capped at the newest 50,000 events.
 
-The complete public-ready threat model, independent review, reset and
-verification delivery, backup/restore validation, and incident response are
-planned for v0.4.0.
+Public deployment runbooks cover the threat model, privacy, incident response,
+backup/restore, secret rotation, and deployment checks. An independent security
+review remains an operator gate before public exposure.

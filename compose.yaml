@@ -20,8 +20,17 @@ services:
     environment:
       DATABASE_URL: postgresql://tlfinance:tlfinance@db:5432/tlfinance?schema=public
       AUDIT_IP_HASH_SECRET: local-development-audit-secret-change-me
+      RATE_LIMIT_HASH_SECRET: local-development-rate-limit-secret-change-me
       NEXT_PUBLIC_APP_URL: http://localhost:3000
       INSTANCE_ADMIN_EMAIL: admin@example.com
+      EMAIL_VERIFICATION_REQUIRED: ${EMAIL_VERIFICATION_REQUIRED:-false}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SCHEDULED_BACKUP_TOKEN: ${SCHEDULED_BACKUP_TOKEN:-local-development-scheduled-backup-token}
       S3_BACKUP_ENDPOINT: ${S3_BACKUP_ENDPOINT:-}
       S3_BACKUP_REGION: ${S3_BACKUP_REGION:-}
       S3_BACKUP_BUCKET: ${S3_BACKUP_BUCKET:-}
@@ -37,6 +46,22 @@ services:
       migrate:
         condition: service_completed_successfully
       db:
+        condition: service_healthy
+
+  backup-scheduler:
+    profiles: ["scheduled-backups"]
+    build: .
+    environment:
+      SCHEDULED_BACKUP_TOKEN: ${SCHEDULED_BACKUP_TOKEN:-local-development-scheduled-backup-token}
+    command:
+      - node
+      - -e
+      - |
+        const run = () => fetch("http://app:3000/api/system/scheduled-backup", { method: "POST", headers: { "x-tl-finance-backup-token": process.env.SCHEDULED_BACKUP_TOKEN } }).then(async r => { if (!r.ok) throw new Error(await r.text()); console.log(new Date().toISOString(), await r.text()); }).catch(e => console.error(new Date().toISOString(), e.message));
+        run();
+        setInterval(run, 86400000);
+    depends_on:
+      app:
         condition: service_healthy
 
   migrate:

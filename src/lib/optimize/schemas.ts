@@ -26,6 +26,18 @@ const annualReturnRateSchema = z
     }
   }, "Annual return must be greater than -1 and at most 1.");
 
+const fractionSchema = z
+  .string()
+  .trim()
+  .refine((value) => {
+    try {
+      const rate = money(value);
+      return rate.greaterThanOrEqualTo(0) && rate.lessThanOrEqualTo(1);
+    } catch {
+      return false;
+    }
+  }, "Rate must be a decimal fraction between 0 and 1.");
+
 export const projectionComparisonSchema = z
   .object({
     currency: currencySchema,
@@ -54,3 +66,44 @@ export const projectionComparisonSchema = z
   });
 
 export type ProjectionComparisonInput = z.infer<typeof projectionComparisonSchema>;
+
+export const emergencyFundSchema = z.object({
+  currentReserve: nonNegativeMoneySchema,
+  targetMonths: z.number().int().min(1).max(24),
+  closeOverMonths: z.number().int().min(1).max(120).optional(),
+});
+
+export type EmergencyFundRequest = z.infer<typeof emergencyFundSchema>;
+
+export const pillar3aSchema = z
+  .object({
+    hasPensionFund: z.boolean(),
+    netAnnualIncome: nonNegativeMoneySchema.optional(),
+    contributedThisYear: nonNegativeMoneySchema,
+    currentBalance: nonNegativeMoneySchema.optional(),
+    marginalTaxRate: fractionSchema,
+    yearsToRetirement: z.number().int().min(1).max(50),
+    annualReturnRate: annualReturnRateSchema,
+  })
+  .superRefine((value, context) => {
+    if (!value.hasPensionFund && value.netAnnualIncome === undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Net annual income is required without a pension fund.",
+        path: ["netAnnualIncome"],
+      });
+    }
+  });
+
+export type Pillar3aRequest = z.infer<typeof pillar3aSchema>;
+
+export const recommendationsSchema = z.object({
+  currentReserve: nonNegativeMoneySchema,
+  targetMonths: z.number().int().min(1).max(24),
+  hasPensionFund: z.boolean(),
+  netAnnualIncome: nonNegativeMoneySchema.optional(),
+  contributedThisYear: nonNegativeMoneySchema,
+  marginalTaxRate: fractionSchema,
+});
+
+export type RecommendationsRequest = z.infer<typeof recommendationsSchema>;

@@ -5,6 +5,8 @@
       `SCHEDULED_BACKUP_TOKEN` are independent random values of at least 32
       characters.
 - [ ] `EMAIL_VERIFICATION_REQUIRED=true` and SMTP delivery is tested.
+- [ ] `INSTANCE_ADMIN_EMAIL` is set to the intended initial administrator
+      before signup is exposed publicly.
 - [ ] Database is private, backed up, monitored, and restored successfully in a
       rehearsal environment.
 - [ ] S3 backup bucket is private, encrypted, least-privilege, and lifecycle

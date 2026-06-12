@@ -12,10 +12,10 @@ database is required. PostgreSQL is also exposed on `localhost:5432`.
 
 ## Walk through Analyze
 
-1. **Sign up as the instance admin.** Use `admin@example.com` (this email is
-   configured as `INSTANCE_ADMIN_EMAIL` in `compose.yaml`, which grants instance
-   administrator rights). Complete onboarding and pick the **Swiss** preset — it
-   seeds Pillar 3a, Quellensteuer, Nebenkosten, and other Swiss categories.
+1. **Sign up as the instance admin.** On a fresh local database, the first
+   registered user becomes the instance administrator. Complete onboarding and
+   pick the **Swiss** preset — it seeds Pillar 3a, Quellensteuer, Nebenkosten,
+   and other Swiss categories.
 2. **Unlock the Analyze tier.** Open **/admin**, find your household, and assign
    it the **Analyze** (or Optimize) tier. Analyze is server-side entitlement
    gated; without this the Analyze page stays locked.

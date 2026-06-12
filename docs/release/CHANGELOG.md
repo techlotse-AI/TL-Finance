@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Fixed instance-administrator bootstrap: local/private instances now promote
+  the first registered user when `INSTANCE_ADMIN_EMAIL` is blank, while public
+  deployments can reserve bootstrap access for an explicitly configured email.
+  Removed the hard-coded `admin@example.com` Compose value and made first-user
+  assignment concurrency-safe.
 - Completed the v0.4.0 code and documentation surface: SMTP-backed email
   verification and password reset, hashed one-time tokens, shared PostgreSQL
   auth throttling, user session revocation, scheduled platform backups, offline

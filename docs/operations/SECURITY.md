@@ -8,8 +8,11 @@ Baseline security is required from v0.1.0.
 - `HouseholdMember` is the authorization boundary for household data.
 - Unsafe requests require a trusted origin and CSRF validation.
 - Paid capability checks are server-side.
-- The account matching `INSTANCE_ADMIN_EMAIL` at signup becomes the initial
-  instance administrator; later tier changes require that server-side flag.
+- When `INSTANCE_ADMIN_EMAIL` is configured, only the account matching that
+  normalized email at signup becomes the initial instance administrator. When
+  it is blank, the first registered user becomes administrator. First-user
+  assignment runs in a serializable transaction to prevent concurrent signup
+  races. Public deployments must configure the email before exposure.
 - Mutations write append-only audit events.
 - IP metadata is hashed with a dedicated server secret before persistence.
 - Production errors do not expose Prisma errors, stack traces, or secrets.

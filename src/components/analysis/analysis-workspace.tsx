@@ -140,6 +140,12 @@ function ImportPanel({ pockets, parsers, onChanged }: Props & { onChanged: () =>
       return;
     }
     setPreview(data.preview);
+    if (data.accountSuggestion?.accountPocketId) {
+      setPocketId(data.accountSuggestion.accountPocketId);
+      setMessage(`Suggested ${data.accountSuggestion.accountName} · ${data.accountSuggestion.currency} from statement reference ${data.accountSuggestion.maskedReference}.`);
+    } else if (data.accountSuggestion) {
+      setMessage(`Matched ${data.accountSuggestion.accountName} from the statement reference. Select the correct currency route.`);
+    }
   }
 
   async function runCommit() {
@@ -206,7 +212,7 @@ function ImportPanel({ pockets, parsers, onChanged }: Props & { onChanged: () =>
             <h2 className="font-semibold">Preview</h2>
             <Badge tone="neutral">{preview.parserKey}</Badge>
             <Badge tone={preview.warnings.length > 0 ? "warning" : "success"}>{preview.rows.length} rows · {preview.warnings.length} warnings</Badge>
-            {preview.accountIdentity ? <span className="text-xs text-subdued">account {preview.accountIdentity}</span> : null}
+            {preview.accountMatchReference ? <span className="text-xs text-subdued">account {preview.accountMatchReference}</span> : null}
           </div>
           {preview.warnings.length > 0 ? (
             <details className="rounded border bg-muted/30 p-3 text-sm text-subdued">

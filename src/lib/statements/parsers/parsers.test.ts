@@ -30,6 +30,7 @@ describe("UBS account parser", () => {
     expect(result.rows[1].amount).toBe("-1850.0000");
     expect(result.warnings).toHaveLength(0);
     expect(result.accountIdentity).toMatch(/2957$/);
+    expect(result.accountMatchReference).toBeUndefined();
     expect(result.closingBalance).toBe("8190.5000");
   });
 
@@ -70,6 +71,7 @@ describe("Generic CSV template", () => {
     expect(result.rows).toHaveLength(3);
     expect(result.warnings).toHaveLength(1);
     expect(result.rows[0].amount).toBe("-1200.0000");
+    expect(result.accountMatchReference).toBe("••••••••2957");
   });
 
   it("accepts the minimal required column set", async () => {

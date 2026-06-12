@@ -48,7 +48,8 @@ function ApiCreateForm({
 export function AccountCreateForm({ baseCurrency }: { baseCurrency: string }) {
   const defaultCurrency = defaultSupportedCurrency(baseCurrency);
   return <ApiCreateForm endpoint="/api/accounts" title="Add account" buildBody={(d) => ({
-    name: d.get("name"), type: d.get("type"), institution: d.get("institution") || null, maskedReference: null,
+    name: d.get("name"), type: d.get("type"), institution: d.get("institution") || null,
+    maskedReference: d.get("accountReference") || null,
     supportedCurrencies: d.getAll("supportedCurrencies"),
   })}>
     <label className="grid gap-2 text-sm text-subdued">Account name<input className={input} name="name" required /></label>
@@ -56,6 +57,10 @@ export function AccountCreateForm({ baseCurrency }: { baseCurrency: string }) {
       {["personal", "savings", "investment", "retirement", "credit_card", "cash", "other"].map((value) => <option key={value} value={value}>{value.replace("_", " ")}</option>)}
     </select></label>
     <label className="grid gap-2 text-sm text-subdued">Institution<input className={input} name="institution" placeholder="Optional" /></label>
+    <label className="grid gap-2 text-sm text-subdued">
+      IBAN / account reference
+      <input autoComplete="off" className={input} name="accountReference" placeholder="Optional; stored masked" />
+    </label>
     <fieldset className="grid gap-2 rounded border bg-muted/30 p-3">
       <legend className="px-1 text-sm font-semibold">Supported currencies</legend>
       <div className="flex flex-wrap gap-4">
@@ -69,6 +74,52 @@ export function AccountCreateForm({ baseCurrency }: { baseCurrency: string }) {
       <p className="text-xs text-subdued">Currency routes are created automatically inside this account.</p>
     </fieldset>
   </ApiCreateForm>;
+}
+
+export function AccountReferenceForm({ accounts }: { accounts: Array<{ id: string; name: string }> }) {
+  const router = useRouter();
+  const [message, setMessage] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  async function submit(data: FormData) {
+    const accountId = String(data.get("accountId") ?? "");
+    setPending(true);
+    setMessage(null);
+    const response = await fetch(`/api/accounts/${encodeURIComponent(accountId)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ maskedReference: data.get("accountReference") }),
+    });
+    const result = await response.json().catch(() => null) as { error?: { message?: string } } | null;
+    setPending(false);
+    if (!response.ok) {
+      setMessage(result?.error?.message ?? "Request failed.");
+      return;
+    }
+    setMessage("Statement reference updated.");
+    router.refresh();
+  }
+
+  return (
+    <Card className="p-5">
+      <h2 className="mb-4 font-semibold">Link an existing account</h2>
+      <form action={submit} className="grid gap-3">
+        <label className="grid gap-2 text-sm text-subdued">
+          Account
+          <select className={input} disabled={accounts.length === 0} name="accountId" required>
+            {accounts.map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}
+          </select>
+        </label>
+        <label className="grid gap-2 text-sm text-subdued">
+          IBAN / account reference
+          <input autoComplete="off" className={input} name="accountReference" placeholder="Stored masked after submission" required />
+        </label>
+        <p className="text-xs text-subdued">Used only to suggest the account during Analyze statement preview.</p>
+        <Button disabled={pending || accounts.length === 0} type="submit">{pending ? "Saving…" : "Save reference"}</Button>
+      </form>
+      {message ? <p className="mt-3 text-sm text-subdued" role="status">{message}</p> : null}
+    </Card>
+  );
 }
 
 export function PocketCreateForm({ accounts, baseCurrency }: { accounts: Array<{ id: string; name: string }>; baseCurrency: string }) {

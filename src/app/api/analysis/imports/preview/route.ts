@@ -5,6 +5,7 @@ import { writeAuditEvent } from "@/lib/audit/write";
 import { requireAuthenticatedContext } from "@/lib/auth/context";
 import { requestIp } from "@/lib/auth/request";
 import { statementPreviewSchema } from "@/lib/analysis/schemas";
+import { buildAccountSuggestion } from "@/lib/analysis/account-suggestion";
 import { prisma } from "@/lib/db/prisma";
 import { previewStatement } from "@/lib/statements/preview";
 
@@ -22,6 +23,30 @@ export async function POST(request: Request) {
     } catch {
       throw new ApiError(422, "unsupported_statement", "No production-ready parser recognized this statement.");
     }
+    const matchingAccounts = preview.accountMatchReference
+      ? await prisma.account.findMany({
+          where: {
+            householdId: context.householdId,
+            active: true,
+            deletedAt: null,
+            maskedReference: preview.accountMatchReference,
+          },
+          select: {
+            id: true,
+            name: true,
+            maskedReference: true,
+            pockets: {
+              where: { active: true, deletedAt: null },
+              select: { id: true, currency: true },
+            },
+          },
+          take: 2,
+        })
+      : [];
+    const accountSuggestion = buildAccountSuggestion(
+      matchingAccounts,
+      preview.rows.map((row) => row.currency),
+    );
     const statementImport = await prisma.$transaction(async (transaction) => {
       const warnings = JSON.parse(JSON.stringify(preview.warnings)) as Prisma.InputJsonValue;
       const record = await transaction.statementImport.upsert({
@@ -44,6 +69,6 @@ export async function POST(request: Request) {
       });
       return record;
     });
-    return json({ statementImport, preview });
+    return json({ statementImport, preview, accountSuggestion });
   } catch (error) { return routeError(error); }
 }

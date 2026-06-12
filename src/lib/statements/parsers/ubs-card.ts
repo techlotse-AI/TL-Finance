@@ -2,6 +2,7 @@ import { cellAt, decodeStatementText, headerIndex, parseDelimited } from "@/lib/
 import {
   cleanText,
   extractMaskedAccount,
+  extractUniqueAccountMatchReference,
   normalizeCurrency,
   normalizeDate,
   rowObject,
@@ -51,6 +52,9 @@ export const ubsCardParser: StatementParser = {
 
     const rows: NormalizedStatementRow[] = [];
     const warnings: StatementWarning[] = [];
+    const accountReferenceCol =
+      col("card number") ?? col("card_number") ?? col("account number") ??
+      col("account_number") ?? col("iban");
 
     table.rows.forEach((row, position) => {
       const rowNumber = position + 1;
@@ -84,6 +88,13 @@ export const ubsCardParser: StatementParser = {
       });
     });
 
-    return { accountIdentity: extractMaskedAccount(text), rows, warnings };
+    return {
+      accountIdentity: extractMaskedAccount(text),
+      accountMatchReference: extractUniqueAccountMatchReference(
+        table.rows.map((row) => cellAt(row, accountReferenceCol)),
+      ),
+      rows,
+      warnings,
+    };
   },
 };

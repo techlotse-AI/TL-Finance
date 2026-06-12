@@ -42,6 +42,7 @@ export interface NormalizedStatementRow {
 
 export interface NormalizedStatement {
   accountIdentity?: string;
+  accountMatchReference?: string;
   openingBalance?: string;
   closingBalance?: string;
   rows: NormalizedStatementRow[];

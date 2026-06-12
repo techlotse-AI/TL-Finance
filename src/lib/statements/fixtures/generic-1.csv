@@ -1,5 +1,5 @@
-date,amount,currency,description,counterparty,reference,balance
-2026-05-01,-1200.00,CHF,Rent,Hausverwaltung,REF-001,3800.00
-2026-05-02,4500.00,CHF,Salary,Employer AG,REF-002,8300.00
-2026-05-03,-58.40,CHF,Groceries,Coop,REF-003,8241.60
-2026-05-04,bad,CHF,Broken amount row,,REF-004,
+date,amount,currency,description,counterparty,reference,balance,account_iban
+2026-05-01,-1200.00,CHF,Rent,Hausverwaltung,REF-001,3800.00,CH93 0076 2011 6238 5295 7
+2026-05-02,4500.00,CHF,Salary,Employer AG,REF-002,8300.00,CH93 0076 2011 6238 5295 7
+2026-05-03,-58.40,CHF,Groceries,Coop,REF-003,8241.60,CH93 0076 2011 6238 5295 7
+2026-05-04,bad,CHF,Broken amount row,,REF-004,,CH93 0076 2011 6238 5295 7

@@ -9,6 +9,7 @@ function preview(rows: Array<Record<string, unknown>>) {
     parserVersion: "1.0.0",
     institution: "UNKNOWN" as const,
     accountIdentity: undefined,
+    accountMatchReference: undefined,
     openingBalance: undefined,
     closingBalance: undefined,
     warnings: [],

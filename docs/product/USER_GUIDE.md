@@ -3,8 +3,10 @@
 The Budget workflow plans where normalized monthly income goes.
 
 1. Create a household and select a base currency and country preset.
-2. Create account containers and select their supported currencies. Do not
-   enter balances. TL Finance creates the required internal currency routes.
+2. Create account containers and select their supported currencies. Optionally
+   enter an IBAN or account reference; TL Finance immediately stores only a
+   masked suffix and uses it to suggest the account during statement preview.
+   Do not enter balances. TL Finance creates the required internal currency routes.
 3. Add income sources and reconcile each source to a receiving account and
    currency.
 4. Add planned account-to-account transfers.
@@ -53,6 +55,10 @@ compares it to the Budget plan. It is available to Analyze and Optimize
 households; Budget households see a locked overview.
 
 1. **Import.** Upload a statement CSV and pick the account it belongs to.
+   When a structured statement contains an explicit account IBAN/account-number
+   field that uniquely matches a Budget account and currency route, Analyze
+   suggests that route. IBANs found only in transaction or counterparty text
+   are ignored for account matching.
    Production-ready parsers cover UBS account and UBS card exports, Revolut
    transactions, and a generic `date,amount,currency,description` template.
    Preview detects the format, normalizes rows, and reports any skipped or

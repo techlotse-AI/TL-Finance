@@ -31,6 +31,12 @@ Reference rates can be refreshed from Frankfurter's free, no-key institutional
 reference-rate API. Rates are reporting inputs and do not predict destination
 balances.
 
+Account names, types, institutions, and masked statement references can be
+edited without changing stable flow IDs. Account deletion is a soft delete:
+active income allocations, planned transfers, or budget-item payment routes
+must be reassigned or removed first. Analyze imports and actual transactions
+remain linked to the deleted account for historical reporting.
+
 An Essential budget item identifies required household spending for adherence
 and future emergency-fund calculations. It does not change normalized totals.
 

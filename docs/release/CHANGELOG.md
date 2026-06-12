@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Added account edit and flow-safe delete controls. Account metadata edits keep
+  stable flow IDs; deletion is blocked while active Budget routes reference an
+  account and preserves linked Analyze history through soft deletion.
 - Added optional masked IBAN/account references to Budget accounts and
   household-scoped Analyze statement-account suggestions. Full account
   identifiers are discarded before persistence and ambiguous matches never

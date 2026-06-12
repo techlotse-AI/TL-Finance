@@ -1,7 +1,13 @@
 import { ApiError } from "@/lib/api/errors";
 import { json, readJson, routeError } from "@/lib/api/route";
+import {
+  activePlanReferenceCount,
+  historicalReferenceCount,
+  loadAccountLifecycleSummary,
+} from "@/lib/accounts/lifecycle";
 import { writeAuditEvent } from "@/lib/audit/write";
 import { requireAuthenticatedContext } from "@/lib/auth/context";
+import { assertTrustedOrigin } from "@/lib/auth/origin";
 import { requestIp } from "@/lib/auth/request";
 import { toDbAccountType } from "@/lib/budget/db-mapping";
 import { accountSchema } from "@/lib/budget/schemas";
@@ -32,23 +38,26 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    assertTrustedOrigin(request);
     const context = await requireAuthenticatedContext("budget.write");
     const { id } = await params;
     const result = await prisma.$transaction(async (transaction) => {
-      const activePocketReferences = await transaction.accountPocket.findFirst({
-        where: {
-          accountId: id, householdId: context.householdId, deletedAt: null,
-          OR: [
-            { incomeAllocations: { some: { deletedAt: null } } },
-            { outgoingTransfers: { some: { deletedAt: null } } },
-            { incomingTransfers: { some: { deletedAt: null } } },
-            { fundedBudgetItems: { some: { deletedAt: null } } },
-            { receivingBudgetItems: { some: { deletedAt: null } } },
-          ],
-        },
+      const account = await transaction.account.findFirst({
+        where: { id, householdId: context.householdId, deletedAt: null },
         select: { id: true },
       });
-      if (activePocketReferences) throw new ApiError(409, "referenced_record", "Account pockets are used by active plan rows.");
+      if (!account) throw new ApiError(404, "not_found", "Account was not found.");
+
+      const lifecycle = await loadAccountLifecycleSummary(transaction, context.householdId, id);
+      if (activePlanReferenceCount(lifecycle) > 0) {
+        throw new ApiError(
+          409,
+          "account_in_active_flows",
+          "Reassign or delete active income routes, transfers, and budget-item payment routes before deleting this account.",
+          lifecycle,
+        );
+      }
+
       await transaction.accountPocket.updateMany({
         where: { accountId: id, householdId: context.householdId, deletedAt: null },
         data: { active: false, deletedAt: new Date() },
@@ -61,8 +70,19 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
       await writeAuditEvent(transaction, {
         householdId: context.householdId, userId: context.userId, action: "account.delete",
         resourceType: "Account", resourceId: id, ipAddress: requestIp(request),
+        metadata: {
+          preservedHistoricalReferences: historicalReferenceCount(lifecycle),
+          actualTransactions: lifecycle.actualTransactions,
+          statementImports: lifecycle.statementImports,
+        },
       });
-      return updated;
+      return {
+        deleted: true,
+        preservedHistory: {
+          actualTransactions: lifecycle.actualTransactions,
+          statementImports: lifecycle.statementImports,
+        },
+      };
     });
     return json(result);
   } catch (error) { return routeError(error); }

@@ -12,7 +12,7 @@ Implemented endpoints:
 | `POST` | `/api/auth/password-reset/request`, `/api/auth/password-reset/complete` | Issues and consumes password-reset tokens; completion revokes all sessions |
 | `GET, DELETE` | `/api/auth/sessions`, `/api/auth/sessions/{id}` | Lists active sessions and revokes a selected non-current session |
 | `GET, POST` | `/api/household`, `/api/household/active` | Lists, creates, and selects accessible households |
-| `GET, POST, PATCH, DELETE` | `/api/category-groups/*`, `/api/categories/*`, `/api/accounts/*`, `/api/account-pockets/*`, `/api/income-sources/*`, `/api/planned-transfers/*`, `/api/budget-items/*` | Household-scoped Budget resources |
+| `GET, POST, PATCH, DELETE` | `/api/category-groups/*`, `/api/categories/*`, `/api/accounts/*`, `/api/account-pockets/*`, `/api/income-sources/*`, `/api/planned-transfers/*`, `/api/budget-items/*` | Household-scoped Budget resources; account deletion blocks active planned-flow references and preserves Analyze history |
 | `GET` | `/api/budget/monthly-summary`, `/api/budget/money-flow` | Persisted normalized plan and graph |
 | `GET, POST` | `/api/members/*`, `/api/admin/tiers`, `/api/exchange-rates` | Membership, manual entitlement, and reporting-rate administration |
 | `POST` | `/api/exchange-rates/refresh` | Household-admin refresh of free Frankfurter institutional reference rates |

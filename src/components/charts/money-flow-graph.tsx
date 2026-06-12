@@ -1,7 +1,8 @@
 "use client";
 
 import type { FlowLink, FlowNode } from "@/lib/budget/money-flow";
-import { formatMoney, money } from "@/lib/money/decimal";
+import { layoutMoneyFlow } from "@/lib/budget/money-flow-layout";
+import { formatMoney } from "@/lib/money/decimal";
 import { useMemo, useState } from "react";
 
 interface MoneyFlowGraphProps {
@@ -9,13 +10,6 @@ interface MoneyFlowGraphProps {
   links: FlowLink[];
   reportingCurrency: string;
 }
-
-const columnByKind = {
-  income: 0,
-  account: 1,
-  category: 2,
-  item: 3,
-} as const;
 
 export function MoneyFlowGraph({ nodes, links, reportingCurrency }: MoneyFlowGraphProps) {
   const [account, setAccount] = useState("all");
@@ -29,25 +23,9 @@ export function MoneyFlowGraph({ nodes, links, reportingCurrency }: MoneyFlowGra
   ), [account, category, currency, links]);
   const linkedNodeIds = new Set(filteredLinks.flatMap((link) => [link.source, link.target]));
   const filteredNodes = nodes.filter((node) => linkedNodeIds.has(node.id));
-  const width = 1160;
-  const height = 480;
-  const positions = new Map<string, { x: number; y: number }>();
-  const grouped = filteredNodes.reduce<Partial<Record<FlowNode["kind"], FlowNode[]>>>((result, node) => {
-    result[node.kind] = [...(result[node.kind] ?? []), node];
-    return result;
-  }, {});
-
-  for (const [kind, column] of Object.entries(columnByKind)) {
-    const columnNodes = grouped[kind as FlowNode["kind"]] ?? [];
-    const gap = height / (columnNodes.length + 1);
-    columnNodes.forEach((node, index) => {
-      positions.set(node.id, { x: 40 + column * 310, y: gap * (index + 1) });
-    });
-  }
-
-  const maxAmount = filteredLinks.reduce(
-    (largest, link) => Math.max(largest, money(link.amount).toNumber()),
-    1,
+  const layout = useMemo(
+    () => layoutMoneyFlow(filteredNodes, filteredLinks),
+    [filteredLinks, filteredNodes],
   );
 
   if (nodes.length === 0 || links.length === 0) {
@@ -84,25 +62,23 @@ export function MoneyFlowGraph({ nodes, links, reportingCurrency }: MoneyFlowGra
         </Filter>
       </div>
       {month !== "baseline" ? <p className="mb-3 text-xs text-subdued">Recurring amounts remain normalized monthly provisions; one-time rows are excluded from this baseline graph.</p> : null}
+      {filteredLinks.length === 0 ? (
+        <div className="grid min-h-48 place-items-center rounded border border-dashed bg-muted/20 p-8 text-center text-sm text-subdued">
+          No planned flows match the selected filters.
+        </div>
+      ) : (
       <div className="overflow-x-auto">
       <svg
         aria-describedby="money-flow-description"
-        className="min-w-[900px]"
+        className="min-w-[900px] w-full"
         role="img"
-        viewBox={`0 0 ${width} ${height}`}
+        viewBox={`0 0 ${layout.width} ${layout.height}`}
       >
         <desc id="money-flow-description">
           Planned monthly income, account routing, categories, and budget items in{" "}
           {reportingCurrency}.
         </desc>
-        {filteredLinks.map((link) => {
-          const source = positions.get(link.source);
-          const target = positions.get(link.target);
-          if (!source || !target) return null;
-          const strokeWidth = 2 + (money(link.amount).toNumber() / maxAmount) * 22;
-          const midX = (source.x + target.x) / 2;
-          const path = `M ${source.x + 150} ${source.y} C ${midX} ${source.y}, ${midX} ${target.y}, ${target.x} ${target.y}`;
-
+        {layout.links.map((link) => {
           return (
             <g className="group" key={link.id} tabIndex={0}>
               <title>
@@ -110,41 +86,39 @@ export function MoneyFlowGraph({ nodes, links, reportingCurrency }: MoneyFlowGra
                 {link.internalTransfer ? " (internal transfer)" : ""}
               </title>
               <path
-                d={path}
+                d={link.path}
                 fill="none"
                 opacity={link.internalTransfer ? 0.4 : 0.58}
                 stroke={link.internalTransfer ? "var(--brand-violet)" : "var(--brand-teal)"}
-                strokeWidth={strokeWidth}
+                strokeLinecap="round"
+                strokeWidth={link.strokeWidth}
               />
             </g>
           );
         })}
-        {filteredNodes.map((node) => {
-          const position = positions.get(node.id);
-          if (!position) return null;
-
+        {layout.nodes.map((node) => {
           return (
-            <a href={nodeHref(node.kind)} key={node.id}>
+            <a href={nodeHref(node.kind)} key={node.visualId}>
             <g tabIndex={0}>
               <title>
                 {node.label}, {node.kind}
               </title>
               <rect
                 fill="var(--muted)"
-                height="44"
+                height={node.height}
                 rx="6"
                 stroke="var(--border)"
-                width="150"
-                x={position.x}
-                y={position.y - 22}
+                width={node.width}
+                x={node.x}
+                y={node.y - node.height / 2}
               />
               <text
                 fill="var(--foreground)"
                 fontSize="12"
                 fontWeight="600"
                 textAnchor="middle"
-                x={position.x + 75}
-                y={position.y + 4}
+                x={node.x + node.width / 2}
+                y={node.y + 4}
               >
                 {truncate(node.label, 21)}
               </text>
@@ -154,6 +128,7 @@ export function MoneyFlowGraph({ nodes, links, reportingCurrency }: MoneyFlowGra
         })}
       </svg>
       </div>
+      )}
     </div>
   );
 }

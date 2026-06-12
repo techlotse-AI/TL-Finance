@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Reworked the planned money-flow graph with value-aware node sizing, stacked
+  route attachment points, crossing reduction, and forward-only visual stages
+  for internal transfers and contribution destinations.
 - Added account edit and flow-safe delete controls. Account metadata edits keep
   stable flow IDs; deletion is blocked while active Budget routes reference an
   account and preserves linked Analyze history through soft deletion.

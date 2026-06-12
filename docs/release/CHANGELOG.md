@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Completed the v0.4.0 code and documentation surface: SMTP-backed email
+  verification and password reset, hashed one-time tokens, shared PostgreSQL
+  auth throttling, user session revocation, scheduled platform backups, offline
+  destructive restore, readiness checks, and public security/operations
+  runbooks.
+- Extended the v0.3.0 Optimize tier with deterministic, store-nothing tools:
+  emergency-fund sizing from Essential budget items, Swiss Pillar 3a planning
+  (2026 limits, remaining headroom, marginal-rate tax saving, and growth
+  projection), and ranked, explainable recommendations that combine the
+  emergency-fund gap, Pillar 3a headroom, and Analyze findings.
+- Added an end-to-end import-stack test that chains parsing, commit records,
+  rule allocation, transfer matching, adherence, and findings.
 - Completed the v0.2.0 Analyze tier: production-ready statement parsers
   (UBS account CSV, UBS card CSV, Revolut CSV, and a generic CSV template),
   each fixture-backed with golden tests and fail-closed on ambiguous dates,

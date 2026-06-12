@@ -20,16 +20,19 @@ export async function POST(request: Request) {
   try {
     assertTrustedOrigin(request);
     const ipAddress = requestIp(request);
-    enforceRateLimit(`signin:${ipAddress ?? "unknown"}`, 10, 15 * 60 * 1000);
+    await enforceRateLimit(`signin:${ipAddress ?? "unknown"}`, 10, 15 * 60 * 1000);
     const input = signInSchema.parse(await request.json());
     const user = await prisma.user.findUnique({
       where: { email: input.email },
-      select: { id: true, email: true, displayName: true, passwordHash: true, active: true },
+      select: { id: true, email: true, displayName: true, passwordHash: true, active: true, emailVerifiedAt: true },
     });
     const passwordValid = user ? await verifyPassword(input.password, user.passwordHash) : false;
 
     if (!user?.active || !passwordValid) {
       throw new ApiError(401, "invalid_credentials", "Email or password is incorrect.");
+    }
+    if (process.env.EMAIL_VERIFICATION_REQUIRED === "true" && !user.emailVerifiedAt) {
+      throw new ApiError(403, "email_verification_required", "Verify your email address before signing in.");
     }
 
     const token = createSessionToken();

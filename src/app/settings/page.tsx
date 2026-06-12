@@ -2,6 +2,7 @@ import { Download, Users } from "lucide-react";
 import Link from "next/link";
 
 import { CategoryCreateForm, ExchangeRateCreateForm, HouseholdImportForm, MemberAddForm } from "@/components/create-forms";
+import { SessionManagement } from "@/components/account-security";
 import { HouseholdSwitcher } from "@/components/household-switcher";
 import { ExchangeRateRefreshButton, UserBackupImportForm } from "@/components/settings-actions";
 import { Badge } from "@/components/ui/badge";
@@ -15,11 +16,12 @@ export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   const context = await requirePageContext();
-  const [household, groups, members, memberships] = await Promise.all([
+  const [household, groups, members, memberships, sessions] = await Promise.all([
     prisma.household.findUniqueOrThrow({ where: { id: context.householdId }, include: { entitlement: true } }),
     prisma.categoryGroup.findMany({ where: { householdId: context.householdId, deletedAt: null }, select: { id: true, name: true }, orderBy: { sortOrder: "asc" } }),
     prisma.householdMember.findMany({ where: { householdId: context.householdId }, include: { user: { select: { email: true, displayName: true } } }, orderBy: { createdAt: "asc" } }),
     prisma.householdMember.findMany({ where: { userId: context.userId, active: true, household: { active: true } }, select: { household: { select: { id: true, name: true } } }, orderBy: { household: { name: "asc" } } }),
+    prisma.session.findMany({ where: { userId: context.userId, revokedAt: null, expiresAt: { gt: new Date() } }, select: { id: true, createdAt: true, expiresAt: true }, orderBy: { createdAt: "desc" } }),
   ]);
   return (
     <div className="mx-auto max-w-app space-y-6">
@@ -49,6 +51,7 @@ export default async function SettingsPage() {
         </Card>
       </div>
       <HouseholdSwitcher activeHouseholdId={context.householdId} households={memberships.map((membership) => membership.household)} />
+      <SessionManagement sessions={sessions.map((session) => ({ ...session, createdAt: session.createdAt.toISOString(), expiresAt: session.expiresAt.toISOString(), current: session.id === context.sessionId }))} />
       <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
         <CategoryCreateForm groups={groups} />
         <MemberAddForm />

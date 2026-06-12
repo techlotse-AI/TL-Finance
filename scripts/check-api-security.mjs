@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 const apiRoot = join(import.meta.dirname, "..", "src", "app", "api");
 const unsafeMethodPattern = /export async function (POST|PUT|PATCH|DELETE)\b/;
-const trustedOriginPattern = /\b(readJson|assertTrustedOrigin)\b/;
+const trustedOriginPattern = /\b(readJson|assertTrustedOrigin|assertSchedulerAuthorization)\b/;
 const violations = [];
 
 async function inspect(directory) {

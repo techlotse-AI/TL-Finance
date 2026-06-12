@@ -8,6 +8,9 @@ Implemented endpoints:
 | `POST` | `/api/auth/signup` | Validates credentials, hashes the password, creates a revocable session, and audits the event |
 | `POST` | `/api/auth/signin` | Verifies credentials, creates a revocable session, and audits the event |
 | `POST` | `/api/auth/signout` | Revokes the current session and audits the event |
+| `POST` | `/api/auth/verify-email/request`, `/api/auth/verify-email/complete` | Issues and consumes hashed email-verification tokens |
+| `POST` | `/api/auth/password-reset/request`, `/api/auth/password-reset/complete` | Issues and consumes password-reset tokens; completion revokes all sessions |
+| `GET, DELETE` | `/api/auth/sessions`, `/api/auth/sessions/{id}` | Lists active sessions and revokes a selected non-current session |
 | `GET, POST` | `/api/household`, `/api/household/active` | Lists, creates, and selects accessible households |
 | `GET, POST, PATCH, DELETE` | `/api/category-groups/*`, `/api/categories/*`, `/api/accounts/*`, `/api/account-pockets/*`, `/api/income-sources/*`, `/api/planned-transfers/*`, `/api/budget-items/*` | Household-scoped Budget resources |
 | `GET` | `/api/budget/monthly-summary`, `/api/budget/money-flow` | Persisted normalized plan and graph |
@@ -17,6 +20,7 @@ Implemented endpoints:
 | `GET, POST` | `/api/user/backup/export`, `/api/user/backup/import` | Authenticated multi-household user Budget backup portability |
 | `POST` | `/api/admin/users` | Instance-admin user activation and administrator-role management |
 | `POST` | `/api/admin/platform-backup` | Instance-admin S3-compatible platform snapshot upload |
+| `POST` | `/api/system/scheduled-backup` | Scheduler-token-protected S3-compatible platform snapshot upload |
 | `GET` | `/api/admin/audit-export` | Instance-admin audit-event CSV export, limited to the newest 50,000 events |
 | `POST` | `/api/admin/database-reset` | Instance-admin destructive reset with exact confirmation and current-password verification |
 | `GET` | `/api/analysis/status` | Entitled Analyze counts and production-ready parser catalog |
@@ -29,3 +33,6 @@ Implemented endpoints:
 | `PATCH` | `/api/analysis/transfers/{id}` | Confirm or reject a transfer match |
 | `GET` | `/api/analysis/adherence`, `/api/analysis/findings` | Planned-versus-actual adherence and deterministic money-leak findings |
 | `POST` | `/api/optimize/projections` | Entitled, non-persistent deterministic scenario comparison |
+| `POST` | `/api/optimize/emergency-fund` | Emergency-fund sizing from essential monthly spend, reserve, and target months |
+| `POST` | `/api/optimize/pillar-3a` | Swiss Pillar 3a maximum, remaining headroom, tax saving, and growth projection |
+| `POST` | `/api/optimize/recommendations` | Ranked, explainable recommendations from emergency fund, Pillar 3a, and Analyze findings |

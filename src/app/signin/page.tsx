@@ -10,7 +10,11 @@ export default function SignInPage() {
       <PageHeader description="Use a revocable database-backed session." title="Sign in" />
       <Card className="p-6">
         <AuthForm mode="signin" />
-        <p className="mt-5 text-center text-sm text-subdued"><Link className="text-brand-teal" href="/signup">Create an account</Link></p>
+        <div className="mt-5 grid gap-2 text-center text-sm text-subdued">
+          <Link className="text-brand-teal" href="/signup">Create an account</Link>
+          <Link className="text-brand-teal" href="/forgot-password">Forgot password?</Link>
+          <Link className="text-brand-teal" href="/request-verification">Resend verification email</Link>
+        </div>
       </Card>
     </div>
   );

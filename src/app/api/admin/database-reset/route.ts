@@ -40,6 +40,7 @@ export async function POST(request: Request) {
       await transaction.household.deleteMany();
       await transaction.emailVerificationToken.deleteMany();
       await transaction.passwordResetToken.deleteMany();
+      await transaction.rateLimitBucket.deleteMany();
       await transaction.session.deleteMany({ where: { id: { not: session.sessionId } } });
       await transaction.user.deleteMany({ where: { id: { not: session.userId } } });
       await writeAuditEvent(transaction, {

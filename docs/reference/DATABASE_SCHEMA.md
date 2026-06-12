@@ -6,6 +6,7 @@ The authoritative schema is `prisma/schema.prisma`.
 
 - `User`, `Session`, `Household`, `HouseholdMember`
 - `EmailVerificationToken`, `PasswordResetToken`
+- `RateLimitBucket`
 - `TierEntitlement`, `AuditEvent`
 
 ## Budget

@@ -24,13 +24,13 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
         password: formData.get("password"),
       }),
     });
-    const result = await response.json().catch(() => null) as { error?: { message?: string } } | null;
+    const result = await response.json().catch(() => null) as { error?: { message?: string }; verificationRequired?: boolean; verificationDelivered?: boolean } | null;
     setPending(false);
     if (!response.ok) {
       setError(result?.error?.message ?? "The request could not be completed.");
       return;
     }
-    router.push(mode === "signup" ? "/onboarding" : "/");
+    router.push(mode === "signup" && result?.verificationRequired ? `/signin?verification=${result.verificationDelivered ? "sent" : "retry"}` : mode === "signup" ? "/onboarding" : "/");
     router.refresh();
   }
 

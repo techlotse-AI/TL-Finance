@@ -37,8 +37,9 @@ Release sequence:
 Unavailable paid tiers remain visible as locked or "Coming later." Server-side
 entitlements are authoritative; client-side hiding is never authorization.
 
-The active implementation target starts with **v0.1.0**. Do not implement
-Analyze or Optimize behavior before the preceding release is complete.
+The current checkout is **v0.4.0**. Budget and Analyze are implemented,
+Optimize deterministic tools are implemented, and public-ready security and
+operations controls are the active release surface.
 
 ---
 

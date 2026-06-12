@@ -15,6 +15,10 @@ Production deployments must provide a strong `AUDIT_IP_HASH_SECRET`, use TLS at
 the ingress, run Prisma migrations before application rollout, and persist
 PostgreSQL data outside the application container.
 
+Public deployments must also set an independent `RATE_LIMIT_HASH_SECRET`,
+configure SMTP, set `EMAIL_VERIFICATION_REQUIRED=true`, and configure a random
+`SCHEDULED_BACKUP_TOKEN`.
+
 ## S3-compatible platform backups
 
 Platform settings can upload an on-demand JSON snapshot to private
@@ -42,8 +46,9 @@ retention and lifecycle policy independently.
 
 Platform snapshots contain all users, password hashes, household financial
 data, entitlements, and audit events. They deliberately exclude live sessions,
-email-verification tokens, and password-reset tokens. There is no automated
-platform restore action in v0.3.1.
+email-verification tokens, and password-reset tokens.
 
-Scheduled backup execution, tested restore, secret rotation, and the complete
-production checklist remain v0.4.0 release requirements.
+Scheduled backups can run through the Compose `scheduled-backups` profile.
+Offline destructive restore uses `npm run platform:restore -- <backup.json>`.
+See [BACKUP_RESTORE.md](BACKUP_RESTORE.md) and
+[PUBLIC_DEPLOYMENT_CHECKLIST.md](PUBLIC_DEPLOYMENT_CHECKLIST.md).

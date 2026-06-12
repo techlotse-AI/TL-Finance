@@ -124,6 +124,7 @@ model User {
   emailVerification     EmailVerificationToken[]
   passwordReset         PasswordResetToken[]
   auditEvents            AuditEvent[]
+  rateLimitBuckets       RateLimitBucket[]
 }
 
 model Session {
@@ -238,6 +239,22 @@ model AuditEvent {
   @@index([householdId, createdAt])
   @@index([userId, createdAt])
   @@index([resourceType, resourceId])
+}
+
+model RateLimitBucket {
+  id         String   @id @default(cuid())
+  userId     String?
+  keyHash    String
+  scope      String
+  count      Int      @default(1)
+  windowEnds DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([scope, keyHash])
+  @@index([windowEnds])
+  @@index([userId, scope])
 }
 
 model CategoryGroup {

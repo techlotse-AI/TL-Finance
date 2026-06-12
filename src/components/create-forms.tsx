@@ -76,52 +76,6 @@ export function AccountCreateForm({ baseCurrency }: { baseCurrency: string }) {
   </ApiCreateForm>;
 }
 
-export function AccountReferenceForm({ accounts }: { accounts: Array<{ id: string; name: string }> }) {
-  const router = useRouter();
-  const [message, setMessage] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
-
-  async function submit(data: FormData) {
-    const accountId = String(data.get("accountId") ?? "");
-    setPending(true);
-    setMessage(null);
-    const response = await fetch(`/api/accounts/${encodeURIComponent(accountId)}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ maskedReference: data.get("accountReference") }),
-    });
-    const result = await response.json().catch(() => null) as { error?: { message?: string } } | null;
-    setPending(false);
-    if (!response.ok) {
-      setMessage(result?.error?.message ?? "Request failed.");
-      return;
-    }
-    setMessage("Statement reference updated.");
-    router.refresh();
-  }
-
-  return (
-    <Card className="p-5">
-      <h2 className="mb-4 font-semibold">Link an existing account</h2>
-      <form action={submit} className="grid gap-3">
-        <label className="grid gap-2 text-sm text-subdued">
-          Account
-          <select className={input} disabled={accounts.length === 0} name="accountId" required>
-            {accounts.map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}
-          </select>
-        </label>
-        <label className="grid gap-2 text-sm text-subdued">
-          IBAN / account reference
-          <input autoComplete="off" className={input} name="accountReference" placeholder="Stored masked after submission" required />
-        </label>
-        <p className="text-xs text-subdued">Used only to suggest the account during Analyze statement preview.</p>
-        <Button disabled={pending || accounts.length === 0} type="submit">{pending ? "Saving…" : "Save reference"}</Button>
-      </form>
-      {message ? <p className="mt-3 text-sm text-subdued" role="status">{message}</p> : null}
-    </Card>
-  );
-}
-
 export function PocketCreateForm({ accounts, baseCurrency }: { accounts: Array<{ id: string; name: string }>; baseCurrency: string }) {
   const defaultCurrency = defaultSupportedCurrency(baseCurrency);
   return <ApiCreateForm endpoint="/api/account-pockets" title="Add currency to existing account" buildBody={(d) => ({

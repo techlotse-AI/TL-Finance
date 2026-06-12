@@ -29,6 +29,9 @@ Baseline security is required from v0.1.0.
   masked reference comes from an explicit statement account field and uniquely
   matches within the active household. Counterparty and transaction-text IBANs
   never drive suggestions.
+- Account deletion is soft and household-scoped. Active planned-flow references
+  block deletion; Analyze imports and actual transactions retain their links to
+  soft-deleted accounts for historical integrity.
 - CI installs from the lockfile, runs the dependency audit at moderate
   severity, rejects unsafe API methods without an explicit trusted-origin
   check, and pins third-party GitHub Actions to immutable verified commits.

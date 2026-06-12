@@ -7,6 +7,7 @@ import {
 import {
   cleanText,
   extractMaskedAccount,
+  extractUniqueAccountMatchReference,
   normalizeCurrency,
   normalizeDate,
   rowObject,
@@ -69,6 +70,9 @@ export const ubsAccountParser: StatementParser = {
     const debitCol = col("debit");
     const creditCol = col("credit");
     const balanceCol = col("balance");
+    const accountReferenceCol =
+      col("account iban") ?? col("account_iban") ?? col("iban") ??
+      col("account number") ?? col("account_number");
     const descriptionCols = [col("description1"), col("description"), col("description2"), col("description3")]
       .filter((value): value is number => value !== undefined);
 
@@ -118,6 +122,9 @@ export const ubsAccountParser: StatementParser = {
 
     return {
       accountIdentity: extractMaskedAccount(text),
+      accountMatchReference: extractUniqueAccountMatchReference(
+        table.rows.map((row) => cellAt(row, accountReferenceCol)),
+      ),
       closingBalance: lastBalance,
       rows,
       warnings,

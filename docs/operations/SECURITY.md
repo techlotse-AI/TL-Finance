@@ -24,6 +24,11 @@ Baseline security is required from v0.1.0.
 - Email-verification and password-reset links use random one-time tokens that
   are hashed at rest. Password reset revokes every active user session.
 - Users can list and revoke their other active sessions.
+- Budget account IBANs and account references are reduced to masked suffixes
+  before persistence. Analyze only suggests a statement account when the
+  masked reference comes from an explicit statement account field and uniquely
+  matches within the active household. Counterparty and transaction-text IBANs
+  never drive suggestions.
 - CI installs from the lockfile, runs the dependency audit at moderate
   severity, rejects unsafe API methods without an explicit trusted-origin
   check, and pins third-party GitHub Actions to immutable verified commits.

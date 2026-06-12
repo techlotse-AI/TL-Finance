@@ -18,6 +18,17 @@ describe("Budget mutation schemas", () => {
     expect(accountCreateSchema.safeParse({ ...base, supportedCurrencies: ["EUR", "EUR"] }).success).toBe(false);
   });
 
+  it("masks an account IBAN before persistence", () => {
+    const account = accountCreateSchema.parse({
+      name: "Daily account",
+      type: "personal",
+      maskedReference: "CH93 0076 2011 6238 5295 7",
+      supportedCurrencies: ["CHF"],
+    });
+
+    expect(account.maskedReference).toBe("••••••••2957");
+  });
+
   it("allows an expense without a funding pocket", () => {
     expect(
       budgetItemSchema.parse({

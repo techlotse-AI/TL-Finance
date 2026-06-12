@@ -27,3 +27,5 @@ All household-owned models carry `householdId`. Money uses
 `Decimal(18, 4)`. Percentage fractions use `Decimal(8, 6)`. Budget models do
 not contain current balances, forecasts, returns, or future values.
 Actual source `balanceAfter` values are isolated to Analyze reconciliation.
+`Account.maskedReference` stores only a masked IBAN/account suffix for
+household-scoped statement-account suggestions.

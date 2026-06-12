@@ -39,7 +39,7 @@ export const parserCatalog: ParserCatalogEntry[] = [
     parser: genericCsvParser,
     label: "Generic CSV template",
     productionReady: true,
-    templateHint: "date,amount,currency,description and optional counterparty,reference,balance. Amount is negative for outgoing.",
+    templateHint: "date,amount,currency,description and optional counterparty,reference,balance,account_iban. Amount is negative for outgoing.",
   },
 ];
 

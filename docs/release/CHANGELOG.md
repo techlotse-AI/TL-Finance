@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Added optional masked IBAN/account references to Budget accounts and
+  household-scoped Analyze statement-account suggestions. Full account
+  identifiers are discarded before persistence and ambiguous matches never
+  auto-select an account.
 - Fixed instance-administrator bootstrap: local/private instances now promote
   the first registered user when `INSTANCE_ADMIN_EMAIL` is blank, while public
   deployments can reserve bootstrap access for an explicitly configured email.

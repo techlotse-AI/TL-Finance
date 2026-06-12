@@ -1,6 +1,7 @@
 import { cellAt, decodeStatementText, headerIndex, parseDelimited } from "@/lib/statements/csv";
 import {
   cleanText,
+  extractUniqueAccountMatchReference,
   normalizeAmount,
   normalizeCurrency,
   normalizeDate,
@@ -52,6 +53,9 @@ export const genericCsvParser: StatementParser = {
 
     const rows: NormalizedStatementRow[] = [];
     const warnings: StatementWarning[] = [];
+    const accountReferenceCol =
+      col("account iban") ?? col("account_iban") ?? col("iban") ??
+      col("account number") ?? col("account_number");
 
     table.rows.forEach((row, position) => {
       const rowNumber = position + 1;
@@ -91,6 +95,12 @@ export const genericCsvParser: StatementParser = {
       });
     });
 
-    return { rows, warnings };
+    return {
+      accountMatchReference: extractUniqueAccountMatchReference(
+        table.rows.map((row) => cellAt(row, accountReferenceCol)),
+      ),
+      rows,
+      warnings,
+    };
   },
 };

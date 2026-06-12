@@ -14,6 +14,7 @@ export async function previewStatement(input: StatementInput) {
     parserVersion: parser.version,
     institution: parser.institution,
     accountIdentity: statement.accountIdentity,
+    accountMatchReference: statement.accountMatchReference,
     openingBalance: statement.openingBalance,
     closingBalance: statement.closingBalance,
     warnings: statement.warnings,

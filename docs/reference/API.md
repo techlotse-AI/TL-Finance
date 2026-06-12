@@ -24,7 +24,7 @@ Implemented endpoints:
 | `GET` | `/api/admin/audit-export` | Instance-admin audit-event CSV export, limited to the newest 50,000 events |
 | `POST` | `/api/admin/database-reset` | Instance-admin destructive reset with exact confirmation and current-password verification |
 | `GET` | `/api/analysis/status` | Entitled Analyze counts and production-ready parser catalog |
-| `POST` | `/api/analysis/imports/preview` | Fail-closed parser preview; writes import metadata but no transactions |
+| `POST` | `/api/analysis/imports/preview` | Fail-closed parser preview; writes import metadata but no transactions and suggests a uniquely matched masked account reference |
 | `GET, POST` | `/api/analysis/imports`, `/api/analysis/imports/commit` | Lists imports and idempotently commits parsed transactions |
 | `GET` | `/api/analysis/transactions` | Household-scoped actuals with review-state counts |
 | `POST` | `/api/analysis/transactions/{id}/allocate`, `/api/analysis/transactions/{id}/ignore` | Manual or split allocation and ignore toggle |

@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { isValidAccountReference, maskAccountReference } from "@/lib/accounts/reference";
 import { recurrenceValues } from "@/lib/budget/recurrence";
 import { money } from "@/lib/money/decimal";
 import { supportedCurrencies } from "@/lib/money/currencies";
@@ -43,7 +44,14 @@ export const accountSchema = z.object({
     "other",
   ]),
   institution: z.string().trim().max(120).nullable().optional(),
-  maskedReference: z.string().trim().max(32).nullable().optional(),
+  maskedReference: z
+    .string()
+    .trim()
+    .max(64)
+    .refine(isValidAccountReference, "Use a valid IBAN or account reference.")
+    .transform(maskAccountReference)
+    .nullable()
+    .optional(),
 });
 
 export const accountCreateSchema = accountSchema.extend({

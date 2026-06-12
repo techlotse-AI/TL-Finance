@@ -7,6 +7,7 @@
  */
 
 import { money } from "@/lib/money/decimal";
+import { isValidAccountReference, maskAccountReference } from "@/lib/accounts/reference";
 import type { StatementWarning } from "@/lib/statements/types";
 
 /** Builds a structured "row skipped" warning for a fail-closed condition. */
@@ -123,15 +124,25 @@ const IBAN = /\b([A-Z]{2}\d{2}(?:[ ]?[A-Z0-9]){10,30})\b/;
  */
 export function extractMaskedAccount(text: string): string | undefined {
   const iban = IBAN.exec(text.toUpperCase());
-  if (iban) return maskTail(iban[1].replace(/\s+/g, ""));
+  if (iban) return maskAccountReference(iban[1]);
   const account = /\b(\d[\d.\-]{6,})\b/.exec(text);
-  if (account) return maskTail(account[1].replace(/[.\-]/g, ""));
+  if (account) return maskAccountReference(account[1]);
   return undefined;
 }
 
-export function maskTail(value: string): string {
-  if (value.length <= 4) return value;
-  return `${"•".repeat(Math.min(value.length - 4, 8))}${value.slice(-4)}`;
+/**
+ * Returns a matchable masked account reference only when a dedicated statement
+ * account column contains one consistent valid identifier. Transaction text
+ * and counterparty fields must never be used for account suggestions.
+ */
+export function extractUniqueAccountMatchReference(values: string[]): string | undefined {
+  const references = new Set(
+    values
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0 && isValidAccountReference(value))
+      .map(maskAccountReference),
+  );
+  return references.size === 1 ? [...references][0] : undefined;
 }
 
 /**

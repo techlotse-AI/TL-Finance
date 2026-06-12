@@ -22,7 +22,7 @@ services:
       AUDIT_IP_HASH_SECRET: local-development-audit-secret-change-me
       RATE_LIMIT_HASH_SECRET: local-development-rate-limit-secret-change-me
       NEXT_PUBLIC_APP_URL: http://localhost:3000
-      INSTANCE_ADMIN_EMAIL: admin@example.com
+      INSTANCE_ADMIN_EMAIL: ${INSTANCE_ADMIN_EMAIL:-}
       EMAIL_VERIFICATION_REQUIRED: ${EMAIL_VERIFICATION_REQUIRED:-false}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}

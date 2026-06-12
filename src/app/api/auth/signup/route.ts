@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 
 import { apiErrorResponse, ApiError } from "@/lib/api/errors";
 import { writeAuditEvent } from "@/lib/audit/write";
+import { shouldAssignInstanceAdmin } from "@/lib/auth/admin-bootstrap";
 import { assertTrustedOrigin } from "@/lib/auth/origin";
 import { hashPassword } from "@/lib/auth/password";
 import { enforceRateLimit } from "@/lib/auth/rate-limit";
@@ -34,15 +35,17 @@ export async function POST(request: Request) {
     const verificationToken = createOneTimeToken();
 
     const user = await prisma.$transaction(async (transaction) => {
+      const instanceAdmin = await shouldAssignInstanceAdmin({
+        email: input.email,
+        countUsers: () => transaction.user.count(),
+      });
       const createdUser = await transaction.user.create({
         data: {
           email: input.email,
           passwordHash,
           displayName: input.displayName,
           emailVerifiedAt: verificationRequired ? null : new Date(),
-          instanceAdmin:
-            Boolean(process.env.INSTANCE_ADMIN_EMAIL) &&
-            input.email === process.env.INSTANCE_ADMIN_EMAIL?.trim().toLowerCase(),
+          instanceAdmin,
         },
         select: { id: true, email: true, displayName: true },
       });
@@ -74,7 +77,7 @@ export async function POST(request: Request) {
       });
 
       return createdUser;
-    });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
     let verificationDelivered = true;
     if (verificationRequired) {

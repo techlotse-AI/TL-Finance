@@ -22,6 +22,8 @@ function link(id: string, source: string, target: string, amount = "1000"): Flow
     nativeCurrency: "CHF",
     description: id,
     internalTransfer: id.startsWith("transfer"),
+    routeKind: id.startsWith("transfer") ? "transfer" : "income",
+    colorKey: id,
   };
 }
 
@@ -63,5 +65,23 @@ describe("layoutMoneyFlow", () => {
     expect(new Set(routes.map((route) => route.sourceY)).size).toBe(2);
     expect(routes.find((route) => route.id === "large")!.strokeWidth)
       .toBeGreaterThan(routes.find((route) => route.id === "small")!.strokeWidth);
+  });
+
+  it("orders income sources and outflow categories from largest to smallest", () => {
+    const valueNodes: FlowNode[] = [
+      ...nodes,
+      { id: "category:large", label: "Large expense", kind: "category" },
+      { id: "category:small", label: "Small expense", kind: "category" },
+    ];
+    const layout = layoutMoneyFlow(valueNodes, [
+      link("large-income", "income:a", "pocket:a", "5000"),
+      link("small-income", "income:b", "pocket:b", "500"),
+      link("large-expense", "pocket:a", "category:large", "3000"),
+      link("small-expense", "pocket:b", "category:small", "300"),
+    ]);
+    const byId = new Map(layout.nodes.map((node) => [node.id, node]));
+
+    expect(byId.get("income:a")!.y).toBeLessThan(byId.get("income:b")!.y);
+    expect(byId.get("category:large")!.y).toBeLessThan(byId.get("category:small")!.y);
   });
 });

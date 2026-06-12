@@ -29,6 +29,36 @@
   --danger: #fb7185;
   --warning: #fbbf24;
   --success: #34d399;
+  --flow-income-1: #00d1c7;
+  --flow-income-2: #22d3ee;
+  --flow-income-3: #34d399;
+  --flow-income-4: #2dd4bf;
+  --flow-income-5: #14b8a6;
+  --flow-income-6: #06b6d4;
+  --flow-income-7: #10b981;
+  --flow-income-8: #67e8f9;
+  --flow-transfer: #7a3cff;
+  --flow-expense-1: #fb7185;
+  --flow-expense-2: #f97316;
+  --flow-expense-3: #fbbf24;
+  --flow-expense-4: #f472b6;
+  --flow-expense-5: #ef4444;
+  --flow-expense-6: #fb923c;
+  --flow-expense-7: #e11d48;
+  --flow-expense-8: #ea580c;
+  --flow-expense-9: #eab308;
+  --flow-expense-10: #db2777;
+  --flow-expense-11: #f43f5e;
+  --flow-expense-12: #f59e0b;
+  --flow-saving-1: #60a5fa;
+  --flow-saving-2: #38bdf8;
+  --flow-saving-3: #818cf8;
+  --flow-investment-1: #a78bfa;
+  --flow-investment-2: #c084fc;
+  --flow-investment-3: #8b5cf6;
+  --flow-retirement-1: #e879f9;
+  --flow-retirement-2: #d946ef;
+  --flow-retirement-3: #f0abfc;
 }
 
 * {

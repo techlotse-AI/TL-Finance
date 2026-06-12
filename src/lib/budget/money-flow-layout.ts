@@ -1,12 +1,12 @@
 import type { FlowLink, FlowNode } from "@/lib/budget/money-flow";
 
 const NODE_WIDTH = 150;
-const MIN_NODE_HEIGHT = 44;
+const MIN_NODE_HEIGHT = 58;
 const NODE_PADDING = 12;
 const COLUMN_GAP = 80;
 const ROW_GAP = 24;
 const MARGIN_X = 32;
-const MARGIN_Y = 24;
+const MARGIN_Y = 56;
 
 export interface PositionedFlowNode extends FlowNode {
   visualId: string;
@@ -15,6 +15,7 @@ export interface PositionedFlowNode extends FlowNode {
   y: number;
   width: number;
   height: number;
+  value: number;
 }
 
 export interface PositionedFlowLink extends FlowLink {
@@ -33,6 +34,7 @@ export interface MoneyFlowLayout {
   height: number;
   nodes: PositionedFlowNode[];
   links: PositionedFlowLink[];
+  columns: Array<{ rank: number; x: number; label: string }>;
 }
 
 interface VisualLink extends FlowLink {
@@ -50,6 +52,7 @@ interface MutableVisualNode extends FlowNode {
   width: number;
   height: number;
   stableOrder: number;
+  value: number;
 }
 
 export function layoutMoneyFlow(
@@ -78,6 +81,7 @@ export function layoutMoneyFlow(
       width: NODE_WIDTH,
       height: MIN_NODE_HEIGHT,
       stableOrder: visualNodes.size,
+      value: 0,
     };
     visualNodes.set(visualId, created);
     return created;
@@ -109,7 +113,8 @@ export function layoutMoneyFlow(
   const columns = Array.from({ length: maxRank + 1 }, () => [] as MutableVisualNode[]);
   for (const node of nodeList) columns[node.rank].push(node);
 
-  updateNodeHeights(nodeList, visualLinks);
+  updateNodeMetrics(nodeList, visualLinks);
+  sortValueColumns(columns);
   optimizeColumnOrder(columns, visualLinks);
 
   const requiredHeight = Math.max(
@@ -157,8 +162,16 @@ export function layoutMoneyFlow(
       y: node.y,
       width: node.width,
       height: node.height,
+      value: node.value,
     })),
     links: positionedLinks,
+    columns: columns
+      .filter((column) => column.length > 0)
+      .map((column) => ({
+        rank: column[0].rank,
+        x: column[0].x + NODE_WIDTH / 2,
+        label: columnLabel(column, visualLinks),
+      })),
   };
 }
 
@@ -217,20 +230,32 @@ function assignCanonicalRanks(
   return ranks;
 }
 
-function updateNodeHeights(nodes: MutableVisualNode[], links: VisualLink[]) {
-  const incoming = new Map<string, number>();
-  const outgoing = new Map<string, number>();
+function updateNodeMetrics(nodes: MutableVisualNode[], links: VisualLink[]) {
+  const incomingWidth = new Map<string, number>();
+  const outgoingWidth = new Map<string, number>();
+  const incomingValue = new Map<string, number>();
+  const outgoingValue = new Map<string, number>();
 
   for (const link of links) {
-    outgoing.set(link.sourceVisualId, (outgoing.get(link.sourceVisualId) ?? 0) + link.strokeWidth);
-    incoming.set(link.targetVisualId, (incoming.get(link.targetVisualId) ?? 0) + link.strokeWidth);
+    outgoingWidth.set(link.sourceVisualId, (outgoingWidth.get(link.sourceVisualId) ?? 0) + link.strokeWidth);
+    incomingWidth.set(link.targetVisualId, (incomingWidth.get(link.targetVisualId) ?? 0) + link.strokeWidth);
+    outgoingValue.set(link.sourceVisualId, (outgoingValue.get(link.sourceVisualId) ?? 0) + link.value);
+    incomingValue.set(link.targetVisualId, (incomingValue.get(link.targetVisualId) ?? 0) + link.value);
   }
 
   for (const node of nodes) {
+    node.value = Math.max(incomingValue.get(node.visualId) ?? 0, outgoingValue.get(node.visualId) ?? 0);
     node.height = Math.max(
       MIN_NODE_HEIGHT,
-      Math.max(incoming.get(node.visualId) ?? 0, outgoing.get(node.visualId) ?? 0) + NODE_PADDING * 2,
+      Math.max(incomingWidth.get(node.visualId) ?? 0, outgoingWidth.get(node.visualId) ?? 0) + NODE_PADDING * 2,
     );
+  }
+}
+
+function sortValueColumns(columns: MutableVisualNode[][]) {
+  for (const column of columns) {
+    if (!isValueOrderedColumn(column)) continue;
+    column.sort((a, b) => b.value - a.value || a.label.localeCompare(b.label));
   }
 }
 
@@ -240,12 +265,18 @@ function optimizeColumnOrder(columns: MutableVisualNode[][], links: VisualLink[]
 
   for (let pass = 0; pass < 6; pass += 1) {
     for (let rank = 1; rank < columns.length; rank += 1) {
-      sortByBarycenter(columns[rank], columns, incoming);
+      if (!isValueOrderedColumn(columns[rank])) sortByBarycenter(columns[rank], columns, incoming);
     }
     for (let rank = columns.length - 2; rank >= 0; rank -= 1) {
-      sortByBarycenter(columns[rank], columns, outgoing);
+      if (!isValueOrderedColumn(columns[rank])) sortByBarycenter(columns[rank], columns, outgoing);
     }
   }
+}
+
+function isValueOrderedColumn(column: MutableVisualNode[]) {
+  return column.length > 0 && column.every((node) =>
+    node.kind === "income" || node.kind === "category" || node.kind === "item"
+  );
 }
 
 function relationMap(
@@ -295,10 +326,10 @@ function relaxNodePositions(columns: MutableVisualNode[][], links: VisualLink[],
 
   for (let pass = 0; pass < 4; pass += 1) {
     for (let rank = 1; rank < columns.length; rank += 1) {
-      moveTowardRelations(columns[rank], incoming, nodes, height);
+      if (!isValueOrderedColumn(columns[rank])) moveTowardRelations(columns[rank], incoming, nodes, height);
     }
     for (let rank = columns.length - 2; rank >= 0; rank -= 1) {
-      moveTowardRelations(columns[rank], outgoing, nodes, height);
+      if (!isValueOrderedColumn(columns[rank])) moveTowardRelations(columns[rank], outgoing, nodes, height);
     }
   }
 }
@@ -392,4 +423,16 @@ function assignPorts(
 function numericAmount(value: string) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function columnLabel(column: MutableVisualNode[], links: VisualLink[]) {
+  if (column.every((node) => node.kind === "income")) return "Income sources";
+  if (column.every((node) => node.kind === "category")) return "Categories";
+  if (column.every((node) => node.kind === "item")) return "Budget items";
+  if (column.every((node) => node.kind === "account")) {
+    if (column[0].rank === 1) return "Accounts";
+    const sources = new Set(links.map((link) => link.sourceVisualId));
+    return column.some((node) => sources.has(node.visualId)) ? "Routed accounts" : "Destinations";
+  }
+  return "Flow stage";
 }

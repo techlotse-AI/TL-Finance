@@ -7,6 +7,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { PageHeader } from "@/components/ui/page-header";
 import { requirePageContext } from "@/lib/auth/page-context";
 import { buildPersistedMoneyFlow } from "@/lib/budget/persisted-plan";
+import { flowRouteLabel } from "@/lib/budget/money-flow-presentation";
 import { prisma } from "@/lib/db/prisma";
 import { formatMoney } from "@/lib/money/decimal";
 
@@ -115,7 +116,9 @@ export default async function MonthlyPlanPage() {
             <span className="tabular-nums" key={link.id}>
               {formatMoney(link.amount, demoPlan.reportingCurrency)}
             </span>,
-            link.internalTransfer ? <Badge key={link.id}>Internal transfer</Badge> : "Allocation",
+            link.internalTransfer
+              ? <Badge key={link.id}>Internal transfer</Badge>
+              : flowRouteLabel(link.routeKind),
           ])}
         />
       </Card>

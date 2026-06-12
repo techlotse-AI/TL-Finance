@@ -3,11 +3,14 @@ import Decimal from "decimal.js";
 import { money, serializeMoney, sumMoney } from "@/lib/money/decimal";
 
 export type FlowNodeKind = "income" | "account" | "category" | "item";
+export type FlowRouteKind = "income" | "transfer" | "expense" | "saving" | "investment" | "retirement";
 
 export interface FlowNode {
   id: string;
   label: string;
   kind: FlowNodeKind;
+  routeKind?: FlowRouteKind;
+  colorKey?: string;
 }
 
 export interface FlowLink {
@@ -19,6 +22,8 @@ export interface FlowLink {
   nativeCurrency: string;
   description: string;
   internalTransfer: boolean;
+  routeKind: FlowRouteKind;
+  colorKey: string;
 }
 
 export interface FlowPocket {
@@ -137,7 +142,13 @@ export function buildMoneyFlow(input: BuildMoneyFlowInput): MoneyFlowResult {
   }
 
   for (const source of input.incomeSources) {
-    addNode({ id: incomeNodeId(source.id), label: source.name, kind: "income" });
+    addNode({
+      id: incomeNodeId(source.id),
+      label: source.name,
+      kind: "income",
+      routeKind: "income",
+      colorKey: `income:${source.id}`,
+    });
     const sourceMonthly = convert(source.monthlyAmount, source.currency);
     if (sourceMonthly.isZero()) continue;
     const allocated = sumMoney(
@@ -168,6 +179,8 @@ export function buildMoneyFlow(input: BuildMoneyFlowInput): MoneyFlowResult {
         nativeCurrency: source.currency,
         description: "Income allocation",
         internalTransfer: false,
+        routeKind: "income",
+        colorKey: `income:${source.id}`,
       });
     }
   }
@@ -186,6 +199,8 @@ export function buildMoneyFlow(input: BuildMoneyFlowInput): MoneyFlowResult {
       nativeCurrency: transfer.currency,
       description: transfer.name,
       internalTransfer: true,
+      routeKind: "transfer",
+      colorKey: "transfer",
     });
   }
 
@@ -194,8 +209,9 @@ export function buildMoneyFlow(input: BuildMoneyFlowInput): MoneyFlowResult {
     if (reportingAmount.isZero()) continue;
     const categoryId = categoryNodeId(item.categoryId);
     const itemId = itemNodeId(item.id);
-    addNode({ id: categoryId, label: item.categoryName, kind: "category" });
-    addNode({ id: itemId, label: item.name, kind: "item" });
+    const colorKey = `${item.kind}:${item.categoryId}`;
+    addNode({ id: categoryId, label: item.categoryName, kind: "category", routeKind: item.kind, colorKey });
+    addNode({ id: itemId, label: item.name, kind: "item", routeKind: item.kind, colorKey });
 
     if (!item.paidFromPocketId) {
       warnings.push({
@@ -217,6 +233,8 @@ export function buildMoneyFlow(input: BuildMoneyFlowInput): MoneyFlowResult {
       nativeCurrency: item.currency,
       description: item.categoryName,
       internalTransfer: false,
+      routeKind: item.kind,
+      colorKey,
     });
     links.push({
       id: `category-item:${item.id}`,
@@ -227,6 +245,8 @@ export function buildMoneyFlow(input: BuildMoneyFlowInput): MoneyFlowResult {
       nativeCurrency: item.currency,
       description: item.name,
       internalTransfer: false,
+      routeKind: item.kind,
+      colorKey,
     });
 
     if (item.kind !== "expense" && item.paidToPocketId) {
@@ -239,6 +259,8 @@ export function buildMoneyFlow(input: BuildMoneyFlowInput): MoneyFlowResult {
         nativeCurrency: item.currency,
         description: `${item.kind} destination`,
         internalTransfer: false,
+        routeKind: item.kind,
+        colorKey,
       });
     }
   }

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Added semantic money-flow presentation: largest-first income/outflow ordering,
+  visible node values and stage labels, deterministic per-source/category
+  colors, dashed transfers, a route legend, and connected path-aware filters.
+  Removed the inactive month selector that implied unsupported month-specific
+  graph data.
 - Reworked the planned money-flow graph with value-aware node sizing, stacked
   route attachment points, crossing reduction, and forward-only visual stages
   for internal transfers and contribution destinations.

@@ -17,7 +17,11 @@ The money-flow graph lays routes out from left to right. Internal transfers and
 contribution destinations may repeat an account in a later visual stage so the
 route direction remains explicit. Node height and route width reflect normalized
 monthly value, while connected nodes and attachment points are ordered to reduce
-crossing and overlap.
+crossing and overlap. Income sources, categories, and budget items are ordered
+from largest to smallest. Colors identify individual income sources and outflow
+categories within separate income, expense, saving, investment, and retirement
+families; internal transfers are purple and dashed. Account/category filters
+retain the complete relevant route instead of isolated graph edges.
 
 Settings supports active-household switching, categories, members, reporting
 exchange rates, and validated JSON export/import. The user backup exports the

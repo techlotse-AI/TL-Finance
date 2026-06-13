@@ -114,7 +114,7 @@ export function MoneyFlowGraph({ nodes, links, reportingCurrency }: MoneyFlowGra
         ))}
       </div>
       <p className="mb-3 text-xs text-subdued">
-        Normalized monthly baseline. Sources, categories, and budget items are ordered by value; line width represents monthly amount.
+        Normalized monthly baseline. Income sources follow their receiving-account lanes; categories and budget items are ordered by value. Line width represents monthly amount.
       </p>
       {filteredLinks.length === 0 ? (
         <div className="grid min-h-48 place-items-center rounded border border-dashed bg-muted/20 p-8 text-center text-sm text-subdued">
@@ -130,7 +130,7 @@ export function MoneyFlowGraph({ nodes, links, reportingCurrency }: MoneyFlowGra
       >
         <desc id="money-flow-description">
           Planned monthly income, account routing, categories, and budget items in{" "}
-          {reportingCurrency}. Sources and outflows are ordered from largest to smallest.
+          {reportingCurrency}. Income sources follow receiving-account lanes and outflows are ordered from largest to smallest.
         </desc>
         {layout.columns.map((column) => (
           <text

@@ -116,6 +116,9 @@ export function layoutMoneyFlow(
   updateNodeMetrics(nodeList, visualLinks);
   sortValueColumns(columns);
   optimizeColumnOrder(columns, visualLinks);
+  orderIncomeLanes(columns, visualLinks);
+  optimizeColumnOrder(columns, visualLinks);
+  orderIncomeLanes(columns, visualLinks);
 
   const requiredHeight = Math.max(
     ...columns.map((column) =>
@@ -254,7 +257,7 @@ function updateNodeMetrics(nodes: MutableVisualNode[], links: VisualLink[]) {
 
 function sortValueColumns(columns: MutableVisualNode[][]) {
   for (const column of columns) {
-    if (!isValueOrderedColumn(column)) continue;
+    if (!isSemanticOrderColumn(column)) continue;
     column.sort((a, b) => b.value - a.value || a.label.localeCompare(b.label));
   }
 }
@@ -265,17 +268,81 @@ function optimizeColumnOrder(columns: MutableVisualNode[][], links: VisualLink[]
 
   for (let pass = 0; pass < 6; pass += 1) {
     for (let rank = 1; rank < columns.length; rank += 1) {
-      if (!isValueOrderedColumn(columns[rank])) sortByBarycenter(columns[rank], columns, incoming);
+      if (!isSemanticOrderColumn(columns[rank])) sortByBarycenter(columns[rank], columns, incoming);
     }
     for (let rank = columns.length - 2; rank >= 0; rank -= 1) {
-      if (!isValueOrderedColumn(columns[rank])) sortByBarycenter(columns[rank], columns, outgoing);
+      if (!isSemanticOrderColumn(columns[rank])) sortByBarycenter(columns[rank], columns, outgoing);
     }
   }
 }
 
-function isValueOrderedColumn(column: MutableVisualNode[]) {
+function isSemanticOrderColumn(column: MutableVisualNode[]) {
   return column.length > 0 && column.every((node) =>
     node.kind === "income" || node.kind === "category" || node.kind === "item"
+  );
+}
+
+function isFixedPositionColumn(column: MutableVisualNode[]) {
+  return column.length > 0 && column.every((node) =>
+    node.kind === "category" || node.kind === "item"
+  );
+}
+
+function orderIncomeLanes(columns: MutableVisualNode[][], links: VisualLink[]) {
+  const incomeColumn = columns.find((column) =>
+    column.length > 0 && column.every((node) => node.kind === "income")
+  );
+  if (!incomeColumn) return;
+
+  const directAccountLinks = links.filter((link) => {
+    const source = incomeColumn.find((node) => node.visualId === link.sourceVisualId);
+    const target = columns.flat().find((node) => node.visualId === link.targetVisualId);
+    return source && target?.kind === "account";
+  });
+  const targetOrder = new Map<string, { index: number; count: number }>();
+  for (const column of columns) {
+    if (!column.every((node) => node.kind === "account")) continue;
+    column.forEach((node, index) => targetOrder.set(node.visualId, { index, count: column.length }));
+  }
+
+  const primaryTarget = new Map<string, VisualLink>();
+  for (const link of directAccountLinks) {
+    const current = primaryTarget.get(link.sourceVisualId);
+    if (!current || link.value > current.value) primaryTarget.set(link.sourceVisualId, link);
+  }
+
+  const groups = new Map<string, MutableVisualNode[]>();
+  const ungrouped: MutableVisualNode[] = [];
+  for (const income of incomeColumn) {
+    const target = primaryTarget.get(income.visualId)?.targetVisualId;
+    if (!target || !targetOrder.has(target)) {
+      ungrouped.push(income);
+      continue;
+    }
+    groups.set(target, [...(groups.get(target) ?? []), income]);
+  }
+
+  const orderedTargets = [...groups.keys()].sort(
+    (a, b) =>
+      (targetOrder.get(a)?.index ?? Number.MAX_SAFE_INTEGER) -
+      (targetOrder.get(b)?.index ?? Number.MAX_SAFE_INTEGER),
+  );
+  const orderedIncome = orderedTargets.flatMap((target) => {
+    const group = groups.get(target)!;
+    const targetPosition = targetOrder.get(target)!;
+    const dominantAtBottom = targetPosition.index > (targetPosition.count - 1) / 2;
+    return group.sort((a, b) =>
+      dominantAtBottom
+        ? a.value - b.value || a.label.localeCompare(b.label)
+        : b.value - a.value || a.label.localeCompare(b.label)
+    );
+  });
+
+  incomeColumn.splice(
+    0,
+    incomeColumn.length,
+    ...orderedIncome,
+    ...ungrouped.sort((a, b) => b.value - a.value || a.label.localeCompare(b.label)),
   );
 }
 
@@ -323,13 +390,26 @@ function relaxNodePositions(columns: MutableVisualNode[][], links: VisualLink[],
   const incoming = relationMap(links, "targetVisualId", "sourceVisualId");
   const outgoing = relationMap(links, "sourceVisualId", "targetVisualId");
   const nodes = new Map(columns.flat().map((node) => [node.visualId, node]));
+  const incomeNodeIds = new Set(
+    columns.flat().filter((node) => node.kind === "income").map((node) => node.visualId),
+  );
+  const incomeFundedAccountIds = new Set(
+    links
+      .filter((link) => incomeNodeIds.has(link.sourceVisualId))
+      .map((link) => link.targetVisualId),
+  );
 
   for (let pass = 0; pass < 4; pass += 1) {
     for (let rank = 1; rank < columns.length; rank += 1) {
-      if (!isValueOrderedColumn(columns[rank])) moveTowardRelations(columns[rank], incoming, nodes, height);
+      if (!isFixedPositionColumn(columns[rank])) moveTowardRelations(columns[rank], incoming, nodes, height);
     }
     for (let rank = columns.length - 2; rank >= 0; rank -= 1) {
-      if (!isValueOrderedColumn(columns[rank])) moveTowardRelations(columns[rank], outgoing, nodes, height);
+      if (
+        !isFixedPositionColumn(columns[rank]) &&
+        !columns[rank].some((node) => incomeFundedAccountIds.has(node.visualId))
+      ) {
+        moveTowardRelations(columns[rank], outgoing, nodes, height);
+      }
     }
   }
 }
@@ -355,7 +435,6 @@ function moveTowardRelations(
 }
 
 function resolveCollisions(column: MutableVisualNode[], height: number) {
-  column.sort((a, b) => a.y - b.y);
   let nextTop = MARGIN_Y;
   for (const node of column) {
     node.y = Math.max(node.y, nextTop + node.height / 2);

@@ -19,9 +19,12 @@ not raw color values. Layout follows an 8px grid with a maximum width of
 Tables and operational lists take priority over promotional cards. Money-flow
 visualizations must provide empty and reconciliation states, keyboard-accessible
 controls, and a tabular alternative. Color is never the only status signal.
-Income sources, category totals, and budget items are ordered by normalized
-monthly value from top to bottom. Route colors identify the income source or
-outflow category within a semantic family; internal transfers use a dashed route
-in addition to their distinct color. The graph displays monthly values on nodes,
-labels visual stages, and keeps focused filters connected from upstream source
-through downstream use.
+Crossing-free lane continuity takes priority over global value ordering. Income
+sources are grouped by their primary receiving account; the dominant source sits
+closest to that account lane and smaller supporting sources sit inward. Category
+totals and budget items remain ordered by normalized monthly value from top to
+bottom. Route colors identify the income source or outflow category within a
+semantic family; internal transfers use a dashed route in addition to their
+distinct color. The graph displays monthly values on nodes, labels visual
+stages, and keeps focused filters connected from upstream source through
+downstream use.

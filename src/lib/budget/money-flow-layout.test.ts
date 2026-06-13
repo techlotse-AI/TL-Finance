@@ -84,4 +84,46 @@ describe("layoutMoneyFlow", () => {
     expect(byId.get("income:a")!.y).toBeLessThan(byId.get("income:b")!.y);
     expect(byId.get("category:large")!.y).toBeLessThan(byId.get("category:small")!.y);
   });
+
+  it("groups supporting income around its receiving account and keeps the dominant source on the account lane", () => {
+    const laneNodes: FlowNode[] = [
+      { id: "income:maniesh", label: "Maniesh Roche", kind: "income" },
+      { id: "income:ruan", label: "Ruan Axpo Systems", kind: "income" },
+      { id: "income:kita", label: "Kita Allowance", kind: "income" },
+      { id: "pocket:maniesh", label: "UBS Maniesh Personal", kind: "account" },
+      { id: "pocket:ruan", label: "Ruan UBS Personal", kind: "account" },
+      { id: "pocket:family", label: "Family UBS Personal", kind: "account" },
+      { id: "category:retirement", label: "Pillar 3a", kind: "category" },
+    ];
+    const layout = layoutMoneyFlow(laneNodes, [
+      link("maniesh-income", "income:maniesh", "pocket:maniesh", "8800"),
+      link("ruan-income", "income:ruan", "pocket:ruan", "7600"),
+      link("kita-income", "income:kita", "pocket:ruan", "800"),
+      link("transfer:maniesh-family", "pocket:maniesh", "pocket:family", "600"),
+      link("transfer:ruan-family", "pocket:ruan", "pocket:family", "600"),
+      link("family-retirement", "pocket:family", "category:retirement", "1200"),
+    ]);
+    const byId = new Map(layout.nodes.map((node) => [node.id, node]));
+    const incomeOrder = layout.nodes
+      .filter((node) => node.kind === "income")
+      .sort((a, b) => a.y - b.y)
+      .map((node) => node.id);
+    const accountOrder = layout.nodes
+      .filter((node) => node.kind === "account" && node.rank === 1)
+      .sort((a, b) => a.y - b.y)
+      .map((node) => node.id);
+    const family = byId.get("pocket:family")!;
+
+    expect(incomeOrder).toEqual(["income:maniesh", "income:kita", "income:ruan"]);
+    expect(accountOrder).toEqual(["pocket:maniesh", "pocket:ruan"]);
+    expect(family.y).toBeGreaterThan(byId.get("pocket:maniesh")!.y);
+    expect(family.y).toBeLessThan(byId.get("pocket:ruan")!.y);
+    expect(Math.abs(byId.get("income:ruan")!.y - byId.get("pocket:ruan")!.y))
+      .toBeLessThan(Math.abs(byId.get("income:kita")!.y - byId.get("pocket:ruan")!.y));
+
+    const familyTransfers = layout.links
+      .filter((route) => route.target === "pocket:family")
+      .sort((a, b) => a.sourceY - b.sourceY);
+    expect(familyTransfers[0].targetY).toBeLessThan(familyTransfers[1].targetY);
+  });
 });

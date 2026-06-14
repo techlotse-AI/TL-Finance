@@ -13,6 +13,9 @@
       protected.
 - [ ] Scheduled backup logs and failed jobs are monitored.
 - [ ] `npm run v0.4:readiness`, full CI, dependency audit, and container scan pass.
+- [ ] GitHub organization secrets `DOCKERHUB_USER` and `DOCKERHUB_TOKEN` are
+      configured, and the versioned release workflow completed without
+      Critical container vulnerabilities.
 - [ ] Cross-household and administrator access tests pass.
 - [ ] Threat model, privacy policy, incident response, and secret rotation are
       reviewed by the operator.

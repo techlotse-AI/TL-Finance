@@ -50,3 +50,11 @@ backups, offline full-platform restore, v0.4 readiness checks, and public
 operations/privacy/security runbooks. Every deployment still requires its own
 restore rehearsal, container scan, and independent security approval before
 public exposure.
+
+## v0.5.0 - Versioned container releases
+
+Implemented tag-driven Docker Hub publishing for `techlotse/tl-finance`.
+Release tags must match the canonical package version. The release workflow
+reports every High and Critical container vulnerability in a GitHub issue,
+blocks publishing on Critical findings, and publishes matching `vX.Y.Z` and
+`latest` tags only after verification succeeds.

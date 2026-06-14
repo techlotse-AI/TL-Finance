@@ -13,6 +13,14 @@ The Budget workflow plans where normalized monthly income goes.
 5. Add expense, saving, investment, and retirement budget items.
 6. Review the normalized monthly table and planned money-flow.
 
+For budget-item amounts, enter the full amount paid per selected recurrence:
+the weekly amount for Weekly, the quarterly invoice for Quarterly, and the full
+annual invoice for Yearly. TL Finance normalizes weekly amounts using
+`amount × 52 ÷ 12`, divides quarterly amounts by 3, and divides yearly amounts
+by 12. Selected-month recurrence treats the entered amount as the payment made
+in each selected month. One-time items are excluded from the recurring monthly
+baseline.
+
 The money-flow graph lays routes out from left to right. Internal transfers and
 contribution destinations may repeat an account in a later visual stage so the
 route direction remains explicit. Node height and route width reflect normalized

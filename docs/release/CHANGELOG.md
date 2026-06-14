@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Exposed budget-item recurrence controls for one-time, weekly, monthly,
+  quarterly, yearly, and selected-month expenses. The form now explains the
+  amount expected for each recurrence, and the table shows both entered and
+  normalized monthly amounts.
 - Added semantic money-flow presentation: crossing-first receiving-account
   lanes for income, largest-first outflow ordering, visible node values and
   stage labels, deterministic per-source/category colors, dashed transfers, a

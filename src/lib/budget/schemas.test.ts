@@ -42,6 +42,33 @@ describe("Budget mutation schemas", () => {
     ).toBe("CHF");
   });
 
+  it("accepts yearly expense amounts and validates selected-month recurrence", () => {
+    const expense = {
+      name: "Annual insurance",
+      categoryId: "category",
+      kind: "expense" as const,
+      amount: "1200.00",
+      currency: "CHF",
+      startDate: "2026-01-01",
+    };
+
+    expect(budgetItemSchema.safeParse({
+      ...expense,
+      recurrence: "yearly",
+      selectedMonths: [],
+    }).success).toBe(true);
+    expect(budgetItemSchema.safeParse({
+      ...expense,
+      recurrence: "custom_months",
+      selectedMonths: [],
+    }).success).toBe(false);
+    expect(budgetItemSchema.safeParse({
+      ...expense,
+      recurrence: "custom_months",
+      selectedMonths: [3, 9],
+    }).success).toBe(true);
+  });
+
   it.each(["saving", "investment", "retirement"] as const)(
     "requires distinct source and destination pockets for %s",
     (kind) => {

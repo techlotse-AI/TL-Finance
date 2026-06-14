@@ -159,6 +159,33 @@ export const budgetItemSchema = datedPlanSchema
     essential: z.boolean().default(false),
   })
   .superRefine((value, context) => {
+    if (value.recurrence === "custom_months" && value.selectedMonths.length === 0) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Select at least one payment month.",
+        path: ["selectedMonths"],
+      });
+    }
+
+    if (value.recurrence !== "custom_months" && value.selectedMonths.length > 0) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Selected months are only valid with selected-month recurrence.",
+        path: ["selectedMonths"],
+      });
+    }
+
+    if (
+      new Set(value.selectedMonths).size !== value.selectedMonths.length ||
+      value.selectedMonths.some((month) => !Number.isInteger(month) || month < 1 || month > 12)
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Payment months must be unique values from 1 through 12.",
+        path: ["selectedMonths"],
+      });
+    }
+
     if (value.kind !== "expense") {
       if (!value.paidFromAccountPocketId) {
         context.addIssue({

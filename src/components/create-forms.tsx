@@ -5,9 +5,21 @@ import { useMemo, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import type { Recurrence } from "@/lib/budget/recurrence";
 import { supportedCurrencies } from "@/lib/money/currencies";
 
 const input = "min-h-10 w-full rounded border bg-muted px-3 text-sm";
+const recurrenceOptions: Array<{ value: Recurrence; label: string }> = [
+  { value: "once", label: "One-time" },
+  { value: "weekly", label: "Weekly" },
+  { value: "monthly", label: "Monthly" },
+  { value: "quarterly", label: "Quarterly" },
+  { value: "yearly", label: "Yearly" },
+  { value: "custom_months", label: "Selected months" },
+];
+const monthNames = Array.from({ length: 12 }, (_, index) =>
+  new Date(2026, index).toLocaleString("en", { month: "short" })
+);
 
 function defaultSupportedCurrency(baseCurrency: string) {
   return supportedCurrencies.find((currency) => currency === baseCurrency) ?? supportedCurrencies[0];
@@ -178,6 +190,8 @@ export function BudgetItemCreateForm({
 }) {
   const [kind, setKind] = useState("expense");
   const [currency, setCurrency] = useState<string>(defaultSupportedCurrency(baseCurrency));
+  const [recurrence, setRecurrence] = useState<Recurrence>("monthly");
+  const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
   const filteredCategories = useMemo(
     () => categories.filter((category) => category.kind === kind),
     [categories, kind],
@@ -192,11 +206,17 @@ export function BudgetItemCreateForm({
     [destinationAccountType, matchingRoutes],
   );
 
-  return <ApiCreateForm endpoint="/api/budget-items" title="Add monthly budget item" buildBody={(d) => {
+  return <ApiCreateForm
+    disabled={recurrence === "custom_months" && selectedMonths.length === 0}
+    disabledMessage={recurrence === "custom_months" && selectedMonths.length === 0 ? "Select at least one payment month." : undefined}
+    endpoint="/api/budget-items"
+    title="Add budget item"
+    buildBody={(d) => {
     const kind = String(d.get("kind"));
     return {
       name: d.get("name"), categoryId: d.get("categoryId"), kind, amount: d.get("amount"), currency: d.get("currency"),
-      recurrence: "monthly", selectedMonths: [], startDate: new Date().toISOString(), essential: d.get("essential") === "on",
+      recurrence: d.get("recurrence"), selectedMonths: d.getAll("selectedMonths").map(Number),
+      startDate: new Date().toISOString(), essential: d.get("essential") === "on",
       paidFromAccountPocketId: d.get("from") || null, paidToAccountPocketId: kind === "expense" ? null : d.get("to") || null,
     };
   }}>
@@ -211,12 +231,44 @@ export function BudgetItemCreateForm({
       {filteredCategories.length === 0 ? <option value="">No {kind} categories available</option> : null}
       {filteredCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
     </select></label>
-    <div className="grid grid-cols-[1fr_112px] gap-3">
-      <label className="grid gap-2 text-sm text-subdued">Amount<input className={input} inputMode="decimal" name="amount" required /></label>
+    <div className="grid gap-3 md:grid-cols-[1fr_180px_112px]">
+      <label className="grid gap-2 text-sm text-subdued">{amountLabel(recurrence)}<input className={input} inputMode="decimal" name="amount" required /></label>
+      <label className="grid gap-2 text-sm text-subdued">Recurrence<select
+        className={input}
+        name="recurrence"
+        onChange={(event) => setRecurrence(event.target.value as Recurrence)}
+        value={recurrence}
+      >
+        {recurrenceOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+      </select></label>
       <label className="grid gap-2 text-sm text-subdued">Currency<select className={input} name="currency" onChange={(event) => setCurrency(event.target.value)} value={currency}>
         {supportedCurrencies.map((value) => <option key={value}>{value}</option>)}
       </select></label>
     </div>
+    {recurrence === "custom_months" ? (
+      <fieldset className="grid gap-2 rounded border bg-muted/30 p-3">
+        <legend className="px-1 text-sm font-semibold">Payment months</legend>
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+          {monthNames.map((month, index) => (
+            <label className="flex items-center gap-2 text-sm text-subdued" key={month}>
+              <input
+                checked={selectedMonths.includes(index + 1)}
+                name="selectedMonths"
+                onChange={(event) => setSelectedMonths((current) =>
+                  event.target.checked
+                    ? [...current, index + 1].sort((a, b) => a - b)
+                    : current.filter((value) => value !== index + 1)
+                )}
+                type="checkbox"
+                value={index + 1}
+              />
+              {month}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+    ) : null}
+    <p className="rounded border bg-muted/30 px-3 py-2 text-sm text-subdued">{recurrenceGuidance(recurrence)}</p>
     <label className="grid gap-2 text-sm text-subdued">Paid from account<select className={input} key={`from:${currency}`} name="from">
       <option value="">{kind === "expense" ? "Unallocated expense" : "Select funding account"}</option>
       {matchingRoutes.map((route) => <option key={route.id} value={route.id}>{route.accountName} · {route.currency}</option>)}
@@ -234,6 +286,24 @@ export function BudgetItemCreateForm({
       <span><strong className="text-foreground">Essential</strong><span className="block text-xs">Marks required household spending for adherence and future emergency-fund calculations. It does not change the budget total.</span></span>
     </label>
   </ApiCreateForm>;
+}
+
+function amountLabel(recurrence: Recurrence) {
+  if (recurrence === "once") return "One-time amount";
+  if (recurrence === "weekly") return "Weekly amount";
+  if (recurrence === "monthly") return "Monthly amount";
+  if (recurrence === "quarterly") return "Quarterly amount";
+  if (recurrence === "yearly") return "Annual amount";
+  return "Amount per selected month";
+}
+
+function recurrenceGuidance(recurrence: Recurrence) {
+  if (recurrence === "once") return "Enter the full one-time amount. It is excluded from the recurring monthly baseline.";
+  if (recurrence === "weekly") return "Enter the amount paid each week. The monthly baseline uses weekly amount × 52 ÷ 12.";
+  if (recurrence === "monthly") return "Enter the amount paid each month.";
+  if (recurrence === "quarterly") return "Enter the full amount paid each quarter. The monthly baseline divides it by 3.";
+  if (recurrence === "yearly") return "Enter the full annual amount. The monthly baseline divides it evenly by 12.";
+  return "Enter the amount paid in each selected month. The monthly baseline spreads the selected payments across 12 months.";
 }
 
 export function CategoryCreateForm({ groups }: { groups: Array<{ id: string; name: string }> }) {

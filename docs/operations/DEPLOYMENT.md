@@ -19,6 +19,32 @@ Public deployments must also set an independent `RATE_LIMIT_HASH_SECRET`,
 configure SMTP, set `EMAIL_VERIFICATION_REQUIRED=true`, and configure a random
 `SCHEDULED_BACKUP_TOKEN`.
 
+## Versioned Docker Hub releases
+
+`package.json` is the canonical application version. The CI release job runs
+only for tags matching `v*.*.*`, requires the tag to equal
+`v${package.json.version}`, and publishes:
+
+```text
+techlotse/tl-finance:vX.Y.Z
+techlotse/tl-finance:latest
+```
+
+Configure the GitHub organization secrets `DOCKERHUB_USER` and
+`DOCKERHUB_TOKEN` before creating a release tag. The release candidate is
+scanned before Docker Hub authentication or publishing. Every High or Critical
+finding is included in a new GitHub issue. Critical findings fail the release
+and prevent both image tags from being pushed.
+
+For each release:
+
+1. Update the semantic version in `package.json` and `package-lock.json`.
+2. Move the release notes from `Unreleased` into a dated changelog section.
+3. Run `npm run version:check` and the normal verification suite.
+4. Commit the release and create the matching annotated tag, for example
+   `git tag -a v0.5.0 -m "Release v0.5.0"`.
+5. Push `main` and the version tag. The tag-triggered workflow owns publishing.
+
 ## S3-compatible platform backups
 
 Platform settings can upload an on-demand JSON snapshot to private

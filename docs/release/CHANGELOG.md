@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## v0.5.0 - 2026-06-14
+
+- Added tag-driven Docker Hub releases for `techlotse/tl-finance`. A matching
+  semantic version tag publishes both the immutable version tag and `latest`
+  only after the full verification job and container scan pass.
+- Added complete High/Critical container-vulnerability issue reporting and a
+  Critical-severity publish gate.
+- Pinned the transitive esbuild toolchain to a patched release so the v0.5.0
+  dependency audit remains clean.
+- Upgraded Alpine runtime packages during image builds so the v0.5.0
+  release candidate does not ship known High OpenSSL vulnerabilities.
+- Made `package.json` the canonical application version, enforced lockfile and
+  release-tag consistency, and exposed the canonical version through the
+  health endpoint.
 - Exposed budget-item recurrence controls for one-time, weekly, monthly,
   quarterly, yearly, and selected-month expenses. The form now explains the
   amount expected for each recurrence, and the table shows both entered and

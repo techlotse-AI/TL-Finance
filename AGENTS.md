@@ -33,13 +33,15 @@ Release sequence:
 | v0.2.0 | Complete Analyze tier and budget adherence |
 | v0.3.0 | Complete Optimize calculations, recommendations, and predictions |
 | v0.4.0 | Full security audit and public-ready auth/operations |
+| v0.5.0 | Versioned, vulnerability-gated Docker Hub releases |
 
 Unavailable paid tiers remain visible as locked or "Coming later." Server-side
 entitlements are authoritative; client-side hiding is never authorization.
 
-The current checkout is **v0.4.0**. Budget and Analyze are implemented,
+The current checkout is **v0.5.0**. Budget and Analyze are implemented,
 Optimize deterministic tools are implemented, and public-ready security and
-operations controls are the active release surface.
+operations controls are implemented. Tagged releases publish versioned
+containers only after the release verification and container security gates.
 
 ---
 

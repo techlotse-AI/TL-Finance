@@ -5,6 +5,7 @@ The Budget and Analyze tiers are implemented. Optimize includes deterministic
 scenarios, emergency-fund sizing, Swiss Pillar 3a calculations, and explainable
 recommendations. v0.4.0 adds public-auth flows, shared rate limiting, session
 controls, scheduled backups, offline restore, and public deployment runbooks.
+v0.5.0 adds tag-driven, vulnerability-gated Docker Hub releases.
 
 Budget models planned money routes without account balances or forecasts:
 

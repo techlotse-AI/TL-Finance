@@ -14,10 +14,13 @@ pin:
 - PostgreSQL is pinned to `16.14`, the latest patch in the repository's locked
   PostgreSQL 16 major version.
 
-The lockfile overrides vulnerable transitive versions of PostCSS and
-`@hono/node-server` with patched releases. `npm audit --audit-level=moderate`
-reports zero vulnerabilities.
+The lockfile overrides vulnerable transitive versions of PostCSS,
+`@hono/node-server`, and esbuild with patched releases.
+`npm audit --audit-level=moderate` reports zero vulnerabilities.
 
 GitHub Actions uses the latest verified releases of `actions/checkout` and
-`actions/setup-node`, pinned to immutable full commit SHAs. Dependabot monitors
-npm, GitHub Actions, and Docker updates weekly.
+`actions/setup-node`, pinned to immutable commits. Container release scanning
+uses the official Trivy Action pinned to an immutable commit.
+Dependabot monitors npm, GitHub Actions, and Docker updates weekly.
+The production image upgrades Alpine runtime packages during the final image
+stage so fixed base-image security updates are applied before container scans.

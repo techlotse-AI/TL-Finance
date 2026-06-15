@@ -3,7 +3,8 @@
 One command brings up PostgreSQL, runs migrations, and serves the app.
 
 ```bash
-docker compose up --build
+cp .env.development.example .env
+docker compose -f compose.yaml -f compose.dev.yaml up --build
 ```
 
 Then open http://localhost:3000. The build generates the Prisma client and
@@ -39,5 +40,5 @@ database is required. PostgreSQL is also exposed on `localhost:5432`.
 ## Reset
 
 ```bash
-docker compose down -v   # also removes the postgres volume
+docker compose -f compose.yaml -f compose.dev.yaml down -v   # also removes the postgres volume
 ```

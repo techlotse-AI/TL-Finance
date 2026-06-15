@@ -22,17 +22,34 @@ Requirements:
 - Node.js 24.16.0 when running outside Docker
 
 ```bash
-cp .env.example .env
-docker compose up --build
+cp .env.development.example .env
+docker compose -f compose.yaml -f compose.dev.yaml up --build
 ```
 
 The application is available at `http://localhost:3000`. PostgreSQL is exposed
 on `localhost:5432` for local tooling.
 
+## Cloud deployment
+
+Cloud instances pull matching versioned application and migrator images
+published to Docker Hub. No source checkout or image build is required:
+
+```bash
+cp .env.example .env
+# Replace every placeholder and pin TL_FINANCE_VERSION to a published vX.Y.Z tag.
+docker compose pull
+docker compose up -d
+```
+
+The application binds to `127.0.0.1:3000` by default for a host TLS reverse
+proxy. PostgreSQL is not published outside the Compose network. See
+[Deployment](docs/operations/DEPLOYMENT.md) before exposing an instance.
+
 ## Verification
 
 ```bash
 npm run generate
+npm run compose:check
 npm run typecheck
 npm run lint
 npm test

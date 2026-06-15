@@ -1,6 +1,7 @@
 FROM node:24.16.0-alpine AS dependencies
 WORKDIR /app
 COPY package.json package-lock.json* ./
+RUN apk upgrade --no-cache
 RUN npm install --global npm@11.16.0
 RUN npm ci
 
@@ -10,6 +11,17 @@ ENV DATABASE_URL=postgresql://build-only:build-only@127.0.0.1:5432/build-only
 COPY . .
 RUN npx prisma generate
 RUN npm run build
+
+FROM dependencies AS migrator
+WORKDIR /app
+ENV NODE_ENV=production
+ENV HOME=/tmp
+COPY prisma ./prisma
+COPY prisma.config.ts ./
+COPY scripts/restore-platform-backup.mjs ./scripts/restore-platform-backup.mjs
+RUN npx prisma generate
+USER node
+CMD ["./node_modules/.bin/prisma", "migrate", "deploy"]
 
 FROM node:24.16.0-alpine AS runner
 WORKDIR /app

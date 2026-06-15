@@ -1,23 +1,102 @@
 # Deployment
 
-The supported development deployment uses Docker Compose:
+## Cloud Compose deployment
+
+The primary `compose.yaml` is the supported single-instance cloud deployment.
+It contains no source-build instructions and pulls a matching versioned image
+pair from Docker Hub:
+
+```text
+techlotse/tl-finance:vX.Y.Z
+techlotse/tl-finance-migrator:vX.Y.Z
+```
+
+The migrator image contains the committed Prisma migrations and migration CLI.
+It runs once after PostgreSQL is healthy. The application starts only after
+migrations complete successfully. Always deploy both images with the same
+version tag. The original `v0.5.0` release predates the migrator image and is
+not compatible with this cloud Compose definition.
+
+On the cloud host, install Docker Engine with the Compose plugin, place
+`compose.yaml` and a private `.env` file in a restricted deployment directory,
+then configure the environment:
 
 ```bash
 cp .env.example .env
-docker compose up --build
+chmod 600 .env
 ```
 
-Compose applies committed Prisma migrations through a one-shot migration
-container before starting the application container. The current runtime is
-Node.js 24.16.0 with PostgreSQL 16.14.
+Replace every placeholder. Set `TL_FINANCE_VERSION` to a published versioned
+`vX.Y.Z` tag that includes both images. `POSTGRES_PASSWORD` and the password
+inside `DATABASE_URL` must refer to the same value; URL-encode special
+characters inside `DATABASE_URL`.
 
-Production deployments must provide a strong `AUDIT_IP_HASH_SECRET`, use TLS at
-the ingress, run Prisma migrations before application rollout, and persist
-PostgreSQL data outside the application container.
+Validate and deploy:
 
-Public deployments must also set an independent `RATE_LIMIT_HASH_SECRET`,
-configure SMTP, set `EMAIL_VERIFICATION_REQUIRED=true`, and configure a random
-`SCHEDULED_BACKUP_TOKEN`.
+```bash
+docker compose config --quiet
+docker compose pull
+docker compose up -d
+docker compose ps
+docker compose logs migrate
+```
+
+The application binds to `127.0.0.1:3000` by default. Terminate TLS at a host
+reverse proxy and forward traffic to that address. Set `NEXT_PUBLIC_APP_URL` to
+the exact public HTTPS origin. PostgreSQL is only attached to the internal
+Compose database network and has no host-published port.
+
+For scheduled S3-compatible backups:
+
+```bash
+docker compose --profile scheduled-backups up -d
+```
+
+The application, migrator, and scheduler run with read-only root filesystems
+and writable in-memory `/tmp` mounts. PostgreSQL data persists in the named
+`postgres-data` volume. Back up that volume or use platform backups before
+upgrades.
+
+### Upgrade
+
+Update only `TL_FINANCE_VERSION` after confirming that both versioned images
+were published and passed the release vulnerability gate:
+
+```bash
+docker compose pull
+docker compose up -d
+docker compose ps
+docker compose logs migrate
+```
+
+The one-shot migrator applies additive migrations before the new application
+starts. Do not roll the application back across a database migration unless the
+release notes explicitly confirm compatibility.
+
+## Local source-build deployment
+
+Local development uses the production definition plus an explicit build
+override:
+
+```bash
+cp .env.development.example .env
+docker compose -f compose.yaml -f compose.dev.yaml up --build
+```
+
+This exposes PostgreSQL on `localhost:5432` for local tooling. Never use the
+development override or development environment template on a public host.
+
+## Required production controls
+
+Production deployments must provide strong, independent
+`AUDIT_IP_HASH_SECRET`, `RATE_LIMIT_HASH_SECRET`, and
+`SCHEDULED_BACKUP_TOKEN` values, use TLS at the ingress, configure
+`INSTANCE_ADMIN_EMAIL` before first signup, enable email verification with
+working SMTP, and persist and back up PostgreSQL data.
+
+Review [PUBLIC_DEPLOYMENT_CHECKLIST.md](PUBLIC_DEPLOYMENT_CHECKLIST.md),
+[SECURITY.md](SECURITY.md), and [BACKUP_RESTORE.md](BACKUP_RESTORE.md) before
+public exposure.
 
 ## Versioned Docker Hub releases
 
@@ -28,21 +107,24 @@ only for tags matching `v*.*.*`, requires the tag to equal
 ```text
 techlotse/tl-finance:vX.Y.Z
 techlotse/tl-finance:latest
+techlotse/tl-finance-migrator:vX.Y.Z
+techlotse/tl-finance-migrator:latest
 ```
 
-Configure the GitHub organization secrets `DOCKERHUB_USER` and
-`DOCKERHUB_TOKEN` before creating a release tag. The release candidate is
-scanned before Docker Hub authentication or publishing. Every High or Critical
-finding is included in a new GitHub issue. Critical findings fail the release
-and prevent both image tags from being pushed.
+Cloud Compose deployments must use the versioned `vX.Y.Z` tags, not `latest`.
+The release candidates are both scanned before Docker Hub authentication or
+publishing. Every High or Critical finding is included in a new GitHub issue.
+Critical findings fail the release and prevent all image tags from being
+pushed.
 
-For each release:
+Configure the GitHub organization secrets `DOCKERHUB_USER` and
+`DOCKERHUB_TOKEN` before creating a release tag. For each release:
 
 1. Update the semantic version in `package.json` and `package-lock.json`.
 2. Move the release notes from `Unreleased` into a dated changelog section.
 3. Run `npm run version:check` and the normal verification suite.
 4. Commit the release and create the matching annotated tag, for example
-   `git tag -a v0.5.0 -m "Release v0.5.0"`.
+   `git tag -a v0.6.0 -m "Release v0.6.0"`.
 5. Push `main` and the version tag. The tag-triggered workflow owns publishing.
 
 ## S3-compatible platform backups
@@ -74,7 +156,5 @@ Platform snapshots contain all users, password hashes, household financial
 data, entitlements, and audit events. They deliberately exclude live sessions,
 email-verification tokens, and password-reset tokens.
 
-Scheduled backups can run through the Compose `scheduled-backups` profile.
-Offline destructive restore uses `npm run platform:restore -- <backup.json>`.
-See [BACKUP_RESTORE.md](BACKUP_RESTORE.md) and
-[PUBLIC_DEPLOYMENT_CHECKLIST.md](PUBLIC_DEPLOYMENT_CHECKLIST.md).
+Offline destructive restore uses the version-matched migrator image. See
+[BACKUP_RESTORE.md](BACKUP_RESTORE.md).

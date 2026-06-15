@@ -1,0 +1,19 @@
+services:
+  db:
+    pull_policy: missing
+    ports:
+      - "5432:5432"
+
+  migrate:
+    build:
+      context: .
+      target: migrator
+    pull_policy: build
+
+  app:
+    build: .
+    pull_policy: build
+
+  backup-scheduler:
+    build: .
+    pull_policy: build

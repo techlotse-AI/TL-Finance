@@ -2,10 +2,24 @@
 
 ## Unreleased
 
+- Made the primary Compose definition cloud-ready: it pulls matching,
+  version-pinned application and migrator images from Docker Hub, runs
+  migrations before application rollout, keeps PostgreSQL private, requires
+  deployment secrets, and defaults the application bind address to loopback
+  for a host TLS ingress.
+- Added a local-development Compose override and environment template so source
+  builds remain explicit and separate from cloud deployment.
+- Extended release publishing and vulnerability scanning to the dedicated
+  `techlotse/tl-finance-migrator` image, and added cloud/local Compose
+  validation to CI.
+- Updated Nodemailer to 8.0.11 after its prior release became subject to
+  Moderate-severity header-injection, transport-access, and OAuth2 TLS
+  advisories.
+
 ## v0.5.0 - 2026-06-14
 
 - Added tag-driven Docker Hub releases for `techlotse/tl-finance`. A matching
-  semantic version tag publishes both the immutable version tag and `latest`
+  semantic version tag publishes both the versioned tag and `latest`
   only after the full verification job and container scan pass.
 - Added complete High/Critical container-vulnerability issue reporting and a
   Critical-severity publish gate.

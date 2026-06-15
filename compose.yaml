@@ -1,58 +1,97 @@
+name: tl-finance
+
+x-app-environment: &app-environment
+  DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
+  AUDIT_IP_HASH_SECRET: ${AUDIT_IP_HASH_SECRET:?Set AUDIT_IP_HASH_SECRET in .env}
+  RATE_LIMIT_HASH_SECRET: ${RATE_LIMIT_HASH_SECRET:?Set RATE_LIMIT_HASH_SECRET in .env}
+  NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:?Set NEXT_PUBLIC_APP_URL in .env}
+  INSTANCE_ADMIN_EMAIL: ${INSTANCE_ADMIN_EMAIL:-}
+  EMAIL_VERIFICATION_REQUIRED: ${EMAIL_VERIFICATION_REQUIRED:-true}
+  SMTP_HOST: ${SMTP_HOST:-}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_SECURE: ${SMTP_SECURE:-true}
+  SMTP_USER: ${SMTP_USER:-}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+  SMTP_FROM: ${SMTP_FROM:-}
+  SCHEDULED_BACKUP_TOKEN: ${SCHEDULED_BACKUP_TOKEN:?Set SCHEDULED_BACKUP_TOKEN in .env}
+  S3_BACKUP_ENDPOINT: ${S3_BACKUP_ENDPOINT:-}
+  S3_BACKUP_REGION: ${S3_BACKUP_REGION:-}
+  S3_BACKUP_BUCKET: ${S3_BACKUP_BUCKET:-}
+  S3_BACKUP_PREFIX: ${S3_BACKUP_PREFIX:-tl-finance}
+  S3_BACKUP_ACCESS_KEY_ID: ${S3_BACKUP_ACCESS_KEY_ID:-}
+  S3_BACKUP_SECRET_ACCESS_KEY: ${S3_BACKUP_SECRET_ACCESS_KEY:-}
+  S3_BACKUP_FORCE_PATH_STYLE: ${S3_BACKUP_FORCE_PATH_STYLE:-false}
+  S3_BACKUP_SERVER_SIDE_ENCRYPTION: ${S3_BACKUP_SERVER_SIDE_ENCRYPTION:-AES256}
+  S3_BACKUP_KMS_KEY_ID: ${S3_BACKUP_KMS_KEY_ID:-}
+
 services:
   db:
-    image: postgres:16.14-alpine
+    image: postgres:${POSTGRES_VERSION:-16.14-alpine}
+    pull_policy: always
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: tlfinance
-      POSTGRES_USER: tlfinance
-      POSTGRES_PASSWORD: tlfinance
-    ports:
-      - "5432:5432"
+      POSTGRES_DB: ${POSTGRES_DB:-tlfinance}
+      POSTGRES_USER: ${POSTGRES_USER:-tlfinance}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U tlfinance -d tlfinance"]
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
       interval: 5s
       timeout: 5s
       retries: 10
+      start_period: 10s
+    networks:
+      - database
+
+  migrate:
+    image: ${TL_FINANCE_MIGRATOR_IMAGE:-techlotse/tl-finance-migrator}:${TL_FINANCE_VERSION:?Set TL_FINANCE_VERSION to a published vX.Y.Z tag}
+    pull_policy: always
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - database
 
   app:
-    build: .
-    environment:
-      DATABASE_URL: postgresql://tlfinance:tlfinance@db:5432/tlfinance?schema=public
-      AUDIT_IP_HASH_SECRET: local-development-audit-secret-change-me
-      RATE_LIMIT_HASH_SECRET: local-development-rate-limit-secret-change-me
-      NEXT_PUBLIC_APP_URL: http://localhost:3000
-      INSTANCE_ADMIN_EMAIL: ${INSTANCE_ADMIN_EMAIL:-}
-      EMAIL_VERIFICATION_REQUIRED: ${EMAIL_VERIFICATION_REQUIRED:-false}
-      SMTP_HOST: ${SMTP_HOST:-}
-      SMTP_PORT: ${SMTP_PORT:-587}
-      SMTP_SECURE: ${SMTP_SECURE:-false}
-      SMTP_USER: ${SMTP_USER:-}
-      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
-      SMTP_FROM: ${SMTP_FROM:-}
-      SCHEDULED_BACKUP_TOKEN: ${SCHEDULED_BACKUP_TOKEN:-local-development-scheduled-backup-token}
-      S3_BACKUP_ENDPOINT: ${S3_BACKUP_ENDPOINT:-}
-      S3_BACKUP_REGION: ${S3_BACKUP_REGION:-}
-      S3_BACKUP_BUCKET: ${S3_BACKUP_BUCKET:-}
-      S3_BACKUP_PREFIX: ${S3_BACKUP_PREFIX:-tl-finance}
-      S3_BACKUP_ACCESS_KEY_ID: ${S3_BACKUP_ACCESS_KEY_ID:-}
-      S3_BACKUP_SECRET_ACCESS_KEY: ${S3_BACKUP_SECRET_ACCESS_KEY:-}
-      S3_BACKUP_FORCE_PATH_STYLE: ${S3_BACKUP_FORCE_PATH_STYLE:-false}
-      S3_BACKUP_SERVER_SIDE_ENCRYPTION: ${S3_BACKUP_SERVER_SIDE_ENCRYPTION:-AES256}
-      S3_BACKUP_KMS_KEY_ID: ${S3_BACKUP_KMS_KEY_ID:-}
+    image: ${TL_FINANCE_IMAGE:-techlotse/tl-finance}:${TL_FINANCE_VERSION:?Set TL_FINANCE_VERSION to a published vX.Y.Z tag}
+    pull_policy: always
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    environment: *app-environment
     ports:
-      - "3000:3000"
+      - "${APP_BIND_ADDRESS:-127.0.0.1}:${APP_PORT:-3000}:3000"
     depends_on:
       migrate:
         condition: service_completed_successfully
       db:
         condition: service_healthy
+    networks:
+      - application
+      - database
 
   backup-scheduler:
     profiles: ["scheduled-backups"]
-    build: .
+    image: ${TL_FINANCE_IMAGE:-techlotse/tl-finance}:${TL_FINANCE_VERSION:?Set TL_FINANCE_VERSION to a published vX.Y.Z tag}
+    pull_policy: always
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    healthcheck:
+      disable: true
     environment:
-      SCHEDULED_BACKUP_TOKEN: ${SCHEDULED_BACKUP_TOKEN:-local-development-scheduled-backup-token}
+      SCHEDULED_BACKUP_TOKEN: ${SCHEDULED_BACKUP_TOKEN:?Set SCHEDULED_BACKUP_TOKEN in .env}
     command:
       - node
       - -e
@@ -63,17 +102,13 @@ services:
     depends_on:
       app:
         condition: service_healthy
-
-  migrate:
-    build:
-      context: .
-      target: builder
-    command: ["npx", "prisma", "migrate", "deploy"]
-    environment:
-      DATABASE_URL: postgresql://tlfinance:tlfinance@db:5432/tlfinance?schema=public
-    depends_on:
-      db:
-        condition: service_healthy
+    networks:
+      - application
 
 volumes:
   postgres-data:
+
+networks:
+  application:
+  database:
+    internal: true

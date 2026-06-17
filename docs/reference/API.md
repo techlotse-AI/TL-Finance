@@ -19,6 +19,8 @@ Implemented endpoints:
 | `GET, POST` | `/api/household/export`, `/api/household/import` | Validated household portability |
 | `GET, POST` | `/api/user/backup/export`, `/api/user/backup/import` | Authenticated multi-household user Budget backup portability |
 | `POST` | `/api/admin/users` | Instance-admin user activation and administrator-role management |
+| `POST` | `/api/admin/users/unlock` | Clears an account's failed-login lockout (instance administrator) and audits the unlock |
+| `GET` | `/api/admin/security-events` | Returns recent security audit events (sign-in, lockout, unlock, reset) for instance administrators |
 | `POST` | `/api/admin/platform-backup` | Instance-admin S3-compatible platform snapshot upload |
 | `POST` | `/api/system/scheduled-backup` | Scheduler-token-protected S3-compatible platform snapshot upload |
 | `GET` | `/api/admin/audit-export` | Instance-admin audit-event CSV export, limited to the newest 50,000 events |
@@ -33,6 +35,12 @@ Implemented endpoints:
 | `PATCH` | `/api/analysis/transfers/{id}` | Confirm or reject a transfer match |
 | `GET` | `/api/analysis/adherence`, `/api/analysis/findings` | Planned-versus-actual adherence and deterministic money-leak findings |
 | `POST` | `/api/optimize/projections` | Entitled, non-persistent deterministic scenario comparison |
+| `GET, POST` | `/api/optimize/holdings`, `PATCH, DELETE /api/optimize/holdings/{id}` | Manual holdings with lots; GET returns the base-currency portfolio with allocation and missing-rate warnings |
+| `POST` | `/api/optimize/forecast` | Deterministic balance forecast from planned net flow with shortfall detection |
+| `GET, POST` | `/api/optimize/scenarios`, `GET, DELETE /api/optimize/scenarios/{id}` | Persisted scenario comparisons re-computed from the stored definition |
+| `GET, POST` | `/api/optimize/pensions`, `DELETE /api/optimize/pensions/{id}` | Pillar 2/3a/3b vehicles; GET aggregates projected capital at retirement |
+| `POST` | `/api/optimize/ahv` | Pillar 1 (AHV) pension with late-entry scaling and the married-couple 150% cap |
+| `POST` | `/api/optimize/retirement` | Retirement-readiness coverage, gap, and required monthly saving |
 | `POST` | `/api/optimize/emergency-fund` | Emergency-fund sizing from essential monthly spend, reserve, and target months |
 | `POST` | `/api/optimize/pillar-3a` | Swiss Pillar 3a maximum, remaining headroom, tax saving, and growth projection |
 | `POST` | `/api/optimize/recommendations` | Ranked, explainable recommendations from emergency fund, Pillar 3a, and Analyze findings |

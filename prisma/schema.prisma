@@ -45,6 +45,22 @@ enum Recurrence {
   CUSTOM_MONTHS
 }
 
+enum AssetClass {
+  EQUITY
+  BOND
+  FUND
+  ETF
+  CASH
+  CRYPTO
+  OTHER
+}
+
+enum PensionPillar {
+  PILLAR_2
+  PILLAR_3A
+  PILLAR_3B
+}
+
 enum IncomeAllocationMethod {
   FIXED
   PERCENTAGE
@@ -117,6 +133,9 @@ model User {
   instanceAdmin         Boolean                  @default(false)
   emailVerifiedAt       DateTime?
   active                Boolean                  @default(true)
+  failedLoginCount      Int                      @default(0)
+  lockedUntil           DateTime?
+  lastFailedLoginAt     DateTime?
   createdAt             DateTime                 @default(now())
   updatedAt             DateTime                 @updatedAt
   sessions              Session[]
@@ -169,6 +188,9 @@ model Household {
   allocationRules   TransactionAllocationRule[]
   transferMatches   TransactionTransferMatch[]
   exchangeRates     ExchangeRate[]
+  holdings          Holding[]
+  pensionVehicles   PensionVehicle[]
+  scenarioComparisons ScenarioComparison[]
 }
 
 model HouseholdMember {
@@ -310,6 +332,7 @@ model Account {
   updatedAt       DateTime        @updatedAt
   household       Household       @relation(fields: [householdId], references: [id], onDelete: Restrict)
   pockets         AccountPocket[]
+  holdings        Holding[]
 
   @@unique([householdId, name])
   @@index([householdId, deletedAt, type])
@@ -581,4 +604,82 @@ model TransactionTransferMatch {
 
   @@unique([debitTransactionId, creditTransactionId])
   @@index([householdId, status, confidence])
+}
+
+// --- Optimize: holdings, pensions, persisted scenarios (v0.7.0 / v0.7.5) ---
+// Holdings and pensions are balance-bearing Optimize records. Budget remains
+// balance-free; these tables never feed planned money-flow.
+
+model Holding {
+  id          String         @id @default(cuid())
+  householdId String
+  accountId   String?
+  name        String
+  symbol      String?
+  assetClass  AssetClass
+  currency    String         @db.VarChar(3)
+  unitPrice   Decimal        @db.Decimal(18, 4)
+  priceAsOf   DateTime?
+  active      Boolean        @default(true)
+  deletedAt   DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  household   Household      @relation(fields: [householdId], references: [id], onDelete: Restrict)
+  account     Account?       @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  lots        HoldingLot[]
+
+  @@index([householdId, deletedAt, assetClass])
+  @@index([householdId, accountId])
+}
+
+model HoldingLot {
+  id          String   @id @default(cuid())
+  householdId String
+  holdingId   String
+  quantity    Decimal  @db.Decimal(18, 6)
+  unitCost    Decimal  @db.Decimal(18, 4)
+  acquiredAt  DateTime @db.Date
+  createdAt   DateTime @default(now())
+  holding     Holding  @relation(fields: [holdingId], references: [id], onDelete: Cascade)
+
+  @@index([householdId, holdingId])
+}
+
+model PensionVehicle {
+  id                 String        @id @default(cuid())
+  householdId        String
+  memberId           String?
+  label              String
+  pillar             PensionPillar
+  currency           String        @db.VarChar(3)
+  currentBalance     Decimal       @db.Decimal(18, 4)
+  annualContribution Decimal       @db.Decimal(18, 4)
+  annualReturnRate   Decimal       @db.Decimal(8, 6)
+  yearsToRetirement  Int
+  active             Boolean       @default(true)
+  deletedAt          DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  household          Household     @relation(fields: [householdId], references: [id], onDelete: Restrict)
+
+  @@index([householdId, deletedAt, pillar])
+}
+
+model ScenarioComparison {
+  id                  String    @id @default(cuid())
+  householdId         String
+  name                String
+  currency            String    @db.VarChar(3)
+  startingAmount      Decimal   @db.Decimal(18, 4)
+  monthlyContribution Decimal   @db.Decimal(18, 4)
+  years               Int
+  scenarios           Json
+  active              Boolean   @default(true)
+  deletedAt           DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  household           Household @relation(fields: [householdId], references: [id], onDelete: Restrict)
+
+  @@unique([householdId, name])
+  @@index([householdId, deletedAt])
 }

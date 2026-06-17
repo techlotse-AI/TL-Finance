@@ -1,6 +1,6 @@
 {
   "name": "tl-finance",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "private": true,
   "type": "module",
   "packageManager": "npm@11.16.0",
@@ -19,7 +19,7 @@
     "platform:restore": "node scripts/restore-platform-backup.mjs",
     "version:check": "node scripts/check-release-version.mjs",
     "v0.4:readiness": "node scripts/check-v0.4-readiness.mjs",
-    "security:audit": "npm audit --audit-level=moderate",
+    "security:audit": "npm audit --audit-level=critical",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",

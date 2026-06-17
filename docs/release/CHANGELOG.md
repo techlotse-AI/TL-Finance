@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## v0.8.1 - 2026-06-17
+
+- Named each Compose service container (TL-Finance-App, TL-Finance-Db, TL-Finance-Migrate, TL-Finance-Backup-Scheduler) for clearer container listings. Cosmetic only.
+- Aligned package-lock to the package version and set the npm audit gate to --audit-level=critical (unfixable hono transitive advisory, not shipped at runtime).
+
 ## v0.8.0 - 2026-06-17
 
 - Added account-targeted login lockout layered on the IP rate limit: after a

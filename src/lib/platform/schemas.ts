@@ -8,6 +8,10 @@ export const adminUserUpdateSchema = z.object({
   instanceAdmin: z.boolean(),
 });
 
+export const adminUserUnlockSchema = z.object({
+  userId: idSchema,
+});
+
 export const databaseResetSchema = z.object({
   confirmation: z.literal("RESET PLATFORM DATABASE"),
   password: z.string().min(1).max(128),

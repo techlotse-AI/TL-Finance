@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     }
     const passwordHash = await hashPassword(input.password);
     await prisma.$transaction(async (transaction) => {
-      await transaction.user.update({ where: { id: record.userId }, data: { passwordHash } });
+      await transaction.user.update({ where: { id: record.userId }, data: { passwordHash, failedLoginCount: 0, lockedUntil: null } });
       await transaction.passwordResetToken.update({ where: { id: record.id }, data: { usedAt: new Date() } });
       await transaction.session.updateMany({ where: { userId: record.userId, revokedAt: null }, data: { revokedAt: new Date() } });
       await writeAuditEvent(transaction, { userId: record.userId, action: "auth.password_reset.complete", resourceType: "User", resourceId: record.userId, ipAddress: requestIp(request) });

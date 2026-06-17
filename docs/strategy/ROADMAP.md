@@ -58,3 +58,21 @@ Release tags must match the canonical package version. The release workflow
 reports every High and Critical container vulnerability in a GitHub issue,
 blocks publishing on Critical findings, and publishes matching `vX.Y.Z` and
 `latest` tags only after verification succeeds.
+
+## v0.7.0 - Optimize foundations
+
+Implemented manual-first holdings/share tracking (lots, cost basis, unrealized gain, asset-class and currency allocation, base-currency conversion with missing-rate warnings), deterministic account balance forecasts from planned net flow with lowest-balance and shortfall detection, and persisted scenario comparisons re-computed from the stored definition. Optimize remains side-effect free: it never changes Budget. Structured holdings imports (Frankly/VIAC, Saxo) remain follow-up work.
+
+## v0.7.5 - Retirement and pensions
+
+Implemented Swiss pension planning. Capital pillars (2/3a/3b) project with an end-of-year annuity and aggregate to total capital at retirement. Pillar 1 (AHV) uses the official scale-44 two-segment Rentenformel with verified 2026 figures (min CHF 1,260, max CHF 2,520, full at 44 years and CHF 90,720 average income, 13th pension). It adds the requested calculation basis for late entry (contribution-gap scaling from a chosen entry age) and married couples (the combined pension capped at 150% of the maximum single pension, with proportional reduction when the cap binds). A retirement-readiness calculator combines AHV income, annuitized pension capital, and a sustainable investment drawdown into a coverage percentage, annual gap, and the level monthly saving required to close it. All calculations are deterministic, explainable, and covered by golden tests.
+
+## v0.8.0 - Account-security hardening and Optimize launch
+
+Implemented account-targeted login lockout with escalating, time-based backoff
+layered on the existing IP rate limit, with enumeration-safe generic errors.
+Added recovery paths: administrator unlock, password-reset clearing, and
+automatic reset on successful sign-in, plus a security-event review surface and
+admin lock status. This release also ships the v0.7.0 Optimize foundations and
+v0.7.5 Swiss pension and retirement planning. TOTP two-factor authentication
+remains planned follow-up work.

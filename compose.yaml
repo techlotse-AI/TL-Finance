@@ -26,6 +26,7 @@ x-app-environment: &app-environment
 
 services:
   db:
+    container_name: TL-Finance-Db
     image: postgres:${POSTGRES_VERSION:-16.14-alpine}
     pull_policy: always
     restart: unless-stopped
@@ -45,6 +46,7 @@ services:
       - database
 
   migrate:
+    container_name: TL-Finance-Migrate
     image: ${TL_FINANCE_MIGRATOR_IMAGE:-techlotse/tl-finance-migrator}:${TL_FINANCE_VERSION:?Set TL_FINANCE_VERSION to a published vX.Y.Z tag}
     pull_policy: always
     init: true
@@ -55,11 +57,13 @@ services:
       DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
     depends_on:
       db:
+    container_name: TL-Finance-Db
         condition: service_healthy
     networks:
       - database
 
   app:
+    container_name: TL-Finance-App
     image: ${TL_FINANCE_IMAGE:-techlotse/tl-finance}:${TL_FINANCE_VERSION:?Set TL_FINANCE_VERSION to a published vX.Y.Z tag}
     pull_policy: always
     restart: unless-stopped
@@ -72,14 +76,17 @@ services:
       - "${APP_BIND_ADDRESS:-127.0.0.1}:${APP_PORT:-3000}:3000"
     depends_on:
       migrate:
+    container_name: TL-Finance-Migrate
         condition: service_completed_successfully
       db:
+    container_name: TL-Finance-Db
         condition: service_healthy
     networks:
       - application
       - database
 
   backup-scheduler:
+    container_name: TL-Finance-Backup-Scheduler
     profiles: ["scheduled-backups"]
     image: ${TL_FINANCE_IMAGE:-techlotse/tl-finance}:${TL_FINANCE_VERSION:?Set TL_FINANCE_VERSION to a published vX.Y.Z tag}
     pull_policy: always
@@ -101,6 +108,7 @@ services:
         setInterval(run, 86400000);
     depends_on:
       app:
+    container_name: TL-Finance-App
         condition: service_healthy
     networks:
       - application

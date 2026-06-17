@@ -29,3 +29,35 @@ balances exist only for import reconciliation and do not add Budget balances.
 v0.4.0 adds `RateLimitBucket`, a shared PostgreSQL-backed authentication
 throttle keyed by an HMAC rather than raw email or IP values. Verification and
 password-reset token models store only token hashes and expiry/usage metadata.
+
+## Optimize holdings, pensions, and scenarios (v0.7.0 / v0.7.5)
+
+These tables are Optimize-owned and balance-bearing. They never participate in
+the Budget planned money-flow graph.
+
+- `Holding` and `HoldingLot`: manual positions and their cost-basis lots. A
+  holding stores its native currency and latest `unitPrice`; lots store
+  `quantity` (Decimal 18,6) and `unitCost`. Valuation, unrealized gain, and
+  asset-class/currency allocation are computed deterministically and converted
+  to the household base currency via the latest `ExchangeRate`; currencies with
+  no rate are reported, not silently mixed.
+- `PensionVehicle`: a Pillar 2/3a/3b capital vehicle (balance, annual
+  contribution, return rate, years to retirement). Pillar 1 (AHV) is an income
+  pension computed from inputs, not stored here.
+- `ScenarioComparison`: a saved projection definition (starting amount, monthly
+  contribution, horizon, and per-scenario return assumptions stored as JSON),
+  unique per household name. Results are recomputed from the stored definition.
+
+All four tables carry `householdId`, soft-delete (`active`/`deletedAt`), and are
+written through audited routes. Migration:
+`20260616000000_v0_7_optimize_holdings_pensions` (additive).
+
+## Login lockout (v0.8.0)
+
+`User` carries `failedLoginCount`, `lockedUntil`, and `lastFailedLoginAt`.
+These track an account-targeted sign-in lockout that complements the
+IP/volume `RateLimitBucket`. The signin route increments the count on each
+failed attempt, sets `lockedUntil` to an escalating backoff once the
+threshold is reached, and clears both on a successful sign-in. A completed
+password reset and an administrator unlock also clear them. Migration:
+`20260617000000_v0_8_login_lockout` (additive).

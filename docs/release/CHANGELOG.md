@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+## v0.8.0 - 2026-06-17
+
+- Added account-targeted login lockout layered on the IP rate limit: after a
+  configurable number of consecutive failed sign-ins (default 5) the account
+  locks for an escalating, time-based backoff (default 15/30/60/120 minutes).
+  Locked accounts return the same generic error as a wrong password to prevent
+  account enumeration.
+- Added account recovery: an instance administrator can unlock an account via
+  `/api/admin/users/unlock` (audited), a completed password reset clears the
+  lock, and every successful sign-in resets the failure counter.
+- Added a security-event review surface (`/api/admin/security-events`) and an
+  admin unlock control with locked-account status in user management.
+- Added the additive migration `20260617000000_v0_8_login_lockout` for the
+  `User` lockout columns, and `LOGIN_LOCKOUT_THRESHOLD` /
+  `LOGIN_LOCKOUT_BACKOFF_MINUTES` configuration.
+- Shipped the Optimize v0.7.0 foundations (holdings, balance forecasts,
+  persisted scenarios) and v0.7.5 Swiss pension and retirement planning as part
+  of the v0.8.0 release.
+
+- Optimize v0.7.0: added manual holdings/share tracking with cost basis, unrealized gain, and asset-class/currency allocation converted to the base currency; deterministic account balance forecasts from planned net flow with shortfall detection; and persisted, re-runnable scenario comparisons. All are entitlement-gated, household-scoped, and audited; holdings, pensions, and scenarios never feed the Budget money-flow.
+- Optimize v0.7.5: added Swiss pension planning. Capital-pillar (2/3a/3b) projection and aggregation; a Pillar 1 (AHV) pension using the scale-44 two-segment Rentenformel with late-entry contribution-gap scaling and the married-couple 150% cap (2026 figures, incl. the 13th pension); and a retirement-readiness calculator combining AHV income, annuitized pension capital, and a sustainable investment drawdown into a coverage gap and the monthly saving required to close it.
+- Added the additive migration `20260616000000_v0_7_optimize_holdings_pensions` for Holding, HoldingLot, PensionVehicle, and ScenarioComparison.
+
 - Made the primary Compose definition cloud-ready: it pulls matching,
   version-pinned application and migrator images from Docker Hub, runs
   migrations before application rollout, keeps PostgreSQL private, requires

@@ -13,6 +13,9 @@ interface ManagedUser {
   email: string;
   active: boolean;
   instanceAdmin: boolean;
+  failedLoginCount?: number;
+  locked?: boolean;
+  lockedUntil?: string | null;
 }
 
 export function UserManagementForm({ users }: { users: ManagedUser[] }) {
@@ -28,6 +31,7 @@ export function UserManagementForm({ users }: { users: ManagedUser[] }) {
     setSelectedId(userId);
     setActive(user?.active ?? true);
     setInstanceAdmin(user?.instanceAdmin ?? false);
+    setMessage(null);
   }
 
   async function submit() {
@@ -41,16 +45,38 @@ export function UserManagementForm({ users }: { users: ManagedUser[] }) {
     if (response.ok) router.refresh();
   }
 
+  async function unlock() {
+    const response = await fetch("/api/admin/users/unlock", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: selectedId }),
+    });
+    const result = await response.json().catch(() => null) as { error?: { message?: string } } | null;
+    setMessage(response.ok ? "Account unlocked." : result?.error?.message ?? "Unlock failed.");
+    if (response.ok) router.refresh();
+  }
+
   return (
     <Card className="p-5">
       <h2 className="font-semibold">User management</h2>
       <div className="mt-4 grid gap-3">
         <select className={input} onChange={(event) => selectUser(event.target.value)} value={selectedId}>
-          {users.map((user) => <option key={user.id} value={user.id}>{user.email}</option>)}
+          {users.map((user) => (
+            <option key={user.id} value={user.id}>{user.locked ? `${user.email} (locked)` : user.email}</option>
+          ))}
         </select>
+        {selected?.locked ? (
+          <p className="rounded border border-status-warning/40 bg-status-warning/5 px-3 py-2 text-sm text-status-warning" role="status">
+            Account locked after {selected.failedLoginCount ?? 0} failed sign-ins
+            {selected.lockedUntil ? ` until ${new Date(selected.lockedUntil).toLocaleString()}` : ""}. It will auto-unlock, or unlock it now.
+          </p>
+        ) : null}
         <label className="flex items-center gap-2 text-sm text-subdued"><input checked={active} onChange={(event) => setActive(event.target.checked)} type="checkbox" /> Active</label>
         <label className="flex items-center gap-2 text-sm text-subdued"><input checked={instanceAdmin} onChange={(event) => setInstanceAdmin(event.target.checked)} type="checkbox" /> Instance administrator</label>
-        <Button disabled={!selectedId} onClick={submit} type="button">Update user</Button>
+        <div className="flex flex-wrap gap-2">
+          <Button disabled={!selectedId} onClick={submit} type="button">Update user</Button>
+          <Button disabled={!selectedId || !selected?.locked} onClick={unlock} type="button" variant="secondary">Unlock account</Button>
+        </div>
       </div>
       {message ? <p className="mt-3 text-sm text-subdued" role="status">{message}</p> : null}
     </Card>

@@ -16,9 +16,11 @@ export default async function OptimizePage() {
           "Scenario projections",
           "Emergency-fund sizing",
           "Swiss Pillar 3a planning",
+          "Holdings & balance forecasts",
+          "Pension & retirement planning",
           "Explainable recommendations",
         ]}
-        description="Deterministic forecasts, scenarios, Swiss Pillar 3a planning, and explainable recommendations are part of the Optimize tier."
+        description="Deterministic forecasts, scenarios, holdings, Swiss pension and retirement planning, and explainable recommendations are part of the Optimize tier."
         tier="Optimize"
         title="Optimize"
       />

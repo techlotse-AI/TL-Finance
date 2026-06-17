@@ -3,6 +3,29 @@ import { serializeMoney, sumMoney } from "@/lib/money/decimal";
 import { prisma } from "@/lib/db/prisma";
 
 /**
+ * Latest reporting exchange rate per source currency into the base currency.
+ * Returns a map of fromCurrency -> rate string. Missing currencies are simply
+ * absent so callers can report them rather than failing closed.
+ */
+export async function reportingRateMap(
+  householdId: string,
+  baseCurrency: string,
+): Promise<Record<string, string>> {
+  const rates = await prisma.exchangeRate.findMany({
+    where: { householdId, toCurrency: baseCurrency },
+    orderBy: { asOf: "desc" },
+    select: { fromCurrency: true, rate: true },
+  });
+  const map: Record<string, string> = {};
+  for (const rate of rates) {
+    if (map[rate.fromCurrency] === undefined) {
+      map[rate.fromCurrency] = rate.rate.toString();
+    }
+  }
+  return map;
+}
+
+/**
  * Sums recurrence-normalized monthly essential expense budget items in the
  * household base currency. Non-base-currency essentials are reported separately
  * so the UI can warn rather than silently mixing currencies.

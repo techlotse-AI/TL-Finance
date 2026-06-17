@@ -14,6 +14,30 @@ import { s3BackupStatus } from "@/lib/platform/s3-backup";
 
 export const dynamic = "force-dynamic";
 
+interface AdminUserRow {
+  id: string;
+  email: string;
+  active: boolean;
+  instanceAdmin: boolean;
+  failedLoginCount: number;
+  lockedUntil: Date | null;
+}
+
+// Module-scope helper (not a component) so the current-time read stays out of
+// render and the lock status is computed once per request.
+function toManagedUsers(users: AdminUserRow[]) {
+  const nowMs = Date.now();
+  return users.map((user) => ({
+    id: user.id,
+    email: user.email,
+    active: user.active,
+    instanceAdmin: user.instanceAdmin,
+    failedLoginCount: user.failedLoginCount,
+    locked: user.lockedUntil != null && user.lockedUntil.getTime() > nowMs,
+    lockedUntil: user.lockedUntil ? user.lockedUntil.toISOString() : null,
+  }));
+}
+
 export default async function AdminPage() {
   let session;
   try {
@@ -29,7 +53,7 @@ export default async function AdminPage() {
   }
   const [households, users, auditEvents] = await Promise.all([
     prisma.household.findMany({ where: { active: true }, include: { entitlement: true }, orderBy: { name: "asc" } }),
-    prisma.user.findMany({ select: { id: true, email: true, active: true, instanceAdmin: true, createdAt: true }, orderBy: { email: "asc" } }),
+    prisma.user.findMany({ select: { id: true, email: true, active: true, instanceAdmin: true, failedLoginCount: true, lockedUntil: true, createdAt: true }, orderBy: { email: "asc" } }),
     prisma.auditEvent.findMany({ orderBy: { createdAt: "desc" }, take: 100 }),
   ]);
   const s3 = s3BackupStatus();
@@ -45,7 +69,7 @@ export default async function AdminPage() {
         All controls on this page require server-verified instance-administrator access.
       </Card>
       <div className="grid gap-6 lg:grid-cols-2">
-        <UserManagementForm users={users} />
+        <UserManagementForm users={toManagedUsers(users)} />
         <Card className="p-5">
           <h2 className="font-semibold">S3-compatible platform backups</h2>
           <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">

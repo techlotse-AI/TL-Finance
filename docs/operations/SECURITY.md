@@ -19,6 +19,15 @@ Baseline security is required from v0.1.0.
 - Response headers enforce a same-origin content security policy, HSTS,
   framing and MIME-sniffing protection, strict referrer behavior, and
   restricted browser capabilities.
+- Sign-in enforces an account-targeted lockout layered on the IP rate limit:
+  after a configurable number of consecutive failures (`LOGIN_LOCKOUT_THRESHOLD`,
+  default 5) the account locks for an escalating, time-based backoff
+  (`LOGIN_LOCKOUT_BACKOFF_MINUTES`, default 15/30/60/120 minutes). Locked
+  accounts return the same generic error as a wrong password, so the lock
+  cannot be used to enumerate accounts. A successful sign-in or a completed
+  password reset clears the state, and an instance administrator can unlock
+  an account early. Lock, unlock, and failed-attempt events are audited and
+  surfaced through the admin security-event view.
 - Authentication endpoints use PostgreSQL-backed shared rate-limit buckets
   keyed by HMAC values rather than raw identifiers.
 - Email-verification and password-reset links use random one-time tokens that

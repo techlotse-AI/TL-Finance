@@ -41,6 +41,7 @@ Implemented endpoints:
 | `GET, POST` | `/api/optimize/pensions`, `DELETE /api/optimize/pensions/{id}` | Pillar 2/3a/3b vehicles; GET aggregates projected capital at retirement |
 | `POST` | `/api/optimize/ahv` | Pillar 1 (AHV) pension with late-entry scaling and the married-couple 150% cap |
 | `POST` | `/api/optimize/retirement` | Retirement-readiness coverage, gap, and required monthly saving |
-| `POST` | `/api/optimize/emergency-fund` | Emergency-fund sizing from essential monthly spend, reserve, and target months |
+| `POST` | `/api/optimize/emergency-fund` | Emergency-fund sizing from essential monthly spend, reserve, and target months, with optional income-protection (generic, or Swiss ALV preset) target reduction |
+| `POST` | `/api/optimize/debt` | Deterministic debt payoff: avalanche vs snowball schedules, total interest, payoff date, and the avalanche/snowball trade-off (nominal APR compounded monthly) |
 | `POST` | `/api/optimize/pillar-3a` | Swiss Pillar 3a maximum, remaining headroom, tax saving, and growth projection |
 | `POST` | `/api/optimize/recommendations` | Ranked, explainable recommendations from emergency fund, Pillar 3a, and Analyze findings |

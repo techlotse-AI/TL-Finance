@@ -108,7 +108,7 @@ households; Budget households see a locked overview.
 
 ## Optimize
 
-Optimize is available to Optimize households and offers four deterministic,
+Optimize is available to Optimize households and offers deterministic,
 store-nothing tools that never change the budget:
 
 1. **Scenarios.** Compare projection scenarios with explicit starting amount,
@@ -116,7 +116,10 @@ store-nothing tools that never change the budget:
    monthly rate and applies contributions at month end, excluding taxes and fees.
 2. **Emergency fund.** Sizes a target from your Essential monthly spend times a
    chosen number of months of runway, then reports months covered, the gap, and
-   a suggested monthly top-up.
+   a suggested monthly top-up. It can account for income protection — including a
+   Swiss unemployment-insurance (ALV) preset (70%/80% of insured salary after a
+   waiting period, once notice or severance ends) — which lowers the required
+   reserve and explains by how much.
 3. **Pillar 3a.** Uses the current-year Swiss maximum (CHF 7,258 with a pension
    fund, or 20% of net income up to CHF 36,288 without), shows remaining
    headroom and the tax saving at your marginal rate, and projects long-horizon
@@ -124,3 +127,9 @@ store-nothing tools that never change the budget:
 4. **Advisor.** Ranks explainable recommendations that combine the
    emergency-fund gap, Pillar 3a headroom, and Analyze findings. Each cites the
    inputs it is based on and nothing is applied automatically.
+5. **Debt payoff.** Compares avalanche (highest interest rate first) and
+   snowball (smallest balance first) schedules from your balances, rates, and
+   minimum payments plus any extra monthly payment, reporting time to debt-free,
+   the debt-free date, total interest, and how much avalanche saves. Interest is
+   nominal APR compounded monthly; it flags any debt whose minimum cannot cover
+   its interest. Optimize-only — debt math never appears in Budget.

@@ -17,6 +17,7 @@ const TABS = [
   "Forecast",
   "Pensions",
   "Retirement",
+  "Debt",
   "Advisor",
 ] as const;
 type Tab = (typeof TABS)[number];
@@ -67,6 +68,7 @@ export function OptimizeWorkspace({ currency }: { currency: string }) {
       {tab === "Forecast" ? <ForecastPanel currency={currency} /> : null}
       {tab === "Pensions" ? <PensionsPanel currency={currency} /> : null}
       {tab === "Retirement" ? <RetirementPanel currency={currency} /> : null}
+      {tab === "Debt" ? <DebtPanel currency={currency} /> : null}
       {tab === "Advisor" ? <AdvisorPanel currency={currency} /> : null}
     </div>
   );
@@ -80,13 +82,25 @@ function StatusBadge({ status }: { status: string }) {
 function EmergencyFundPanel({ currency }: { currency: string }) {
   const [result, setResult] = useState<any>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [useProtection, setUseProtection] = useState(false);
+  const [higherRate, setHigherRate] = useState(false);
 
   async function calculate(form: FormData) {
     setMessage(null);
-    const { ok, data } = await postJson("/api/optimize/emergency-fund", {
+    const body: any = {
       currentReserve: String(form.get("reserve") ?? "0"),
       targetMonths: Number(form.get("months") ?? 6),
-    });
+    };
+    if (useProtection) {
+      body.swissUnemployment = {
+        monthlyGrossSalary: String(form.get("salary") ?? "0"),
+        higherRate,
+        noticePeriodMonths: Number(form.get("notice") ?? 3),
+        waitingPeriodMonths: Number(form.get("wait") ?? 2),
+        benefitDurationMonths: Number(form.get("duration") ?? 24),
+      };
+    }
+    const { ok, data } = await postJson("/api/optimize/emergency-fund", body);
     if (!ok) { setMessage(data?.error?.message ?? "Calculation failed."); return; }
     setResult(data);
   }
@@ -98,13 +112,26 @@ function EmergencyFundPanel({ currency }: { currency: string }) {
         <form action={calculate} className="grid gap-3">
           <Field label={`Current liquid reserve (${currency})`}><input className={inputClass} name="reserve" inputMode="decimal" defaultValue="0" required /></Field>
           <Field label="Target months of runway"><input className={inputClass} name="months" type="number" min={1} max={24} defaultValue={6} /></Field>
+          <label className="flex items-center gap-2 text-sm text-subdued"><input type="checkbox" checked={useProtection} onChange={(event) => setUseProtection(event.target.checked)} /> Account for Swiss unemployment insurance (ALV)</label>
+          {useProtection ? (
+            <div className="grid gap-3 rounded border bg-muted/30 p-3">
+              <Field label={`Gross monthly salary (${currency})`}><input className={inputClass} name="salary" inputMode="decimal" defaultValue="8000" /></Field>
+              <label className="flex items-center gap-2 text-sm text-subdued"><input type="checkbox" checked={higherRate} onChange={(event) => setHigherRate(event.target.checked)} /> 80% rate (children, age 55+, or low salary)</label>
+              <div className="grid grid-cols-3 gap-3">
+                <Field label="Notice mo"><input className={inputClass} name="notice" type="number" min={0} max={24} defaultValue={3} /></Field>
+                <Field label="Wait mo"><input className={inputClass} name="wait" type="number" min={0} max={24} defaultValue={2} /></Field>
+                <Field label="Benefit mo"><input className={inputClass} name="duration" type="number" min={0} max={120} defaultValue={24} /></Field>
+              </div>
+              <p className="text-xs text-subdued">Insured salary is capped at CHF 12,350/month. The benefit is 70% (or 80%) of that, paid after the wait, once notice/severance ends.</p>
+            </div>
+          ) : null}
           <Button type="submit">Calculate</Button>
         </form>
         {message ? <p className="mt-3 text-sm text-status-warning">{message}</p> : null}
       </Card>
       {result ? (
         <Card className="space-y-4 p-5">
-          <div className="flex items-center gap-3"><h3 className="font-semibold">Result</h3><StatusBadge status={result.status} /></div>
+          <div className="flex items-center gap-3"><h3 className="font-semibold">Result</h3><StatusBadge status={result.status} />{result.incomeProtectionApplied ? <Badge tone={"locked" as any}>income-protected</Badge> : null}</div>
           {Number(result.essentialMonthly) === 0 ? (
             <p className="rounded border bg-muted/30 p-3 text-sm text-status-warning">No essential budget items in {currency}. Mark required spending as Essential in Budget to size your fund.</p>
           ) : null}
@@ -116,6 +143,16 @@ function EmergencyFundPanel({ currency }: { currency: string }) {
             <Metric label="Gap" value={fmt(result.gap, currency)} tone={Number(result.gap) > 0 ? "danger" : "success"} />
             <Metric label="Suggested / month" value={fmt(result.suggestedMonthlyContribution, currency)} />
           </div>
+          {result.incomeProtectionApplied ? (
+            <div className="space-y-2 rounded border bg-muted/30 p-4">
+              <p className="text-xs uppercase tracking-wide text-subdued">Income protection</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Metric label="Un-insured target" value={fmt(result.unInsuredTargetAmount, currency)} />
+                <Metric label="Reduced by protection" value={fmt(result.protectionReduction, currency)} tone="success" />
+              </div>
+              <p className="text-xs text-subdued">{result.protectionExplanation}</p>
+            </div>
+          ) : null}
         </Card>
       ) : <Placeholder text="Enter your reserve to size an emergency fund from your essential spending." />}
     </div>
@@ -576,6 +613,126 @@ function AdvisorPanel({ currency }: { currency: string }) {
         )
       ) : <Placeholder text="Fill in a few inputs to get ranked next actions." />}
     </div>
+  );
+}
+
+function DebtPanel({ currency }: { currency: string }) {
+  const [debts, setDebts] = useState<Array<{ name: string; balance: string; rate: string; min: string }>>([
+    { name: "Credit card", balance: "5000", rate: "0.199", min: "150" },
+    { name: "Car loan", balance: "12000", rate: "0.049", min: "300" },
+  ]);
+  const [extra, setExtra] = useState("200");
+  const [result, setResult] = useState<any>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  function update(index: number, key: "name" | "balance" | "rate" | "min", value: string) {
+    setDebts((rows) => rows.map((row, i) => (i === index ? { ...row, [key]: value } : row)));
+  }
+  function addDebt() {
+    setDebts((rows) => [...rows, { name: "", balance: "0", rate: "0.1", min: "0" }]);
+  }
+  function removeDebt(index: number) {
+    setDebts((rows) => (rows.length > 1 ? rows.filter((_, i) => i !== index) : rows));
+  }
+
+  async function compare() {
+    setMessage(null);
+    const { ok, data } = await postJson("/api/optimize/debt", {
+      currency,
+      extraMonthlyPayment: extra || "0",
+      debts: debts.map((debt) => ({
+        name: debt.name || "Debt",
+        balance: debt.balance || "0",
+        annualInterestRate: debt.rate || "0",
+        minimumPayment: debt.min || "0",
+      })),
+    });
+    if (!ok) { setMessage(data?.error?.message ?? "Calculation failed."); return; }
+    setResult(data);
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card className="p-5">
+        <div className="mb-4 flex items-center justify-between"><h2 className="font-semibold">Debt payoff</h2><Button type="button" onClick={addDebt}>Add debt</Button></div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead><tr className="text-left text-subdued"><th className="py-1">Name</th><th className="text-right">Balance</th><th className="text-right">APR</th><th className="text-right">Min / mo</th><th /></tr></thead>
+            <tbody>
+              {debts.map((debt, index) => (
+                <tr key={index} className="border-t">
+                  <td className="py-1 pr-2"><input className={inputClass} value={debt.name} onChange={(event) => update(index, "name", event.target.value)} aria-label="Debt name" /></td>
+                  <td className="pr-2"><input className={`${inputClass} text-right`} value={debt.balance} inputMode="decimal" onChange={(event) => update(index, "balance", event.target.value)} aria-label="Balance" /></td>
+                  <td className="pr-2"><input className={`${inputClass} text-right`} value={debt.rate} inputMode="decimal" onChange={(event) => update(index, "rate", event.target.value)} aria-label="Annual rate" /></td>
+                  <td className="pr-2"><input className={`${inputClass} text-right`} value={debt.min} inputMode="decimal" onChange={(event) => update(index, "min", event.target.value)} aria-label="Minimum payment" /></td>
+                  <td><button type="button" onClick={() => removeDebt(index)} className="rounded px-2 py-1 text-xs text-subdued hover:text-status-danger" aria-label="Remove debt">✕</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+          <Field label={`Extra monthly payment (${currency})`}><input className={inputClass} value={extra} inputMode="decimal" onChange={(event) => setExtra(event.target.value)} /></Field>
+          <Button type="button" onClick={compare}>Compare strategies</Button>
+        </div>
+        <p className="mt-2 text-xs text-subdued">APR as a decimal (0.199 = 19.9%). Interest is nominal APR compounded monthly. The total monthly budget (all minimums + extra) is held constant and rolls into the focus debt.</p>
+        {message ? <p className="mt-3 text-sm text-status-warning">{message}</p> : null}
+      </Card>
+      {result ? (
+        <div className="space-y-4">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <StrategyCard title="Avalanche (highest rate first)" plan={result.avalanche} currency={currency} recommended={result.recommendedStrategy === "avalanche"} />
+            <StrategyCard title="Snowball (smallest balance first)" plan={result.snowball} currency={currency} recommended={result.recommendedStrategy === "snowball"} />
+          </div>
+          <Card className="space-y-3 p-5">
+            <h3 className="font-semibold">Avalanche vs snowball</h3>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Metric label="Interest saved by avalanche" value={fmt(result.interestSavedByAvalanche, currency)} tone={Number(result.interestSavedByAvalanche) > 0 ? "success" : undefined} />
+              <Metric label="Months saved by avalanche" value={result.monthsSavedByAvalanche ?? "—"} />
+              <Metric label="Recommended" value={result.recommendedStrategy} />
+            </div>
+            {result.avalanche.notes?.length ? (
+              <ul className="list-disc space-y-1 pl-5 text-xs text-status-warning">
+                {result.avalanche.notes.map((note: string, index: number) => <li key={index}>{note}</li>)}
+              </ul>
+            ) : null}
+          </Card>
+        </div>
+      ) : <Placeholder text="Add your debts and compare avalanche (cheapest) against snowball (fastest first wins)." />}
+    </div>
+  );
+}
+
+function StrategyCard({ title, plan, currency, recommended }: { title: string; plan: any; currency: string; recommended: boolean }) {
+  return (
+    <Card className="space-y-4 p-5">
+      <div className="flex flex-wrap items-center gap-3">
+        <h3 className="font-semibold">{title}</h3>
+        {recommended ? <Badge tone={"success" as any}>recommended</Badge> : null}
+        {plan.amortizes ? null : <Badge tone={"danger" as any}>does not clear</Badge>}
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Metric label="Time to debt-free" value={plan.months != null ? `${plan.months} mo` : "—"} />
+        <Metric label="Debt-free date" value={plan.payoffDate ?? "—"} />
+        <Metric label="Total interest" value={fmt(plan.totalInterest, currency)} tone="danger" />
+        <Metric label="Total paid" value={fmt(plan.totalPaid, currency)} />
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead><tr className="text-left text-subdued"><th className="py-1">#</th><th>Debt</th><th className="text-right">Cleared mo</th><th className="text-right">Interest</th></tr></thead>
+          <tbody>
+            {plan.debts.map((debt: any) => (
+              <tr key={debt.name} className="border-t">
+                <td className="py-1">{debt.order}</td>
+                <td>{debt.name}</td>
+                <td className="text-right tabular-nums">{debt.payoffMonth ?? "—"}</td>
+                <td className="text-right tabular-nums">{fmt(debt.interestPaid, currency)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
   );
 }
 

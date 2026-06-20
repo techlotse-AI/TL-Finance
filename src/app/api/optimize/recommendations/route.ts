@@ -2,7 +2,11 @@ import { json, readJson, routeError } from "@/lib/api/route";
 import { computeFindings } from "@/lib/analysis/findings";
 import { adherenceForMonth, loadFindingTransactions } from "@/lib/analysis/queries";
 import { requireAuthenticatedContext } from "@/lib/auth/context";
-import { computeEmergencyFund } from "@/lib/optimize/emergency-fund";
+import {
+  computeEmergencyFund,
+  swissUnemploymentProtection,
+  type IncomeProtection,
+} from "@/lib/optimize/emergency-fund";
 import { computePillar3a } from "@/lib/optimize/pillar3a";
 import { essentialMonthlyBaseCurrency } from "@/lib/optimize/queries";
 import { computeRecommendations } from "@/lib/optimize/recommendations";
@@ -20,11 +24,16 @@ export async function POST(request: Request) {
     ]);
     const findings = computeFindings(transactions, adherence.rows);
 
+    const incomeProtection: IncomeProtection | undefined = input.swissUnemployment
+      ? swissUnemploymentProtection(input.swissUnemployment)
+      : input.incomeProtection;
+
     const emergencyFund = computeEmergencyFund({
       currency: essential.currency,
       essentialMonthly: essential.essentialMonthly,
       currentReserve: input.currentReserve,
       targetMonths: input.targetMonths,
+      incomeProtection,
     });
     const pillar3a = computePillar3a({
       currency: essential.currency,

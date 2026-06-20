@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- CI/release: split the pipeline into a `verify` gate (every push and pull
+  request) and a single `publish` job. Pushing a `vX.Y.Z` tag now publishes the
+  versioned image plus `latest` with the git tag as the source of truth (no
+  `package.json` bump required); pushes to `main` publish a `nightly` image
+  tagged `nightly` and the commit SHA. Both channels are Trivy-scanned and
+  blocked on Critical vulnerabilities. `version:check` now validates that a
+  release tag is well-formed semver instead of requiring it to equal
+  `package.json`.
+
 - Optimize v0.9.0 (D1): the emergency fund is now income-protection-aware. A
   generic, country-agnostic model reduces the required reserve for the months a
   benefit covers essential spending (monthly benefit, waiting/elimination

@@ -98,34 +98,52 @@ Review [PUBLIC_DEPLOYMENT_CHECKLIST.md](PUBLIC_DEPLOYMENT_CHECKLIST.md),
 [SECURITY.md](SECURITY.md), and [BACKUP_RESTORE.md](BACKUP_RESTORE.md) before
 public exposure.
 
-## Versioned Docker Hub releases
+## CI channels: verify, release, and nightly
 
-`package.json` is the canonical application version. The CI release job runs
-only for tags matching `v*.*.*`, requires the tag to equal
-`v${package.json.version}`, and publishes:
+CI has one gate and two publish channels. The `verify` job runs on every pull
+request and every push (branch or tag); nothing is published unless it passes.
+The single `publish` job runs only on pushes (never pull requests), after
+`verify`, and chooses its channel from the ref:
 
-```text
-techlotse/tl-finance:vX.Y.Z
-techlotse/tl-finance:latest
-techlotse/tl-finance-migrator:vX.Y.Z
-techlotse/tl-finance-migrator:latest
-```
+- **Release — `vX.Y.Z` tag push.** The git tag is the source of truth for the
+  version: pushing `v0.8.2` publishes `0.8.2` and moves `latest`. You do **not**
+  need to bump `package.json` first.
 
-Cloud Compose deployments must use the versioned `vX.Y.Z` tags, not `latest`.
-The release candidates are both scanned before Docker Hub authentication or
-publishing. Every High or Critical finding is included in a new GitHub issue.
-Critical findings fail the release and prevent all image tags from being
-pushed.
+  ```text
+  techlotse/tl-finance:vX.Y.Z
+  techlotse/tl-finance:latest
+  techlotse/tl-finance-migrator:vX.Y.Z
+  techlotse/tl-finance-migrator:latest
+  ```
+
+- **Nightly — push to `main` without a tag.** Publishes a moving `nightly` tag
+  and the 12-character commit SHA. It never moves `latest`.
+
+  ```text
+  techlotse/tl-finance:nightly
+  techlotse/tl-finance:<commit-sha>
+  techlotse/tl-finance-migrator:nightly
+  techlotse/tl-finance-migrator:<commit-sha>
+  ```
+
+Both channels build the application and migrator images, scan them with Trivy
+(High/Critical), open a GitHub issue for any finding, and **fail the publish on
+any Critical** before Docker Hub authentication — so a blocked scan pushes
+nothing. Cloud Compose deployments must pin a versioned `vX.Y.Z` tag, never
+`latest` or `nightly`.
 
 Configure the GitHub organization secrets `DOCKERHUB_USER` and
-`DOCKERHUB_TOKEN` before creating a release tag. For each release:
+`DOCKERHUB_TOKEN` once. To cut a release:
 
-1. Update the semantic version in `package.json` and `package-lock.json`.
-2. Move the release notes from `Unreleased` into a dated changelog section.
-3. Run `npm run version:check` and the normal verification suite.
-4. Commit the release and create the matching annotated tag, for example
-   `git tag -a v0.6.0 -m "Release v0.6.0"`.
-5. Push `main` and the version tag. The tag-triggered workflow owns publishing.
+```bash
+git tag v0.8.2
+git push origin v0.8.2
+```
+
+The tag-triggered workflow owns publishing. Optionally first move the
+`Unreleased` changelog notes into a dated `v0.8.2` section and keep
+`package.json`/`package-lock.json` consistent with each other (the version
+check enforces that), but neither is required for the tag to publish.
 
 ## S3-compatible platform backups
 

@@ -67,11 +67,43 @@ export const projectionComparisonSchema = z
 
 export type ProjectionComparisonInput = z.infer<typeof projectionComparisonSchema>;
 
-export const emergencyFundSchema = z.object({
-  currentReserve: nonNegativeMoneySchema,
-  targetMonths: z.number().int().min(1).max(24),
-  closeOverMonths: z.number().int().min(1).max(120).optional(),
+// --- v0.9.0 D1: income-protection-aware emergency fund ---
+
+/** Generic, country-agnostic income protection (raw inputs to the engine). */
+export const incomeProtectionSchema = z.object({
+  monthlyBenefit: nonNegativeMoneySchema,
+  waitingPeriodMonths: z.number().int().min(0).max(24),
+  benefitDurationMonths: z.number().int().min(0).max(120).optional(),
+  coversPercentOfEssential: fractionSchema.optional(),
+  fullCoverageMonths: z.number().int().min(0).max(24).optional(),
 });
+
+/** Swiss ALV/AC preset inputs; the route derives an IncomeProtection from these. */
+export const swissUnemploymentSchema = z.object({
+  monthlyGrossSalary: nonNegativeMoneySchema,
+  higherRate: z.boolean().optional(),
+  noticePeriodMonths: z.number().int().min(0).max(24).optional(),
+  benefitDurationMonths: z.number().int().min(0).max(120).optional(),
+  waitingPeriodMonths: z.number().int().min(0).max(24).optional(),
+});
+
+export const emergencyFundSchema = z
+  .object({
+    currentReserve: nonNegativeMoneySchema,
+    targetMonths: z.number().int().min(1).max(24),
+    closeOverMonths: z.number().int().min(1).max(120).optional(),
+    incomeProtection: incomeProtectionSchema.optional(),
+    swissUnemployment: swissUnemploymentSchema.optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.incomeProtection && value.swissUnemployment) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Provide either incomeProtection or swissUnemployment, not both.",
+        path: ["incomeProtection"],
+      });
+    }
+  });
 
 export type EmergencyFundRequest = z.infer<typeof emergencyFundSchema>;
 
@@ -97,14 +129,26 @@ export const pillar3aSchema = z
 
 export type Pillar3aRequest = z.infer<typeof pillar3aSchema>;
 
-export const recommendationsSchema = z.object({
-  currentReserve: nonNegativeMoneySchema,
-  targetMonths: z.number().int().min(1).max(24),
-  hasPensionFund: z.boolean(),
-  netAnnualIncome: nonNegativeMoneySchema.optional(),
-  contributedThisYear: nonNegativeMoneySchema,
-  marginalTaxRate: fractionSchema,
-});
+export const recommendationsSchema = z
+  .object({
+    currentReserve: nonNegativeMoneySchema,
+    targetMonths: z.number().int().min(1).max(24),
+    hasPensionFund: z.boolean(),
+    netAnnualIncome: nonNegativeMoneySchema.optional(),
+    contributedThisYear: nonNegativeMoneySchema,
+    marginalTaxRate: fractionSchema,
+    incomeProtection: incomeProtectionSchema.optional(),
+    swissUnemployment: swissUnemploymentSchema.optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.incomeProtection && value.swissUnemployment) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Provide either incomeProtection or swissUnemployment, not both.",
+        path: ["incomeProtection"],
+      });
+    }
+  });
 
 export type RecommendationsRequest = z.infer<typeof recommendationsSchema>;
 
@@ -267,3 +311,23 @@ export const retirementSchema = z
   });
 
 export type RetirementRequest = z.infer<typeof retirementSchema>;
+
+
+// --- v0.9.0 D3: debt payoff calculator ---
+
+const debtItemSchema = z.object({
+  name: nameSchema.max(120),
+  balance: nonNegativeMoneySchema,
+  annualInterestRate: fractionSchema,
+  minimumPayment: nonNegativeMoneySchema,
+});
+
+export const debtPayoffSchema = z.object({
+  currency: currencySchema,
+  strategy: z.enum(["avalanche", "snowball"]).optional(),
+  extraMonthlyPayment: nonNegativeMoneySchema.optional(),
+  maxMonths: z.number().int().min(1).max(1200).optional(),
+  debts: z.array(debtItemSchema).min(1).max(50),
+});
+
+export type DebtPayoffRequest = z.infer<typeof debtPayoffSchema>;

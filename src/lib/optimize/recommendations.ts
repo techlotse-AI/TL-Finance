@@ -30,14 +30,18 @@ export function computeRecommendations(input: RecommendationInput): Recommendati
   const pillar = input.pillar3a;
 
   if (fund && fund.status !== "funded" && money(fund.gap).isPositive()) {
+    const protectionNote =
+      fund.incomeProtectionApplied && fund.protectionExplanation ? ` ${fund.protectionExplanation}` : "";
     recommendations.push({
       code: "build_emergency_fund",
       priority: 90,
       title: "Build your emergency fund",
-      detail: `You cover ${fund.monthsCovered ?? 0} of ${fund.targetMonths} target months. Set aside ${fund.suggestedMonthlyContribution} ${fund.currency}/month to close the ${fund.gap} ${fund.currency} gap.`,
+      detail: `You cover ${fund.monthsCovered ?? 0} of ${fund.targetMonths} target months. Set aside ${fund.suggestedMonthlyContribution} ${fund.currency}/month to close the ${fund.gap} ${fund.currency} gap.${protectionNote}`,
       impactAmount: fund.gap,
       currency: fund.currency,
-      basis: ["essentialMonthly", "currentReserve", "targetMonths"],
+      basis: fund.incomeProtectionApplied
+        ? ["essentialMonthly", "currentReserve", "targetMonths", "incomeProtection"]
+        : ["essentialMonthly", "currentReserve", "targetMonths"],
     });
   }
 

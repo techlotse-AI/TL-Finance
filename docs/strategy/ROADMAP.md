@@ -76,3 +76,24 @@ automatic reset on successful sign-in, plus a security-event review surface and
 admin lock status. This release also ships the v0.7.0 Optimize foundations and
 v0.7.5 Swiss pension and retirement planning. TOTP two-factor authentication
 remains planned follow-up work.
+
+## v0.9.0 - Resilience (D1, D3)
+
+Implemented the first two Phase D items as self-contained, fully tested Optimize
+calculators with no schema migration. D1 makes the emergency fund
+income-protection-aware: a generic, country-agnostic model (monthly benefit,
+waiting/elimination period, benefit duration, optional cap as a percent of
+essential spend, and full-coverage months for notice/severance) reduces the
+required liquid runway month by month, and a Swiss unemployment-insurance (ALV)
+preset derives the benefit from the insured salary (70%, or 80% with dependent
+children, age 55+, or a low salary; capped at CHF 12,350/month insured), paid
+for up to 24 months (520 daily allowances) after a waiting period and once the
+3-month statutory notice ends. The un-insured target remains the default
+(absent protection = previous behaviour), and the reduction is fully explained.
+D3 adds a debt payoff calculator: deterministic avalanche vs snowball schedules,
+total interest, and payoff date from balances, rates, and minimum payments plus
+an optional extra payment, with a pinned compounding convention (nominal APR
+compounded monthly) and a guard for non-amortizing minimum payments. The generic
+income-protection and debt inputs are designed to extend to other countries.
+Both calculators are deterministic, explainable, and covered by golden tests.
+D2 (financial goals) and D4 (net-worth statement) remain follow-up work.

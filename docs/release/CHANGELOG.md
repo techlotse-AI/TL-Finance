@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- Optimize v0.9.0 (D1): the emergency fund is now income-protection-aware. A
+  generic, country-agnostic model reduces the required reserve for the months a
+  benefit covers essential spending (monthly benefit, waiting/elimination
+  period, optional benefit duration, optional cap as a percent of essential, and
+  full-coverage months for notice/severance). Added a Swiss unemployment (ALV)
+  preset deriving a 70%/80% benefit on the insured salary (capped at CHF
+  12,350/month) for up to 24 months after a waiting period and the statutory
+  notice. Absent protection reproduces the previous target exactly; the
+  reduction is explained and surfaced in the Advisor. New `swissUnemployment` /
+  `incomeProtection` inputs on `/api/optimize/emergency-fund` and
+  `/api/optimize/recommendations`.
+- Optimize v0.9.0 (D3): added a debt payoff calculator (`/api/optimize/debt`)
+  with deterministic avalanche vs snowball schedules, total interest, payoff
+  date, and the avalanche/snowball trade-off. Compounding is pinned to nominal
+  APR compounded monthly; non-amortizing minimum payments are flagged. A new
+  Debt tab in the Optimize workspace compares both strategies. Optimize-only;
+  debt math never appears in Budget. No schema migration; golden-tested.
+
 ## v0.8.1 - 2026-06-17
 
 - Named each Compose service container (TL-Finance-App, TL-Finance-Db, TL-Finance-Migrate, TL-Finance-Backup-Scheduler) for clearer container listings. Cosmetic only.

@@ -374,6 +374,8 @@ function PensionsPanel({ currency }: { currency: string }) {
 
   async function addVehicle(form: FormData) {
     setMessage(null);
+    const projCapital = String(form.get("projCapital") ?? "").trim();
+    const projPension = String(form.get("projPension") ?? "").trim();
     const { ok, data } = await postJson("/api/optimize/pensions", {
       label: String(form.get("label") ?? ""),
       pillar: String(form.get("pillar") ?? "PILLAR_2"),
@@ -382,6 +384,8 @@ function PensionsPanel({ currency }: { currency: string }) {
       annualContribution: String(form.get("contribution") ?? "0"),
       annualReturnRate: String(form.get("return") ?? "0.02"),
       yearsToRetirement: Number(form.get("years") ?? 20),
+      projectedCapitalOverride: projCapital && Number(projCapital) > 0 ? projCapital : undefined,
+      projectedAnnualPensionOverride: projPension && Number(projPension) > 0 ? projPension : undefined,
     });
     if (!ok) { setMessage(data?.error?.message ?? "Could not add vehicle."); return; }
     await loadSummary();
@@ -426,6 +430,12 @@ function PensionsPanel({ currency }: { currency: string }) {
               <Field label="Annual return (0.02)"><input className={inputClass} name="return" inputMode="decimal" defaultValue="0.02" /></Field>
               <Field label="Years to retirement"><input className={inputClass} name="years" type="number" min={0} max={50} defaultValue={20} /></Field>
             </div>
+            <fieldset className="grid gap-3 rounded border bg-muted/30 p-3">
+              <legend className="px-1 text-xs font-semibold text-subdued">Provider projection (optional, Pillar 2 / BVG)</legend>
+              <Field label={`Projected capital at retirement (${currency})`}><input className={inputClass} name="projCapital" inputMode="decimal" placeholder="From your BVG statement" /></Field>
+              <Field label={`Projected annual pension (${currency})`}><input className={inputClass} name="projPension" inputMode="decimal" placeholder="Optional" /></Field>
+              <p className="text-xs text-subdued">If set, the projected capital replaces the computed projection for this vehicle.</p>
+            </fieldset>
             <Button type="submit">Add vehicle</Button>
           </form>
           {message ? <p className="mt-3 text-sm text-status-warning">{message}</p> : null}
@@ -437,6 +447,12 @@ function PensionsPanel({ currency }: { currency: string }) {
             <div className="grid gap-3 sm:grid-cols-3">
               {summary.capitalByPillar?.map((entry: any) => <Metric key={entry.pillar} label={entry.pillar.replace("_", " ")} value={fmt(entry.endingBalance, summary.currency)} />)}
             </div>
+            {Number(summary.totalProviderAnnualPension) > 0 ? (
+              <Metric label="Provider annual pension (total)" value={fmt(summary.totalProviderAnnualPension, summary.currency)} />
+            ) : null}
+            {summary.projections?.some((projection: any) => projection.projectionSource === "provider") ? (
+              <p className="text-xs text-subdued">Vehicles using a provider-stated projection are marked “provider”; others are computed from balance, contribution, and return.</p>
+            ) : null}
             {summary.excludedCurrencyVehicles ? <p className="text-sm text-status-warning">{summary.excludedCurrencyVehicles} vehicle(s) in another currency are excluded from the total.</p> : null}
           </Card>
         ) : <Placeholder text="Add Pillar 2/3a/3b vehicles, then refresh to project capital at retirement." />}

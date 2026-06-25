@@ -38,7 +38,7 @@ Implemented endpoints:
 | `GET, POST` | `/api/optimize/holdings`, `PATCH, DELETE /api/optimize/holdings/{id}` | Manual holdings with lots; GET returns the base-currency portfolio with allocation and missing-rate warnings |
 | `POST` | `/api/optimize/forecast` | Deterministic balance forecast from planned net flow with shortfall detection |
 | `GET, POST` | `/api/optimize/scenarios`, `GET, DELETE /api/optimize/scenarios/{id}` | Persisted scenario comparisons re-computed from the stored definition |
-| `GET, POST` | `/api/optimize/pensions`, `DELETE /api/optimize/pensions/{id}` | Pillar 2/3a/3b vehicles; GET aggregates projected capital at retirement |
+| `GET, POST` | `/api/optimize/pensions`, `DELETE /api/optimize/pensions/{id}` | Pillar 2/3a/3b vehicles; POST accepts an optional provider-stated projected capital / annual pension (Pillar 2 / BVG) override; GET aggregates projected capital at retirement |
 | `POST` | `/api/optimize/ahv` | Pillar 1 (AHV) pension with late-entry scaling and the married-couple 150% cap |
 | `POST` | `/api/optimize/retirement` | Retirement-readiness coverage, gap, and required monthly saving |
 | `POST` | `/api/optimize/emergency-fund` | Emergency-fund sizing from essential monthly spend, reserve, and target months, with optional income-protection (generic, or Swiss ALV preset) target reduction |

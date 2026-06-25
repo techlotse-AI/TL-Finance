@@ -102,3 +102,17 @@ per-category reconciliation and missing-rate warnings. Strictly Optimize; never
 surfaced in Budget; persists nothing. All three are deterministic, explainable,
 and covered by golden tests. D2 (financial goals / sinking funds) remains the
 last open Phase D item.
+
+## v0.8.4 - Pension projections, budget editing, logout
+
+Added optional provider-stated Pillar 2 (BVG) projection inputs: a vehicle can
+carry the projected retirement capital and projected annual pension printed on
+the member's statement, and when the capital is supplied it replaces the
+computed projection (the contribution/growth split is still shown). This is the
+"enter the predicted payout" path alongside the existing deterministic
+prediction. Budget categories and budget items are now editable in place, and
+both can be deleted when unused — categories are guarded server-side against
+active references, budget items are soft-deleted. Added a logout control in the
+app shell that revokes the current session via the audited signout endpoint.
+Additive migration `20260624000000_v0_8_4_pension_projection_override`; pension
+projection changes are golden-tested.

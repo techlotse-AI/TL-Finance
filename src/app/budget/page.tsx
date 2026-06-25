@@ -1,5 +1,6 @@
 import { EntityListPage } from "@/components/entity-list-page";
 import { BudgetItemCreateForm } from "@/components/create-forms";
+import { BudgetItemActions } from "@/components/budget-item-actions";
 import { Badge } from "@/components/ui/badge";
 import { formatMoney } from "@/lib/money/decimal";
 import { requirePageContext } from "@/lib/auth/page-context";
@@ -29,7 +30,7 @@ export default async function BudgetPage() {
     <EntityListPage
       caption="Normalized monthly budget items"
       description="Recurring expenses and routed saving, investment, and retirement allocations."
-      headers={["Budget item", "Kind", "Category", "Paid from", "Paid to", "Entered amount", "Monthly amount", "Route"]}
+      headers={["Budget item", "Kind", "Category", "Paid from", "Paid to", "Entered amount", "Monthly amount", "Route", "Actions"]}
       note={<BudgetItemCreateForm
         baseCurrency={household.baseCurrency}
         categories={categories.map((category) => ({ ...category, kind: category.kind.toLowerCase() }))}
@@ -56,6 +57,24 @@ export default async function BudgetPage() {
         ) : (
           <Badge key={`${item.id}:route`} tone="warning">Unallocated</Badge>
         ),
+        <BudgetItemActions
+          key={`${item.id}:actions`}
+          categories={categories.map((category) => ({ id: category.id, name: category.name, kind: category.kind.toLowerCase() }))}
+          item={{
+            id: item.id,
+            name: item.name,
+            amount: item.amount.toString(),
+            currency: item.currency,
+            kind: item.kind.toLowerCase(),
+            recurrence: fromDbRecurrence(item.recurrence),
+            selectedMonths: item.selectedMonths,
+            startDate: item.startDate.toISOString(),
+            essential: item.essential,
+            categoryId: item.categoryId,
+            paidFromAccountPocketId: item.paidFromAccountPocketId,
+            paidToAccountPocketId: item.paidToAccountPocketId,
+          }}
+        />,
       ])}
       title="Budget items"
     />

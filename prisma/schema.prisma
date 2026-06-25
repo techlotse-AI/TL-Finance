@@ -656,6 +656,12 @@ model PensionVehicle {
   annualContribution Decimal       @db.Decimal(18, 4)
   annualReturnRate   Decimal       @db.Decimal(8, 6)
   yearsToRetirement  Int
+  // Optional provider-stated projection from a Pillar 2 (BVG) statement: the
+  // projected retirement capital and/or projected annual pension. When the
+  // capital override is set, it is used as the ending balance instead of the
+  // computed projection. Both are nullable and additive.
+  projectedCapitalOverride       Decimal? @db.Decimal(18, 4)
+  projectedAnnualPensionOverride Decimal? @db.Decimal(18, 4)
   active             Boolean       @default(true)
   deletedAt          DateTime?
   createdAt          DateTime      @default(now())

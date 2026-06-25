@@ -32,6 +32,8 @@ export async function GET() {
         annualContribution: vehicle.annualContribution.toString(),
         annualReturnRate: vehicle.annualReturnRate.toString(),
         yearsToRetirement: vehicle.yearsToRetirement,
+        projectedCapitalOverride: vehicle.projectedCapitalOverride?.toString(),
+        projectedAnnualPensionOverride: vehicle.projectedAnnualPensionOverride?.toString(),
       })),
     });
     return json({
@@ -59,6 +61,8 @@ export async function POST(request: Request) {
           annualContribution: input.annualContribution,
           annualReturnRate: input.annualReturnRate,
           yearsToRetirement: input.yearsToRetirement,
+          projectedCapitalOverride: input.projectedCapitalOverride ?? null,
+          projectedAnnualPensionOverride: input.projectedAnnualPensionOverride ?? null,
         },
       });
       await writeAuditEvent(transaction, {

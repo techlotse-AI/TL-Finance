@@ -42,15 +42,21 @@ the Budget planned money-flow graph.
   to the household base currency via the latest `ExchangeRate`; currencies with
   no rate are reported, not silently mixed.
 - `PensionVehicle`: a Pillar 2/3a/3b capital vehicle (balance, annual
-  contribution, return rate, years to retirement). Pillar 1 (AHV) is an income
-  pension computed from inputs, not stored here.
+  contribution, return rate, years to retirement) plus optional provider-stated
+  projection columns `projectedCapitalOverride` and
+  `projectedAnnualPensionOverride` (v0.8.4) for entering the figures from a Swiss
+  Pillar 2 (BVG) statement. When the capital override is set, it is used as the
+  projected ending balance instead of the computed projection. Pillar 1 (AHV) is
+  an income pension computed from inputs, not stored here.
 - `ScenarioComparison`: a saved projection definition (starting amount, monthly
   contribution, horizon, and per-scenario return assumptions stored as JSON),
   unique per household name. Results are recomputed from the stored definition.
 
 All four tables carry `householdId`, soft-delete (`active`/`deletedAt`), and are
-written through audited routes. Migration:
-`20260616000000_v0_7_optimize_holdings_pensions` (additive).
+written through audited routes. Migrations:
+`20260616000000_v0_7_optimize_holdings_pensions` and the additive
+`20260624000000_v0_8_4_pension_projection_override` (Pillar 2 projection
+override columns).
 
 ## Login lockout (v0.8.0)
 

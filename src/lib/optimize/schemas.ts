@@ -279,6 +279,9 @@ export const pensionVehicleCreateSchema = z.object({
   annualContribution: nonNegativeMoneySchema,
   annualReturnRate: annualReturnRateSchema,
   yearsToRetirement: z.number().int().min(0).max(50),
+  // Optional provider-stated Pillar 2 (BVG) projection from the member's statement.
+  projectedCapitalOverride: nonNegativeMoneySchema.optional(),
+  projectedAnnualPensionOverride: nonNegativeMoneySchema.optional(),
 });
 
 export type PensionVehicleCreateRequest = z.infer<typeof pensionVehicleCreateSchema>;

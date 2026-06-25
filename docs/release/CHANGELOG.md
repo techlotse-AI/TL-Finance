@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+## v0.8.4 - 2026-06-24
+
+- Optimize: Pillar 2 (BVG) vehicles can now record a provider-stated projection.
+  `/api/optimize/pensions` accepts optional `projectedCapitalOverride` and
+  `projectedAnnualPensionOverride`; when the capital override is present it is
+  used as the projected ending balance instead of the computed projection, and
+  the pension summary surfaces the total provider annual pension. The Optimize
+  Pensions form exposes both optional fields. Additive migration
+  `20260624000000_v0_8_4_pension_projection_override`; golden-tested.
+- Budget: budget items and categories are now editable in place, and deletable
+  when unused. Category deletion remains guarded server-side against active
+  budget items and income sources; budget-item deletion is a soft delete. Added
+  `BudgetItemActions` on the Budget page and a categories table with
+  `CategoryActions` on Settings.
+- Auth: added a logout control in the app shell that calls the audited
+  `/api/auth/signout` endpoint and returns the user to sign-in.
+- Release: bumped the application version to 0.8.4.
+
 ## v0.8.3 - 2026-06-24
 
 - CI/release: split the pipeline into a `verify` gate (every push and pull

@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+## v0.8.5 - 2026-06-24
+
+- Fix: signing in no longer forces existing members to the household-creation
+  screen. Sign-in now seeds the session's active household from the user's
+  memberships (preferring ownership, then the oldest membership), and page loads
+  self-heal a missing active household; only users who belong to no household are
+  sent to onboarding.
+- Admin: instance administrators can now assign any user to any household and
+  remove them (`POST`/`DELETE` `/api/admin/household-members`; the household
+  owner is protected), surfaced as a Household membership manager on the admin
+  page that also lists each household's current members.
+- Admin: instance administrators can reset a user's password to a temporary value
+  (`POST /api/admin/users/reset-password`), individually or in bulk for all
+  active non-administrator users; the reset clears lockout state and revokes the
+  affected users' sessions. New password-reset card on the admin page.
+- Release: bumped the application version to 0.8.5.
+
 ## v0.8.4 - 2026-06-24
 
 - Optimize: Pillar 2 (BVG) vehicles can now record a provider-stated projection.

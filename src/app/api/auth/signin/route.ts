@@ -6,6 +6,7 @@ import { isLocked, lockoutPolicyFromEnv, registerFailedAttempt } from "@/lib/aut
 import { assertTrustedOrigin } from "@/lib/auth/origin";
 import { verifyPassword } from "@/lib/auth/password";
 import { enforceRateLimit } from "@/lib/auth/rate-limit";
+import { defaultHouseholdIdForUser } from "@/lib/auth/active-household";
 import { requestIp } from "@/lib/auth/request";
 import { signInSchema } from "@/lib/auth/schemas";
 import {
@@ -97,12 +98,16 @@ export async function POST(request: Request) {
       throw new ApiError(403, "email_verification_required", "Verify your email address before signing in.");
     }
 
+    // Seed the active household so existing members are not sent to onboarding on
+    // every sign-in. Users with no household resolve to null and are onboarded.
+    const activeHouseholdId = await defaultHouseholdIdForUser(user.id);
     const token = createSessionToken();
     await prisma.$transaction(async (transaction) => {
       await transaction.session.create({
         data: {
           userId: user.id,
           tokenHash: hashSessionToken(token),
+          activeHouseholdId,
           expiresAt: new Date(Date.now() + SESSION_TTL_SECONDS * 1000),
         },
       });

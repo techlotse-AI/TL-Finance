@@ -20,6 +20,8 @@ Implemented endpoints:
 | `GET, POST` | `/api/user/backup/export`, `/api/user/backup/import` | Authenticated multi-household user Budget backup portability |
 | `POST` | `/api/admin/users` | Instance-admin user activation and administrator-role management |
 | `POST` | `/api/admin/users/unlock` | Clears an account's failed-login lockout (instance administrator) and audits the unlock |
+| `POST, DELETE` | `/api/admin/household-members` | Instance-admin assignment and removal of any user to/from any household (owner-protected) |
+| `POST` | `/api/admin/users/reset-password` | Instance-admin temporary-password reset for one user or all non-administrators; clears lockout and revokes sessions |
 | `GET` | `/api/admin/security-events` | Returns recent security audit events (sign-in, lockout, unlock, reset) for instance administrators |
 | `POST` | `/api/admin/platform-backup` | Instance-admin S3-compatible platform snapshot upload |
 | `POST` | `/api/system/scheduled-backup` | Scheduler-token-protected S3-compatible platform snapshot upload |

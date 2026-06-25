@@ -133,3 +133,9 @@ store-nothing tools that never change the budget:
    the debt-free date, total interest, and how much avalanche saves. Interest is
    nominal APR compounded monthly; it flags any debt whose minimum cannot cover
    its interest. Optimize-only — debt math never appears in Budget.
+6. **Net worth.** Builds a point-in-time statement that totals your account
+   balances, holdings at market value, and pension balances as assets, subtracts
+   the debts you enter, and shows net worth in your reporting currency with a
+   per-line and per-category reconciliation. Amounts in a currency with no stored
+   reporting rate are flagged and excluded rather than mixed. Optimize-only;
+   nothing is stored.

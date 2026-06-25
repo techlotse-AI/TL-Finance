@@ -77,7 +77,7 @@ admin lock status. This release also ships the v0.7.0 Optimize foundations and
 v0.7.5 Swiss pension and retirement planning. TOTP two-factor authentication
 remains planned follow-up work.
 
-## v0.9.0 - Resilience (D1, D3)
+## v0.8.3 - Resilience (D1, D3, D4)
 
 Implemented the first two Phase D items as self-contained, fully tested Optimize
 calculators with no schema migration. D1 makes the emergency fund
@@ -95,5 +95,10 @@ total interest, and payoff date from balances, rates, and minimum payments plus
 an optional extra payment, with a pinned compounding convention (nominal APR
 compounded monthly) and a guard for non-amortizing minimum payments. The generic
 income-protection and debt inputs are designed to extend to other countries.
-Both calculators are deterministic, explainable, and covered by golden tests.
-D2 (financial goals) and D4 (net-worth statement) remain follow-up work.
+D4 adds a point-in-time net-worth statement: it aggregates account-derived cash
+balances, holdings at market value, and pension balances as assets, minus debts
+and any manual liabilities, into a reporting-currency total with per-line and
+per-category reconciliation and missing-rate warnings. Strictly Optimize; never
+surfaced in Budget; persists nothing. All three are deterministic, explainable,
+and covered by golden tests. D2 (financial goals / sinking funds) remains the
+last open Phase D item.

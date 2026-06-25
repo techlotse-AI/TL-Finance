@@ -331,3 +331,26 @@ export const debtPayoffSchema = z.object({
 });
 
 export type DebtPayoffRequest = z.infer<typeof debtPayoffSchema>;
+
+
+// --- v0.8.3 D4: net-worth statement ---
+
+const netWorthDebtSchema = z.object({
+  name: nameSchema.max(120),
+  balance: nonNegativeMoneySchema,
+  currency: currencySchema,
+});
+
+const netWorthManualLineSchema = z.object({
+  label: nameSchema.max(120),
+  amount: nonNegativeMoneySchema,
+  currency: currencySchema,
+});
+
+export const netWorthSchema = z.object({
+  debts: z.array(netWorthDebtSchema).max(50).optional(),
+  additionalAssets: z.array(netWorthManualLineSchema).max(50).optional(),
+  additionalLiabilities: z.array(netWorthManualLineSchema).max(50).optional(),
+});
+
+export type NetWorthRequest = z.infer<typeof netWorthSchema>;

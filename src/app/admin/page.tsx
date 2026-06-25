@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { TierAssignForm } from "@/components/create-forms";
-import { DatabaseResetForm, PlatformBackupButton, UserManagementForm } from "@/components/platform-admin-forms";
+import { DatabaseResetForm, HouseholdMembershipForm, PasswordResetForm, PlatformBackupButton, UserManagementForm } from "@/components/platform-admin-forms";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
@@ -52,7 +52,7 @@ export default async function AdminPage() {
     </div>;
   }
   const [households, users, auditEvents] = await Promise.all([
-    prisma.household.findMany({ where: { active: true }, include: { entitlement: true }, orderBy: { name: "asc" } }),
+    prisma.household.findMany({ where: { active: true }, include: { entitlement: true, members: { where: { active: true }, select: { id: true, role: true, user: { select: { id: true, email: true } } }, orderBy: { createdAt: "asc" } } }, orderBy: { name: "asc" } }),
     prisma.user.findMany({ select: { id: true, email: true, active: true, instanceAdmin: true, failedLoginCount: true, lockedUntil: true, createdAt: true }, orderBy: { email: "asc" } }),
     prisma.auditEvent.findMany({ orderBy: { createdAt: "desc" }, take: 100 }),
   ]);
@@ -84,6 +84,15 @@ export default async function AdminPage() {
         <TierAssignForm households={households.map(({ id, name }) => ({ id, name }))} />
         <DatabaseResetForm />
       </div>
+      <HouseholdMembershipForm
+        households={households.map((household) => ({
+          id: household.id,
+          name: household.name,
+          members: household.members.map((member) => ({ userId: member.user.id, email: member.user.email, role: member.role.toLowerCase() })),
+        }))}
+        users={users.map((user) => ({ id: user.id, email: user.email }))}
+      />
+      <PasswordResetForm users={users.map((user) => ({ id: user.id, email: user.email, instanceAdmin: user.instanceAdmin }))} />
       <Card>
         <DataTable
           caption="Household tier assignments"

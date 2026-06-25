@@ -12,7 +12,7 @@
 |---|---|
 | Product | Docker-first, privacy-focused household finance app (Budget / Analyze / Optimize) |
 | Repo | `D:\LocalCode\TL-Finance` |
-| Released version | v0.8.2 (authoritative: git tag `v0.8.2`) — ⚠️ `package.json` now reads `0.8.3` (ahead of the `v0.8.2` tag); bump/tag not yet committed |
+| Released version | v0.8.2 (authoritative: git tag `v0.8.2`) — ⚠️ `package.json` still reads `0.8.1`, bump pending |
 | Deployment | Production-ready — versioned, vulnerability-gated Docker Hub releases; public-auth, rate limiting, scheduled backups, deployment runbooks |
 | Tracking owner | Ruan |
 
@@ -29,8 +29,5 @@
 - `eslint .` was inconclusive in the sandbox (timeout) — rerun locally to confirm clean.
 
 ## Status log
-- 2026-06-20 — Tracking file created. v0.8.1, working tree clean on `main`; `tsc` passes, 128 tests pass — releasable green state. Pha
-- 2026-06-22 — Briefing run. Released v0.8.2 (git tag); last commit `1278f55` (2026-06-20, "v0.8.2 new release CI"). `package.json` bump to 0.8.2 still pending. Phase D not yet started — next task unchanged.
-- 2026-06-23 — Briefing run. Released v0.8.2 (git tag); last commit `1278f55` (2026-06-20). `package.json` still 0.8.1 (bump pending). Phase D not started — next task unchanged. Due 2026-06-27 (4 days out).
-- 2026-06-24 — Briefing run. Released v0.8.2 (git tag); last commit `1278f55` (2026-06-20). `package.json` still 0.8.1 (bump pending). Phase D not started — next task unchanged. ⚠️ Due 2026-06-27 (3 days out).
-- 2026-06-25 — Briefing run. Released v0.8.2 (git tag); last commit `1278f55` (2026-06-20). `package.json` now reads `0.8.3` in working tree (ahead of the `v0.8.2` tag — bump/tag not yet committed). Phase D not started — next task unchanged. ⚠️ Due 2026-06-27 (2 days out).
+- 2026-06-20 — Tracking file created. v0.8.1, working tree clean on `main`; `tsc` passes, 128 tests pass — releasable green state. Pha- 2026-06-22 — Briefing run. Released v0.8.2 (git tag); last commit `1278f55` (2026-06-20, "v0.8.2 new release CI"). `package.json` bump to 0.8.2 still pending. Phase D not yet started — next task unchanged.
+ `MIGRATION.md` and `docs/daily/` in working tree. Phase D not yet started.

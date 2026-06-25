@@ -18,6 +18,7 @@ const TABS = [
   "Pensions",
   "Retirement",
   "Debt",
+  "Net worth",
   "Advisor",
 ] as const;
 type Tab = (typeof TABS)[number];
@@ -69,6 +70,7 @@ export function OptimizeWorkspace({ currency }: { currency: string }) {
       {tab === "Pensions" ? <PensionsPanel currency={currency} /> : null}
       {tab === "Retirement" ? <RetirementPanel currency={currency} /> : null}
       {tab === "Debt" ? <DebtPanel currency={currency} /> : null}
+      {tab === "Net worth" ? <NetWorthPanel currency={currency} /> : null}
       {tab === "Advisor" ? <AdvisorPanel currency={currency} /> : null}
     </div>
   );
@@ -733,6 +735,104 @@ function StrategyCard({ title, plan, currency, recommended }: { title: string; p
         </table>
       </div>
     </Card>
+  );
+}
+
+function NetWorthPanel({ currency }: { currency: string }) {
+  const [debts, setDebts] = useState<Array<{ name: string; balance: string; currency: string }>>([
+    { name: "Mortgage", balance: "0", currency },
+  ]);
+  const [result, setResult] = useState<any>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  function update(index: number, key: "name" | "balance" | "currency", value: string) {
+    setDebts((rows) => rows.map((row, i) => (i === index ? { ...row, [key]: value } : row)));
+  }
+  function addDebt() {
+    setDebts((rows) => [...rows, { name: "", balance: "0", currency }]);
+  }
+  function removeDebt(index: number) {
+    setDebts((rows) => rows.filter((_, i) => i !== index));
+  }
+
+  async function compute() {
+    setMessage(null);
+    const payload = debts
+      .filter((debt) => Number(debt.balance) > 0)
+      .map((debt) => ({ name: debt.name || "Debt", balance: debt.balance || "0", currency: (debt.currency || currency).toUpperCase() }));
+    const { ok, data } = await postJson("/api/optimize/net-worth", { debts: payload });
+    if (!ok) { setMessage(data?.error?.message ?? "Calculation failed."); return; }
+    setResult(data);
+  }
+
+  const categoryLabels: Record<string, string> = {
+    cash: "Cash", investments: "Investments", pension: "Pension",
+    other_asset: "Other assets", debt: "Debt", other_liability: "Other liabilities",
+  };
+
+  return (
+    <div className="space-y-6">
+      <Card className="p-5">
+        <div className="mb-2 flex items-center justify-between"><h2 className="font-semibold">Net worth</h2><Button type="button" onClick={addDebt}>Add debt</Button></div>
+        <p className="mb-4 text-sm text-subdued">Combines your account balances, holdings, and pension balances as assets, minus the debts below. Add any liabilities, then compute. Optimize-only — never shown in Budget.</p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead><tr className="text-left text-subdued"><th className="py-1">Liability</th><th className="text-right">Balance</th><th>Currency</th><th /></tr></thead>
+            <tbody>
+              {debts.map((debt, index) => (
+                <tr key={index} className="border-t">
+                  <td className="py-1 pr-2"><input className={inputClass} value={debt.name} onChange={(event) => update(index, "name", event.target.value)} aria-label="Liability name" /></td>
+                  <td className="pr-2"><input className={`${inputClass} text-right`} value={debt.balance} inputMode="decimal" onChange={(event) => update(index, "balance", event.target.value)} aria-label="Balance" /></td>
+                  <td className="pr-2"><input className={inputClass} value={debt.currency} maxLength={3} onChange={(event) => update(index, "currency", event.target.value)} aria-label="Currency" /></td>
+                  <td><button type="button" onClick={() => removeDebt(index)} className="rounded px-2 py-1 text-xs text-subdued hover:text-status-danger" aria-label="Remove liability">✕</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="mt-4"><Button type="button" onClick={compute}>Compute net worth</Button></div>
+        {message ? <p className="mt-3 text-sm text-status-warning">{message}</p> : null}
+      </Card>
+      {result ? (
+        <div className="space-y-4">
+          <Card className="space-y-4 p-5">
+            <h3 className="font-semibold">Statement ({result.reportingCurrency})</h3>
+            {result.missingRateCurrencies?.length ? (
+              <p className="rounded border bg-muted/30 p-3 text-sm text-status-warning">No reporting rate for: {result.missingRateCurrencies.join(", ")}. Those lines are excluded from totals.</p>
+            ) : null}
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Metric label="Total assets" value={fmt(result.totalAssets, result.reportingCurrency)} tone="success" />
+              <Metric label="Total liabilities" value={fmt(result.totalLiabilities, result.reportingCurrency)} tone="danger" />
+              <Metric label="Net worth" value={fmt(result.netWorth, result.reportingCurrency)} tone={Number(result.netWorth) >= 0 ? "success" : "danger"} />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {result.byCategory.map((entry: any) => (
+                <Metric key={`${entry.category}-${entry.isLiability}`} label={`${categoryLabels[entry.category] ?? entry.category}${entry.isLiability ? " (liability)" : ""}`} value={`${fmt(entry.reportingValue, result.reportingCurrency)} · ${entry.percentOfSide}%`} />
+              ))}
+            </div>
+          </Card>
+          <Card className="space-y-3 p-5">
+            <h3 className="font-semibold">Reconciliation</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead><tr className="text-left text-subdued"><th className="py-1">Line</th><th>Category</th><th className="text-right">Amount</th><th className="text-right">In {result.reportingCurrency}</th></tr></thead>
+                <tbody>
+                  {result.lines.map((line: any, index: number) => (
+                    <tr key={index} className="border-t">
+                      <td className="py-1">{line.label}</td>
+                      <td>{categoryLabels[line.category] ?? line.category}{line.isLiability ? " −" : ""}</td>
+                      <td className="text-right tabular-nums">{fmt(line.amount, line.currency)}</td>
+                      <td className="text-right tabular-nums">{line.included ? fmt(line.reportingValue, result.reportingCurrency) : "excluded"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-subdued">Cash from latest imported balances; investments at market value; pensions at current balance. Point-in-time, deterministic, store-nothing.</p>
+          </Card>
+        </div>
+      ) : <Placeholder text="Add your debts and compute a point-in-time net-worth statement from your accounts, holdings, and pensions." />}
+    </div>
   );
 }
 

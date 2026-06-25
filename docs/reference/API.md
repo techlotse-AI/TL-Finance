@@ -43,5 +43,6 @@ Implemented endpoints:
 | `POST` | `/api/optimize/retirement` | Retirement-readiness coverage, gap, and required monthly saving |
 | `POST` | `/api/optimize/emergency-fund` | Emergency-fund sizing from essential monthly spend, reserve, and target months, with optional income-protection (generic, or Swiss ALV preset) target reduction |
 | `POST` | `/api/optimize/debt` | Deterministic debt payoff: avalanche vs snowball schedules, total interest, payoff date, and the avalanche/snowball trade-off (nominal APR compounded monthly) |
+| `POST` | `/api/optimize/net-worth` | Point-in-time net-worth statement aggregating account balances, holdings, and pensions minus debts, in the reporting currency with per-line reconciliation |
 | `POST` | `/api/optimize/pillar-3a` | Swiss Pillar 3a maximum, remaining headroom, tax saving, and growth projection |
 | `POST` | `/api/optimize/recommendations` | Ranked, explainable recommendations from emergency fund, Pillar 3a, and Analyze findings |

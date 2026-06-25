@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.8.3 - 2026-06-24
+
 - CI/release: split the pipeline into a `verify` gate (every push and pull
   request) and a single `publish` job. Pushing a `vX.Y.Z` tag now publishes the
   versioned image plus `latest` with the git tag as the source of truth (no
@@ -28,6 +30,17 @@
   APR compounded monthly; non-amortizing minimum payments are flagged. A new
   Debt tab in the Optimize workspace compares both strategies. Optimize-only;
   debt math never appears in Budget. No schema migration; golden-tested.
+
+- Optimize v0.8.3 (D4): added a point-in-time net-worth statement
+  (`/api/optimize/net-worth`). It aggregates account-derived cash balances
+  (latest imported statement balances), holdings at market value, and pension
+  balances as assets, minus the debts and any manual liabilities supplied in the
+  request, into a reporting-currency net worth with per-line and per-category
+  reconciliation and missing-rate warnings. A new Net worth tab surfaces it in
+  the Optimize workspace. Strictly Optimize; never shown in Budget; stores
+  nothing; no schema migration; golden-tested.
+- Release: bumped the application version to 0.8.3 (package.json and
+  package-lock.json).
 
 ## v0.8.1 - 2026-06-17
 

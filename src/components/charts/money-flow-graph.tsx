@@ -2,6 +2,7 @@
 
 import type { FlowLink, FlowNode } from "@/lib/budget/money-flow";
 import { collapseToBudgetFlow } from "@/lib/budget/money-flow-budget-view";
+import { buildAccountMinimumFlow } from "@/lib/budget/money-flow-reverse";
 import { focusMoneyFlowLinks } from "@/lib/budget/money-flow-focus";
 import { layoutMoneyFlow } from "@/lib/budget/money-flow-layout";
 import {
@@ -33,11 +34,16 @@ export function MoneyFlowGraph({ nodes, links, reportingCurrency }: MoneyFlowGra
   const [account, setAccount] = useState("all");
   const [category, setCategory] = useState("all");
   const [currency, setCurrency] = useState("all");
-  const [viewMode, setViewMode] = useState<"full" | "budget">("full");
-  const base = useMemo(
-    () => (viewMode === "budget" ? collapseToBudgetFlow(nodes, links, reportingCurrency) : { nodes, links }),
-    [viewMode, nodes, links, reportingCurrency],
+  const [viewMode, setViewMode] = useState<"full" | "budget" | "reverse">("full");
+  const reverse = useMemo(
+    () => buildAccountMinimumFlow(nodes, links, reportingCurrency),
+    [nodes, links, reportingCurrency],
   );
+  const base = useMemo(() => {
+    if (viewMode === "budget") return collapseToBudgetFlow(nodes, links, reportingCurrency);
+    if (viewMode === "reverse") return { nodes: reverse.nodes, links: reverse.links };
+    return { nodes, links };
+  }, [viewMode, nodes, links, reportingCurrency, reverse]);
   const filteredLinks = useMemo(
     () => focusMoneyFlowLinks(base.links, [viewMode === "budget" ? "all" : account, category], currency),
     [account, category, currency, base.links, viewMode],
@@ -89,7 +95,7 @@ export function MoneyFlowGraph({ nodes, links, reportingCurrency }: MoneyFlowGra
     <div role="region" aria-label="Planned monthly money-flow graph">
       <div className="mb-4 flex flex-wrap items-center gap-2" role="group" aria-label="Graph view">
         <span className="text-xs font-medium text-subdued">View:</span>
-        {([["full", "Full flow"], ["budget", "Pure budget"]] as const).map(([mode, label]) => (
+        {([["full", "Full flow"], ["budget", "Pure budget"], ["reverse", "Account minimums"]] as const).map(([mode, label]) => (
           <button
             key={mode}
             type="button"
@@ -100,13 +106,13 @@ export function MoneyFlowGraph({ nodes, links, reportingCurrency }: MoneyFlowGra
             {label}
           </button>
         ))}
-        <span className="text-xs text-subdued">{viewMode === "budget" ? "Income → category → item, accounts excluded." : "Income, account routing, categories, and items."}</span>
+        <span className="text-xs text-subdued">{viewMode === "budget" ? "Income → category → item, accounts excluded." : viewMode === "reverse" ? "Budget items summed by account and category; account → category → item." : "Income, account routing, categories, and items."}</span>
       </div>
       <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {viewMode === "full" ? (
+        {viewMode !== "budget" ? (
           <Filter label="Account" value={account} onChange={setAccount}>
             <option value="all">All accounts</option>
-            {nodes.filter((node) => node.kind === "account").map((node) => <option key={node.id} value={node.id}>{node.label}</option>)}
+            {base.nodes.filter((node) => node.kind === "account").map((node) => <option key={node.id} value={node.id}>{node.label}</option>)}
           </Filter>
         ) : null}
         <Filter label="Category" value={category} onChange={setCategory}>
@@ -118,6 +124,38 @@ export function MoneyFlowGraph({ nodes, links, reportingCurrency }: MoneyFlowGra
           {[...new Set(links.map((link) => link.nativeCurrency))].sort().map((value) => <option key={value}>{value}</option>)}
         </Filter>
       </div>
+      {viewMode === "reverse" ? (
+        <div className="mb-4 grid gap-4 md:grid-cols-2">
+          <div className="rounded border bg-muted/20 p-3">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-subdued">Minimum per account</p>
+            <table className="w-full text-sm">
+              <tbody>
+                {reverse.accountMinimums.map((entry) => (
+                  <tr key={entry.id} className="border-t first:border-t-0">
+                    <td className="py-1">{entry.label}</td>
+                    <td className="py-1 text-right font-medium tabular-nums">{formatMoney(entry.amount, reportingCurrency)}</td>
+                  </tr>
+                ))}
+                {reverse.accountMinimums.length === 0 ? <tr><td className="py-1 text-subdued">No funded budget items.</td></tr> : null}
+              </tbody>
+            </table>
+          </div>
+          <div className="rounded border bg-muted/20 p-3">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-subdued">Total per category</p>
+            <table className="w-full text-sm">
+              <tbody>
+                {reverse.categoryTotals.map((entry) => (
+                  <tr key={entry.id} className="border-t first:border-t-0">
+                    <td className="py-1">{entry.label}</td>
+                    <td className="py-1 text-right font-medium tabular-nums">{formatMoney(entry.amount, reportingCurrency)}</td>
+                  </tr>
+                ))}
+                {reverse.categoryTotals.length === 0 ? <tr><td className="py-1 text-subdued">No funded budget items.</td></tr> : null}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : null}
       <div className="mb-4 flex flex-wrap gap-x-5 gap-y-2 rounded border bg-muted/20 px-3 py-2" aria-label="Money-flow legend">
         {legendEntries.map((entry) => (
           <div className="flex items-center gap-2 text-xs" key={entry.key}>

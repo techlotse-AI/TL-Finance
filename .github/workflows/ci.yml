@@ -186,4 +186,7 @@ jobs:
           for tag in ${{ steps.meta.outputs.tags }}; do
             echo "Publishing ${IMAGE_NAME}:${tag} and ${MIGRATOR_IMAGE_NAME}:${tag}"
             docker tag "${IMAGE_NAME}:release-candidate" "${IMAGE_NAME}:${tag}"
-            docker tag "${MI
+            docker tag "${MIGRATOR_IMAGE_NAME}:release-candidate" "${MIGRATOR_IMAGE_NAME}:${tag}"
+            docker push "${IMAGE_NAME}:${tag}"
+            docker push "${MIGRATOR_IMAGE_NAME}:${tag}"
+          done

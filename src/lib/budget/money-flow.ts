@@ -11,6 +11,8 @@ export interface FlowNode {
   kind: FlowNodeKind;
   routeKind?: FlowRouteKind;
   colorKey?: string;
+  /** True when this is a "spending"/"daily" account node (Issue #30). */
+  spending?: boolean;
 }
 
 export interface FlowLink {
@@ -30,6 +32,8 @@ export interface FlowPocket {
   id: string;
   name: string;
   currency: string;
+  /** Whether the owning account is classified as a spending/daily account. */
+  spending?: boolean;
 }
 
 export interface FlowIncomeAllocation {
@@ -138,7 +142,7 @@ export function buildMoneyFlow(input: BuildMoneyFlowInput): MoneyFlowResult {
   };
 
   for (const pocket of input.pockets) {
-    addNode({ id: pocketNodeId(pocket.id), label: pocket.name, kind: "account" });
+    addNode({ id: pocketNodeId(pocket.id), label: pocket.name, kind: "account", spending: pocket.spending });
   }
 
   for (const source of input.incomeSources) {

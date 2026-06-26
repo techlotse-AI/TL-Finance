@@ -22,6 +22,7 @@ interface AccountRow {
   type: string;
   institution: string | null;
   maskedReference: string | null;
+  spending: boolean;
 }
 
 const input = "min-h-10 w-full rounded border bg-muted px-3 text-sm";
@@ -70,6 +71,7 @@ export function AccountActions({
         type: data.get("type"),
         institution: data.get("institution") || null,
         maskedReference: data.get("accountReference") || null,
+        spending: data.get("spending") === "on",
       }),
     });
     const result = await response.json().catch(() => null) as { error?: { message?: string } } | null;
@@ -109,6 +111,7 @@ export function AccountActions({
         </select></label>
         <label className="grid gap-1 text-xs text-subdued">Institution<input className={input} defaultValue={account.institution ?? ""} name="institution" /></label>
         <label className="grid gap-1 text-xs text-subdued">IBAN / account reference<input autoComplete="off" className={input} defaultValue={account.maskedReference ?? ""} name="accountReference" /></label>
+        <label className="flex items-center gap-2 text-xs text-subdued"><input defaultChecked={account.spending} name="spending" type="checkbox" /> Spending account</label>
         <div className="flex gap-2">
           <Button disabled={pending} type="submit">{pending ? "Saving…" : "Save"}</Button>
           <Button disabled={pending} onClick={() => setEditing(false)} type="button" variant="secondary"><X className="size-4" />Cancel</Button>

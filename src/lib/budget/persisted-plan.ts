@@ -19,7 +19,7 @@ export async function buildPersistedMoneyFlow(client: PlanClient, householdId: s
     }),
     client.accountPocket.findMany({
       where: { householdId, deletedAt: null, active: true, account: { deletedAt: null, active: true } },
-      select: { id: true, name: true, currency: true, account: { select: { name: true } } },
+      select: { id: true, name: true, currency: true, account: { select: { name: true, spending: true } } },
       orderBy: [{ account: { name: "asc" } }, { currency: "asc" }],
     }),
     client.incomeSource.findMany({
@@ -86,6 +86,7 @@ export async function buildPersistedMoneyFlow(client: PlanClient, householdId: s
       id: pocket.id,
       name: `${pocket.account.name} · ${pocket.currency}`,
       currency: pocket.currency,
+      spending: pocket.account.spending,
     })),
     incomeSources: incomeSources.map((source) => {
       const normalized = normalizeMonthly({

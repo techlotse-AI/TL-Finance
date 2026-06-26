@@ -139,3 +139,5 @@ store-nothing tools that never change the budget:
    per-line and per-category reconciliation. Amounts in a currency with no stored
    reporting rate are flagged and excluded rather than mixed. Optimize-only;
    nothing is stored.
+
+Accounts can be marked as a **spending** ("daily") account on the Accounts page; the money-flow graph highlights and groups spending accounts so shared accounts line up together. The graph also offers a **Pure budget** view that hides all accounts and transfers, showing income flowing straight to categories and budget items.

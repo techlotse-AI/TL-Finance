@@ -124,3 +124,12 @@ date range), a 10/20/50 page-size selector, and pagination, with the filter and
 pagination logic unit-tested. Planned account transfers can be deleted from the
 Transfers page. Refreshed dependencies (nodemailer 9, lucide-react 1.21,
 @types/node 26, tailwindcss 4.3.1) and moved the Node runtime to 26.3.1-alpine.
+
+## v0.8.7 - Spending accounts, pure-budget view, undici fix
+
+Resolved HIGH CVE-2026-12151 by moving the Node runtime to 26.4.0-alpine
+(patched bundled undici). Implemented Issue #30: accounts can be flagged as
+shared "spending"/"daily" accounts, which the money-flow graph marks and groups
+so they line up vertically; and a second "Pure budget" graph view excludes all
+accounts/transfers, drawing income → category → item (category totals split by
+income share). The graph transforms are unit-tested; additive migration only.

@@ -1,6 +1,7 @@
 "use client";
 
 import type { FlowLink, FlowNode } from "@/lib/budget/money-flow";
+import { collapseToBudgetFlow } from "@/lib/budget/money-flow-budget-view";
 import { focusMoneyFlowLinks } from "@/lib/budget/money-flow-focus";
 import { layoutMoneyFlow } from "@/lib/budget/money-flow-layout";
 import {
@@ -32,12 +33,17 @@ export function MoneyFlowGraph({ nodes, links, reportingCurrency }: MoneyFlowGra
   const [account, setAccount] = useState("all");
   const [category, setCategory] = useState("all");
   const [currency, setCurrency] = useState("all");
+  const [viewMode, setViewMode] = useState<"full" | "budget">("full");
+  const base = useMemo(
+    () => (viewMode === "budget" ? collapseToBudgetFlow(nodes, links, reportingCurrency) : { nodes, links }),
+    [viewMode, nodes, links, reportingCurrency],
+  );
   const filteredLinks = useMemo(
-    () => focusMoneyFlowLinks(links, [account, category], currency),
-    [account, category, currency, links],
+    () => focusMoneyFlowLinks(base.links, [viewMode === "budget" ? "all" : account, category], currency),
+    [account, category, currency, base.links, viewMode],
   );
   const linkedNodeIds = new Set(filteredLinks.flatMap((link) => [link.source, link.target]));
-  const filteredNodes = nodes.filter((node) => linkedNodeIds.has(node.id));
+  const filteredNodes = base.nodes.filter((node) => linkedNodeIds.has(node.id));
   const layout = useMemo(
     () => layoutMoneyFlow(filteredNodes, filteredLinks),
     [filteredLinks, filteredNodes],
@@ -81,11 +87,28 @@ export function MoneyFlowGraph({ nodes, links, reportingCurrency }: MoneyFlowGra
 
   return (
     <div role="region" aria-label="Planned monthly money-flow graph">
+      <div className="mb-4 flex flex-wrap items-center gap-2" role="group" aria-label="Graph view">
+        <span className="text-xs font-medium text-subdued">View:</span>
+        {([["full", "Full flow"], ["budget", "Pure budget"]] as const).map(([mode, label]) => (
+          <button
+            key={mode}
+            type="button"
+            aria-pressed={viewMode === mode}
+            onClick={() => setViewMode(mode)}
+            className={`rounded px-3 py-1.5 text-sm font-medium transition ${viewMode === mode ? "bg-gradient-to-br from-brand-violet to-brand-teal text-white" : "bg-muted text-subdued hover:text-foreground"}`}
+          >
+            {label}
+          </button>
+        ))}
+        <span className="text-xs text-subdued">{viewMode === "budget" ? "Income → category → item, accounts excluded." : "Income, account routing, categories, and items."}</span>
+      </div>
       <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        <Filter label="Account" value={account} onChange={setAccount}>
-          <option value="all">All accounts</option>
-          {nodes.filter((node) => node.kind === "account").map((node) => <option key={node.id} value={node.id}>{node.label}</option>)}
-        </Filter>
+        {viewMode === "full" ? (
+          <Filter label="Account" value={account} onChange={setAccount}>
+            <option value="all">All accounts</option>
+            {nodes.filter((node) => node.kind === "account").map((node) => <option key={node.id} value={node.id}>{node.label}</option>)}
+          </Filter>
+        ) : null}
         <Filter label="Category" value={category} onChange={setCategory}>
           <option value="all">All categories</option>
           {nodes.filter((node) => node.kind === "category").map((node) => <option key={node.id} value={node.id}>{node.label}</option>)}
@@ -166,7 +189,10 @@ export function MoneyFlowGraph({ nodes, links, reportingCurrency }: MoneyFlowGra
           );
         })}
         {layout.nodes.map((node) => {
-          const nodeColor = node.routeKind && node.colorKey
+          const isSpending = node.kind === "account" && node.spending === true;
+          const nodeColor = isSpending
+            ? "#00D1C7"
+            : node.routeKind && node.colorKey
             ? routeColor(node.routeKind, node.colorKey)
             : "var(--border)";
           return (
@@ -180,11 +206,14 @@ export function MoneyFlowGraph({ nodes, links, reportingCurrency }: MoneyFlowGra
                 height={node.height}
                 rx="6"
                 stroke={nodeColor}
-                strokeWidth={node.routeKind ? "1.5" : "1"}
+                strokeWidth={isSpending ? "2.5" : node.routeKind ? "1.5" : "1"}
                 width={node.width}
                 x={node.x}
                 y={node.y - node.height / 2}
               />
+              {isSpending ? (
+                <circle cx={node.x + node.width - 10} cy={node.y - node.height / 2 + 10} fill="#00D1C7" r="4" />
+              ) : null}
               <text
                 fill="var(--foreground)"
                 fontSize="12"

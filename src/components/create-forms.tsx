@@ -62,6 +62,7 @@ export function AccountCreateForm({ baseCurrency }: { baseCurrency: string }) {
   return <ApiCreateForm endpoint="/api/accounts" title="Add account" buildBody={(d) => ({
     name: d.get("name"), type: d.get("type"), institution: d.get("institution") || null,
     maskedReference: d.get("accountReference") || null,
+    spending: d.get("spending") === "on",
     supportedCurrencies: d.getAll("supportedCurrencies"),
   })}>
     <label className="grid gap-2 text-sm text-subdued">Account name<input className={input} name="name" required /></label>
@@ -72,6 +73,10 @@ export function AccountCreateForm({ baseCurrency }: { baseCurrency: string }) {
     <label className="grid gap-2 text-sm text-subdued">
       IBAN / account reference
       <input autoComplete="off" className={input} name="accountReference" placeholder="Optional; stored masked" />
+    </label>
+    <label className="flex items-start gap-2 text-sm text-subdued">
+      <input className="mt-1" name="spending" type="checkbox" />
+      <span><strong className="text-foreground">Spending account</strong><span className="block text-xs">Shared &ldquo;daily&rdquo; account; grouped and aligned together in the money-flow graph.</span></span>
     </label>
     <fieldset className="grid gap-2 rounded border bg-muted/30 p-3">
       <legend className="px-1 text-sm font-semibold">Supported currencies</legend>

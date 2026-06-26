@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## v0.8.6 - 2026-06-25
+
+- Admin: the audit log now supports filtering by action, resource type, and date
+  range, a selectable page size (10 / 20 / 50), and prev/next pagination. All
+  state lives in the URL and filtering/paging happen at the database, so large
+  audit histories stay performant. Filter and pagination logic is unit-tested.
+- Budget: planned account transfers can now be deleted from the Transfers page
+  (two-step confirm; soft delete via the existing endpoint).
+- Dependencies: nodemailer 8.0.11 → 9.0.1, lucide-react 1.17.0 → 1.21.0,
+  @types/node 24.13.1 → 26.0.1, @types/nodemailer 6.4.17 → 8.0.1, and
+  tailwindcss 4.3.0 → 4.3.1 (aligned with @tailwindcss/postcss). The Node runtime
+  for the Docker images and CI moved from 24.16.0-alpine to 26.3.1-alpine.
+- Release: bumped the application version to 0.8.6.
+
 ## v0.8.5 - 2026-06-24
 
 - Fix: signing in no longer forces existing members to the household-creation

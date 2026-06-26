@@ -1,0 +1,17 @@
+# Accepted, non-reachable vulnerabilities for the container scan.
+# Format: one vulnerability ID per line (https://trivy.dev/latest/docs/configuration/filtering/).
+# Each entry must state the justification and a review date, and be removed as
+# soon as an upstream fix is available in our pinned base image.
+
+# CVE-2026-12151 (HIGH, CVSS 7.5) — undici WebSocket-client denial of service:
+# a malicious WebSocket *server* can exhaust memory in a connecting undici
+# client. Fixed in undici >= 6.27.0.
+#   - Source: this is the undici copy bundled inside Node itself
+#     (node:26.4.0-alpine ships undici 6.26.0). It is NOT an npm dependency we
+#     can bump, and no Node release/alpine image yet ships undici >= 6.27.0.
+#   - Reachability: NONE. TL-Finance opens no undici WebSocket client
+#     connections (it uses SMTP via nodemailer and outbound HTTP only); the
+#     vulnerable WebSocket-client code path is never executed.
+#   - Action: remove this entry once a Node alpine image bundles undici
+#     >= 6.27.0. Review by 2026-09-01.
+CVE-2026-12151

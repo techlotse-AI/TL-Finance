@@ -133,3 +133,10 @@ shared "spending"/"daily" accounts, which the money-flow graph marks and groups
 so they line up vertically; and a second "Pure budget" graph view excludes all
 accounts/transfers, drawing income → category → item (category totals split by
 income share). The graph transforms are unit-tested; additive migration only.
+
+## v0.8.8 - Reverse money-flow (account minimums)
+
+Added an "Account minimums" money-flow view that reverses the graph: it sums
+funded budget items by paid-from account and by category, yielding each account's
+minimum monthly requirement and each category's total (account → category →
+item, no income/transfers), with a summary table. Unit-tested pure transform.

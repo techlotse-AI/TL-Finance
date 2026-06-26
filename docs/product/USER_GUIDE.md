@@ -141,3 +141,5 @@ store-nothing tools that never change the budget:
    nothing is stored.
 
 Accounts can be marked as a **spending** ("daily") account on the Accounts page; the money-flow graph highlights and groups spending accounts so shared accounts line up together. The graph also offers a **Pure budget** view that hides all accounts and transfers, showing income flowing straight to categories and budget items.
+
+The money-flow graph also offers an **Account minimums** view that works in reverse: it sums your budget items by category and by the account that pays them, showing each category's total and the minimum each account must hold to cover its budget items.

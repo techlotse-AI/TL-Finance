@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+## v0.8.8 - 2026-06-26
+
+- Security/CI: documented and suppressed the non-reachable undici WebSocket-client
+  DoS (CVE-2026-12151, HIGH) via a justified `.trivyignore`. The vulnerable code
+  is the undici bundled inside `node:26.4.0-alpine` (undici 6.26.0; fixed in
+  6.27.0), which no Node alpine image ships yet and which this app never exercises
+  (no undici WebSocket client; SMTP + outbound HTTP only). The container scan now
+  reports it as accepted; the entry is to be removed once a Node image bundles
+  undici >= 6.27.0 (review by 2026-09-01).
+
+- Added a third money-flow graph view, "Account minimums" (reverse): it sums all
+  funded budget items by the account they are paid from and by category, drawing
+  account → category → item with income and transfers removed. It surfaces the
+  minimum monthly amount each account must hold/receive and the total budgeted
+  per category, both also listed in a summary table. Implemented as a unit-tested
+  pure transform; the graph now toggles between Full flow, Pure budget, and
+  Account minimums.
+- Release: bumped the application version to 0.8.8.
+
 ## v0.8.7 - 2026-06-26
 
 - Security: bumped the Docker/CI Node runtime from 26.3.1-alpine to 26.4.0-alpine,

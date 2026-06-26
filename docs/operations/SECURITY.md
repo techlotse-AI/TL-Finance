@@ -66,3 +66,16 @@ Baseline security is required from v0.1.0.
 Public deployment runbooks cover the threat model, privacy, incident response,
 backup/restore, secret rotation, and deployment checks. An independent security
 review remains an operator gate before public exposure.
+
+## Accepted (non-reachable) vulnerabilities
+
+Tracked in `.trivyignore` at the repository root; each entry records its
+justification and review date and is removed as soon as an upstream fix reaches
+our pinned base image.
+
+- **CVE-2026-12151** (HIGH) — undici WebSocket-client denial of service, fixed in
+  undici >= 6.27.0. Present only as the undici bundled inside
+  `node:26.4.0-alpine` (6.26.0); not an npm dependency, and no Node alpine image
+  yet ships the fix. Not reachable: the application opens no undici WebSocket
+  client connections (SMTP via nodemailer and outbound HTTP only). Remove once a
+  Node image bundles undici >= 6.27.0. Review by 2026-09-01.

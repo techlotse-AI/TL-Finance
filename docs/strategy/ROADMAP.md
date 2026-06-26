@@ -116,3 +116,11 @@ active references, budget items are soft-deleted. Added a logout control in the
 app shell that revokes the current session via the audited signout endpoint.
 Additive migration `20260624000000_v0_8_4_pension_projection_override`; pension
 projection changes are golden-tested.
+
+## v0.8.6 - Audit log filtering, transfer deletion, dependency refresh
+
+The admin audit log gained database-backed filtering (action, resource type,
+date range), a 10/20/50 page-size selector, and pagination, with the filter and
+pagination logic unit-tested. Planned account transfers can be deleted from the
+Transfers page. Refreshed dependencies (nodemailer 9, lucide-react 1.21,
+@types/node 26, tailwindcss 4.3.1) and moved the Node runtime to 26.3.1-alpine.

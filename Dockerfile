@@ -1,4 +1,4 @@
-FROM node:24.16.0-alpine AS dependencies
+FROM node:26.3.1-alpine AS dependencies
 WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN apk upgrade --no-cache
@@ -23,7 +23,7 @@ RUN npx prisma generate
 USER node
 CMD ["./node_modules/.bin/prisma", "migrate", "deploy"]
 
-FROM node:24.16.0-alpine AS runner
+FROM node:26.3.1-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1

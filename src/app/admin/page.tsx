@@ -9,6 +9,8 @@ import { Card } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { PageHeader } from "@/components/ui/page-header";
 import { requireAuthenticatedSession } from "@/lib/auth/context";
+import { AuditLogControls } from "@/components/audit-log-controls";
+import { buildAuditWhere, dayBound, paginationMeta, parseAuditQuery } from "@/lib/platform/audit-query";
 import { prisma } from "@/lib/db/prisma";
 import { s3BackupStatus } from "@/lib/platform/s3-backup";
 
@@ -38,7 +40,7 @@ function toManagedUsers(users: AdminUserRow[]) {
   }));
 }
 
-export default async function AdminPage() {
+export default async function AdminPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   let session;
   try {
     session = await requireAuthenticatedSession();
@@ -51,11 +53,27 @@ export default async function AdminPage() {
       <Card className="p-5"><Badge tone="locked">Administrator access required</Badge><p className="mt-3 text-sm text-subdued">Your account does not have instance-administrator access.</p></Card>
     </div>;
   }
-  const [households, users, auditEvents] = await Promise.all([
+  const auditQuery = parseAuditQuery(await searchParams);
+  const auditWhere = buildAuditWhere({
+    action: auditQuery.action,
+    resourceType: auditQuery.resourceType,
+    fromDate: dayBound(auditQuery.from, "start"),
+    toDate: dayBound(auditQuery.to, "end"),
+  });
+  const [households, users, auditTotal, auditActionRows, auditResourceRows] = await Promise.all([
     prisma.household.findMany({ where: { active: true }, include: { entitlement: true, members: { where: { active: true }, select: { id: true, role: true, user: { select: { id: true, email: true } } }, orderBy: { createdAt: "asc" } } }, orderBy: { name: "asc" } }),
     prisma.user.findMany({ select: { id: true, email: true, active: true, instanceAdmin: true, failedLoginCount: true, lockedUntil: true, createdAt: true }, orderBy: { email: "asc" } }),
-    prisma.auditEvent.findMany({ orderBy: { createdAt: "desc" }, take: 100 }),
+    prisma.auditEvent.count({ where: auditWhere }),
+    prisma.auditEvent.findMany({ distinct: ["action"], select: { action: true }, orderBy: { action: "asc" } }),
+    prisma.auditEvent.findMany({ distinct: ["resourceType"], select: { resourceType: true }, orderBy: { resourceType: "asc" } }),
   ]);
+  const auditPageMeta = paginationMeta(auditTotal, auditQuery.page, auditQuery.size);
+  const auditEvents = await prisma.auditEvent.findMany({
+    where: auditWhere,
+    orderBy: { createdAt: "desc" },
+    skip: auditPageMeta.skip,
+    take: auditPageMeta.size,
+  });
   const s3 = s3BackupStatus();
   return (
     <div className="mx-auto max-w-app space-y-6">
@@ -105,13 +123,29 @@ export default async function AdminPage() {
           ])}
         />
       </Card>
-      <Card>
+      <Card id="audit">
         <div className="flex items-center justify-between gap-3 border-b px-5 py-4">
-          <h2 className="font-semibold">Recent audit events</h2>
+          <h2 className="font-semibold">Audit events</h2>
           <Link className="inline-flex min-h-10 items-center gap-2 rounded border bg-muted px-4 text-sm font-semibold" href="/api/admin/audit-export"><Download className="size-4" /> Export CSV</Link>
         </div>
+        <AuditLogControls
+          actions={auditActionRows.map((row) => row.action)}
+          resourceTypes={auditResourceRows.map((row) => row.resourceType)}
+          current={{
+            action: auditQuery.action,
+            resourceType: auditQuery.resourceType,
+            from: auditQuery.from,
+            to: auditQuery.to,
+            size: auditPageMeta.size,
+            page: auditPageMeta.page,
+            totalPages: auditPageMeta.totalPages,
+            total: auditPageMeta.total,
+            hasPrev: auditPageMeta.hasPrev,
+            hasNext: auditPageMeta.hasNext,
+          }}
+        />
         <DataTable
-          caption="Recent platform audit events"
+          caption="Platform audit events"
           headers={["Time", "Action", "Resource", "User", "Household"]}
           rows={auditEvents.map((event) => [
             event.createdAt.toISOString(),

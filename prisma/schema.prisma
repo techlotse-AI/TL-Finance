@@ -326,6 +326,9 @@ model Account {
   type            AccountType
   institution     String?
   maskedReference String?
+  // Issue #30: mark an account as a shared "spending"/"daily" account so the
+  // money-flow graph groups and aligns spending accounts together.
+  spending        Boolean         @default(false)
   active          Boolean         @default(true)
   deletedAt       DateTime?
   createdAt       DateTime        @default(now())

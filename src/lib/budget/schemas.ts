@@ -52,6 +52,7 @@ export const accountSchema = z.object({
     .transform(maskAccountReference)
     .nullable()
     .optional(),
+  spending: z.boolean().optional(),
 });
 
 export const accountCreateSchema = accountSchema.extend({

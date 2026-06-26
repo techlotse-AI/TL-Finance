@@ -31,7 +31,9 @@ export default async function AccountsPage() {
       headers={["Account", "Type", "Institution", "Statement reference", "Supported currencies", "Status", "Actions"]}
       note={<div className="grid gap-4 lg:grid-cols-2"><AccountCreateForm baseCurrency={household.baseCurrency} /><PocketCreateForm accounts={accounts.map(({ id, name }) => ({ id, name }))} baseCurrency={household.baseCurrency} /></div>}
       rows={accounts.map((account) => [
-        account.name, account.type.toLowerCase().replace("_", " "), account.institution ?? "—",
+        account.name,
+        <span key={`${account.id}-type`} className="inline-flex items-center gap-2">{account.type.toLowerCase().replace("_", " ")}{account.spending ? <Badge tone="success">Spending</Badge> : null}</span>,
+        account.institution ?? "—",
         account.maskedReference ?? "—",
         account.pockets.map((pocket) => pocket.currency).join(", ") || "No currencies",
         <Badge key={account.id} tone={account.active ? "success" : "neutral"}>{account.active ? "Active" : "Inactive"}</Badge>,
@@ -42,6 +44,7 @@ export default async function AccountsPage() {
             type: account.type.toLowerCase(),
             institution: account.institution,
             maskedReference: account.maskedReference,
+            spending: account.spending,
           }}
           key={`${account.id}-actions`}
           lifecycle={lifecycleByAccount.get(account.id)!}

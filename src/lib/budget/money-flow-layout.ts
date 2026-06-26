@@ -119,6 +119,7 @@ export function layoutMoneyFlow(
   orderIncomeLanes(columns, visualLinks);
   optimizeColumnOrder(columns, visualLinks);
   orderIncomeLanes(columns, visualLinks);
+  groupSpendingAccounts(columns);
 
   const requiredHeight = Math.max(
     ...columns.map((column) =>
@@ -166,6 +167,7 @@ export function layoutMoneyFlow(
       width: node.width,
       height: node.height,
       value: node.value,
+      spending: node.spending,
     })),
     links: positionedLinks,
     columns: columns
@@ -344,6 +346,22 @@ function orderIncomeLanes(columns: MutableVisualNode[][], links: VisualLink[]) {
     ...orderedIncome,
     ...ungrouped.sort((a, b) => b.value - a.value || a.label.localeCompare(b.label)),
   );
+}
+
+/**
+ * Issue #30: within any account column, move spending/daily accounts together
+ * (kept in their existing relative order, placed after the non-spending
+ * accounts) so they line up vertically underneath each other.
+ */
+export function groupSpendingAccounts(columns: MutableVisualNode[][]) {
+  for (const column of columns) {
+    if (column.length < 2) continue;
+    if (!column.every((node) => node.kind === "account")) continue;
+    if (!column.some((node) => node.spending)) continue;
+    const regular = column.filter((node) => !node.spending);
+    const spending = column.filter((node) => node.spending);
+    column.splice(0, column.length, ...regular, ...spending);
+  }
 }
 
 function relationMap(

@@ -67,3 +67,7 @@ failed attempt, sets `lockedUntil` to an escalating backoff once the
 threshold is reached, and clears both on a successful sign-in. A completed
 password reset and an administrator unlock also clear them. Migration:
 `20260617000000_v0_8_login_lockout` (additive).
+
+## Account spending flag (v0.8.7)
+
+`Account.spending` (boolean, default false) marks a shared "spending"/"daily" account so the money-flow graph groups and vertically aligns those accounts (Issue #30). Additive migration `20260626000000_v0_8_7_account_spending`.

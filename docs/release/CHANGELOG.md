@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+## v0.8.7 - 2026-06-26
+
+- Security: bumped the Docker/CI Node runtime from 26.3.1-alpine to 26.4.0-alpine,
+  which ships the patched bundled undici and resolves HIGH CVE-2026-12151 (undici
+  WebSocket-frame denial of service).
+- Issue #30: accounts can be classified as a shared "spending"/"daily" account
+  (new `Account.spending` flag, settable on the account create and edit forms).
+  In the money-flow graph, spending accounts are marked (teal ring + dot) and
+  grouped together within their column so they line up underneath each other.
+  Additive migration `20260626000000_v0_8_7_account_spending`.
+- Issue #30: added a second money-flow graph view, "Pure budget", that excludes
+  all accounts and transfers and draws income → category → item directly (each
+  category's total is split across income sources by income share). A view toggle
+  switches between "Full flow" and "Pure budget". The collapse is a unit-tested
+  pure transform.
+- Release: bumped the application version to 0.8.7.
+
 ## v0.8.6 - 2026-06-25
 
 - Admin: the audit log now supports filtering by action, resource type, and date

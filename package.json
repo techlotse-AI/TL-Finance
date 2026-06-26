@@ -1,6 +1,6 @@
 {
   "name": "tl-finance",
-  "version": "0.8.6",
+  "version": "0.8.7",
   "private": true,
   "type": "module",
   "packageManager": "npm@11.16.0",

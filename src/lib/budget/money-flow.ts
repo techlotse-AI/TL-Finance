@@ -1,6 +1,20 @@
 import Decimal from "decimal.js";
 
 import { money, serializeMoney, sumMoney } from "@/lib/money/decimal";
+import { RECONCILIATION_TOLERANCE } from "@/lib/money/rounding";
+
+/**
+ * Whole-amount ("zero-dollar, not zero-cent") reconciliation tolerance. A
+ * residual whose magnitude is within ±{@link RECONCILIATION_TOLERANCE} units is
+ * rounding noise and must not raise a warning or break reconciliation.
+ */
+const TOLERANCE = new Decimal(RECONCILIATION_TOLERANCE);
+
+/** True when a difference/residual is a real discrepancy (beyond ±tolerance). */
+function outsideTolerance(value: Decimal): boolean {
+  // Whole-amount budget: residuals within ±5 are rounding noise, not warnings.
+  return value.abs().greaterThan(TOLERANCE);
+}
 
 export type FlowNodeKind = "income" | "account" | "category" | "item";
 export type FlowRouteKind = "income" | "transfer" | "expense" | "saving" | "investment" | "retirement";
@@ -160,7 +174,7 @@ export function buildMoneyFlow(input: BuildMoneyFlowInput): MoneyFlowResult {
     );
     const difference = sourceMonthly.minus(allocated);
 
-    if (!difference.isZero()) {
+    if (outsideTolerance(difference)) {
       warnings.push({
         code: difference.isPositive() ? "unallocated_income" : "overallocated_income",
         message: difference.isPositive()
@@ -272,7 +286,7 @@ export function buildMoneyFlow(input: BuildMoneyFlowInput): MoneyFlowResult {
   for (const pocket of input.pockets) {
     const remaining = pocketAvailable.get(pocket.id) ?? new Decimal(0);
 
-    if (!remaining.isZero()) {
+    if (outsideTolerance(remaining)) {
       warnings.push({
         code: remaining.isPositive() ? "unallocated_pocket_funds" : "overallocated_pocket",
         message: remaining.isPositive()
@@ -318,7 +332,9 @@ export function buildMoneyFlow(input: BuildMoneyFlowInput): MoneyFlowResult {
     },
     reconciled:
       warnings.every((warning) => warning.code === "unallocated_pocket_funds") &&
-      !unallocated.isNegative(),
+      // A small negative residual within ±tolerance is rounding noise, not an
+      // over-allocation. The budget balances at the whole-dollar, not cent, level.
+      unallocated.greaterThanOrEqualTo(TOLERANCE.negated()),
   };
 }
 

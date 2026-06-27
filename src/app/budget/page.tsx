@@ -1,6 +1,7 @@
 import { EntityListPage } from "@/components/entity-list-page";
 import { BudgetItemCreateForm } from "@/components/create-forms";
 import { BudgetItemActions } from "@/components/budget-item-actions";
+import { BudgetAnalysisPanel } from "@/components/budget/budget-analysis-panel";
 import { Badge } from "@/components/ui/badge";
 import { formatMoney } from "@/lib/money/decimal";
 import { requirePageContext } from "@/lib/auth/page-context";
@@ -27,7 +28,9 @@ export default async function BudgetPage() {
     }),
   ]);
   return (
-    <EntityListPage
+    <div className="space-y-8">
+      <BudgetAnalysisPanel />
+      <EntityListPage
       caption="Normalized monthly budget items"
       description="Recurring expenses and routed saving, investment, and retirement allocations."
       headers={["Budget item", "Kind", "Category", "Paid from", "Paid to", "Entered amount", "Monthly amount", "Route", "Actions"]}
@@ -78,6 +81,7 @@ export default async function BudgetPage() {
       ])}
       title="Budget items"
     />
+    </div>
   );
 }
 

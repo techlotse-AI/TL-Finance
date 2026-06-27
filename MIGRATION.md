@@ -36,20 +36,26 @@ Trivy gates on **CRITICAL only** (`ignore-unfixed`, `exit-code: 1`). Finance cur
 Add `.github/dependabot.yml` (npm + docker + github-actions, weekly).
 
 ## 6. Required files (current gaps)
-- [x] README.md — refresh to the standard layout; add working badges (release / CI / docker / license).
-- [ ] **VERSION** — add (see §2).
-- [ ] **CHANGELOG.md** — move from `docs/release/CHANGELOG.md` to top-level, Keep a Changelog with `[Unreleased]`.
-- [ ] **LICENSE.md** — add (Techlotse Source-Available; Finance has none today).
-- [ ] **AGENTS.md** — keep (already 550 lines); add a `CLAUDE.md` pointer to it. Trim to the standard sections.
+- [x] README.md — refresh to the standard layout; add working badges (release / CI / docker / license). _(v0.9.0: release, CI, Trivy security-gate, license badges added.)_
+- [x] **VERSION** — add (see §2). _(v0.9.0: `0.9.0`; `version:check` now asserts package.json matches it.)_
+- [x] **CHANGELOG.md** — move from `docs/release/CHANGELOG.md` to top-level, Keep a Changelog with `[Unreleased]`. _(v0.9.0: top-level CHANGELOG added pointing to the historical log.)_
+- [x] **LICENSE.md** — add (Techlotse Source-Available; Finance has none today). _(v0.9.0: added — flagged for legal review before public Alpha.)_
+- [x] **AGENTS.md** — keep; add a `CLAUDE.md` pointer to it. _(v0.9.0: `CLAUDE.md` pointer added. Trim to standard sections still pending.)_
 - [ ] **STYLING.md** — add (brand/style guide).
-- [ ] **TL-Project.md** — already present.
+- [x] **TL-Project.md** — already present.
 
 ## 7. /docs structure
 Consolidate the rich `docs/` (architecture, design, operations, product, strategy, release, reference) into the standard set: `ARCHITECTURE.md`, `DESIGN.md`, `OPERATIONS.md`, `DEVELOPMENT.md`, `ROADMAP.md`, `API-REFERENCE.md`, `DB-SCHEMA.md` (Prisma), `DEPENDENCIES.md`.
 
 ## Checklist
-- [ ] VERSION = 1.0.0-alpha.1, package.json matches
-- [ ] release.yml (alpha channel) + Trivy CRITICAL gate
-- [ ] dependabot.yml
-- [ ] CHANGELOG.md top-level · LICENSE.md · STYLING.md · CLAUDE.md pointer
-- [ ] README badges working · docs/ consolidated
+- [~] VERSION + package.json match — **done at `0.9.0`** (this is the final v0.9.0 pass). The `1.0.0-alpha.1` retarget + alpha release channel is the deliberate next step; note `version:check` currently requires clean `x.y.z`, so moving to `-alpha.N` needs that regex relaxed first.
+- [~] Trivy CRITICAL gate — **present in `ci.yml`** (HIGH,CRITICAL scan, CRITICAL blocks publish) and now **dedupes the tracking issue** (updates in place / closes when clean). A separate `release.yml` per the template was not split out; the existing `ci.yml` verify+publish already covers it.
+- [x] dependabot.yml — already present (npm + docker + github-actions, weekly).
+- [x] CHANGELOG.md top-level · LICENSE.md · CLAUDE.md pointer — **done**. STYLING.md still pending.
+- [x] README badges working · [ ] docs/ consolidated — badges **done**; `docs/` consolidation into the standard set still pending.
+
+> **v0.9.0 audit (2026-06-26):** Items above marked done/[~] were completed or
+> advanced in the v0.9.0 pass. Remaining for the Alpha rename: `STYLING.md`,
+> `docs/` consolidation, the `1.0.0-alpha.1` version retarget + alpha channel
+> (`:vX.Y.Z-alpha.N` / `:alpha`) and relaxing `version:check` to accept
+> pre-release tags, the migrator-image release matrix, and trimming `AGENTS.md`.

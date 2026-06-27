@@ -10,6 +10,13 @@ if (!/^\d+\.\d+\.\d+$/.test(packageVersion)) {
   throw new Error(`package.json version must be semantic x.y.z, received ${packageVersion}.`);
 }
 
+// The top-level VERSION file is the single source of truth (MIGRATION.md §2);
+// package.json must match it.
+const versionFile = (await readFile(new URL("../VERSION", import.meta.url), "utf8")).trim();
+if (versionFile !== packageVersion) {
+  throw new Error(`Version mismatch: VERSION=${versionFile}, package.json=${packageVersion}.`);
+}
+
 if (lockVersion !== packageVersion || lockRootVersion !== packageVersion) {
   throw new Error(
     `Version mismatch: package.json=${packageVersion}, package-lock.json=${lockVersion}, package-lock root=${lockRootVersion}.`,

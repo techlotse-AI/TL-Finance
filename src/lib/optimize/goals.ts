@@ -1,7 +1,7 @@
 import Decimal from "decimal.js";
 
 import { money, serializeMoney } from "@/lib/money/decimal";
-import { roundToNearest, ROUNDING_STEP } from "@/lib/money/rounding";
+import { ROUNDING_STEP } from "@/lib/money/rounding";
 
 /**
  * Financial goals / sinking funds (Phase D, D2). Deterministic and explainable:

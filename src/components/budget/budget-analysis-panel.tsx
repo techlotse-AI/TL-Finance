@@ -98,9 +98,10 @@ export function BudgetAnalysisPanel() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // No synchronous setState before the first `await`, so this is safe to call
+  // from an effect (see react-hooks/set-state-in-effect): state only changes in
+  // the async continuation once the request resolves.
   async function load() {
-    setLoading(true);
-    setError(null);
     try {
       const response = await fetch("/api/budget/analysis");
       const payload = await response.json().catch(() => null);
@@ -108,7 +109,10 @@ export function BudgetAnalysisPanel() {
         setError(payload?.error?.message ?? "Could not load budget analysis.");
         return;
       }
+      setError(null);
       setData(payload as Analysis);
+    } catch {
+      setError("Could not load budget analysis.");
     } finally {
       setLoading(false);
     }
@@ -127,7 +131,7 @@ export function BudgetAnalysisPanel() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Budget analysis</h2>
-        <Button type="button" onClick={() => void load()}>Refresh</Button>
+        <Button type="button" onClick={() => { setLoading(true); setError(null); void load(); }}>Refresh</Button>
       </div>
 
       {data.excludedCurrencyLines?.length ? (

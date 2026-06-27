@@ -157,20 +157,58 @@ jobs:
           RELEASE_RUN_URL: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           RELEASE_TAG: "${{ steps.meta.outputs.channel }} ${{ steps.meta.outputs.version }}"
         run: node scripts/report-container-vulnerabilities.mjs trivy-results.json container-vulnerability-report
-      - name: Create vulnerability issue
+      # Single, deduplicated tracking issue. If vulnerabilities are present we
+      # update the existing open issue in place (refresh its body, append this
+      # run's overflow parts) instead of opening a new one each release; only if
+      # none is open do we create one. When a scan is clean we close any open
+      # tracking issue referencing the clean run.
+      - name: Update or create vulnerability issue
         if: steps.vulnerabilities.outputs.total_count != '0'
         env:
           GH_TOKEN: "${{ github.token }}"
+          VULN_LABEL: container-vulnerabilities
+          ISSUE_TITLE: "Container image vulnerabilities"
+          RUN_URL: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          SCAN_TAG: "${{ steps.meta.outputs.channel }} ${{ steps.meta.outputs.version }}"
         shell: bash
         run: |
+          set -euo pipefail
+          gh label create "${VULN_LABEL}" --color B60205 \
+            --description "Open container image CVEs from the release scan" --force
           first_report="container-vulnerability-report/part-001.md"
-          issue_url="$(gh issue create \
-            --title "Container vulnerabilities detected in ${{ steps.meta.outputs.channel }} ${{ steps.meta.outputs.version }}" \
-            --body-file "${first_report}")"
+          existing="$(gh issue list --label "${VULN_LABEL}" --state open \
+            --json number --jq '.[0].number // empty')"
+          if [ -n "${existing}" ]; then
+            echo "Updating existing issue #${existing} in place."
+            gh issue edit "${existing}" --body-file "${first_report}"
+            gh issue comment "${existing}" \
+              --body "Rescanned for **${SCAN_TAG}** — vulnerabilities still present. See ${RUN_URL}."
+            issue_ref="${existing}"
+          else
+            echo "No open issue; creating one."
+            issue_ref="$(gh issue create --label "${VULN_LABEL}" \
+              --title "${ISSUE_TITLE}" --body-file "${first_report}")"
+          fi
           for report in container-vulnerability-report/part-*.md; do
             if [ "${report}" != "${first_report}" ]; then
-              gh issue comment "${issue_url}" --body-file "${report}"
+              gh issue comment "${issue_ref}" --body-file "${report}"
             fi
+          done
+      - name: Close vulnerability issue when scan is clean
+        if: steps.vulnerabilities.outputs.total_count == '0'
+        env:
+          GH_TOKEN: "${{ github.token }}"
+          VULN_LABEL: container-vulnerabilities
+          RUN_URL: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          SCAN_TAG: "${{ steps.meta.outputs.channel }} ${{ steps.meta.outputs.version }}"
+        shell: bash
+        run: |
+          set -euo pipefail
+          for number in $(gh issue list --label "${VULN_LABEL}" --state open \
+            --json number --jq '.[].number'); do
+            echo "Closing resolved issue #${number}."
+            gh issue close "${number}" \
+              --comment "Resolved: the **${SCAN_TAG}** container scan found no HIGH/CRITICAL vulnerabilities. See ${RUN_URL}."
           done
       - name: Block publish on Critical vulnerabilities
         if: steps.vulnerabilities.outputs.critical_count != '0'

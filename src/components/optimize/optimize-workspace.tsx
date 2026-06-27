@@ -19,6 +19,7 @@ const TABS = [
   "Retirement",
   "Debt",
   "Net worth",
+  "Goals",
   "Advisor",
 ] as const;
 type Tab = (typeof TABS)[number];
@@ -71,6 +72,7 @@ export function OptimizeWorkspace({ currency }: { currency: string }) {
       {tab === "Retirement" ? <RetirementPanel currency={currency} /> : null}
       {tab === "Debt" ? <DebtPanel currency={currency} /> : null}
       {tab === "Net worth" ? <NetWorthPanel currency={currency} /> : null}
+      {tab === "Goals" ? <GoalsPanel currency={currency} /> : null}
       {tab === "Advisor" ? <AdvisorPanel currency={currency} /> : null}
     </div>
   );
@@ -848,6 +850,108 @@ function NetWorthPanel({ currency }: { currency: string }) {
           </Card>
         </div>
       ) : <Placeholder text="Add your debts and compute a point-in-time net-worth statement from your accounts, holdings, and pensions." />}
+    </div>
+  );
+}
+
+function goalTone(status: string): "success" | "warning" | "danger" {
+  if (status === "reached" || status === "ahead" || status === "on_track") return "success";
+  if (status === "no_target_date") return "warning";
+  return "danger";
+}
+
+function GoalsPanel({ currency }: { currency: string }) {
+  const [data, setData] = useState<any>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function load() {
+    setMessage(null);
+    const { ok, data: payload } = await getJson("/api/optimize/goals");
+    if (!ok) { setMessage(payload?.error?.message ?? "Could not load goals."); return; }
+    setData(payload);
+  }
+
+  async function addGoal(form: FormData) {
+    setMessage(null);
+    const targetDate = String(form.get("targetDate") ?? "");
+    const planned = String(form.get("planned") ?? "");
+    const { ok, data: payload } = await postJson("/api/optimize/goals", {
+      name: String(form.get("name") ?? ""),
+      currency: String(form.get("gcurrency") ?? currency).toUpperCase(),
+      targetAmount: String(form.get("target") ?? "0"),
+      currentAmount: String(form.get("current") ?? "0"),
+      targetDate: targetDate ? targetDate : null,
+      plannedMonthlyContribution: planned ? planned : null,
+    });
+    if (!ok) { setMessage(payload?.error?.message ?? "Could not add goal."); return; }
+    await load();
+  }
+
+  async function deleteGoal(id: string) {
+    setMessage(null);
+    const response = await fetch(`/api/optimize/goals/${id}`, { method: "DELETE", headers: { "Content-Type": "application/json" } });
+    if (!response.ok) { setMessage("Could not delete goal."); return; }
+    await load();
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
+      <Card className="p-5">
+        <div className="mb-4 flex items-center justify-between"><h2 className="font-semibold">Financial goals</h2><Button type="button" onClick={load}>Refresh</Button></div>
+        <form action={addGoal} className="grid gap-3">
+          <Field label="Goal name"><input className={inputClass} name="name" placeholder="House deposit" required /></Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label={`Target (${currency})`}><input className={inputClass} name="target" inputMode="decimal" defaultValue="0" required /></Field>
+            <Field label="Currency"><input className={inputClass} name="gcurrency" defaultValue={currency} maxLength={3} /></Field>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Already saved"><input className={inputClass} name="current" inputMode="decimal" defaultValue="0" /></Field>
+            <Field label="Planned monthly"><input className={inputClass} name="planned" inputMode="decimal" placeholder="optional" /></Field>
+          </div>
+          <Field label="Target date (optional)"><input className={inputClass} name="targetDate" type="date" min={today} /></Field>
+          <Button type="submit">Add goal</Button>
+        </form>
+        {message ? <p className="mt-3 text-sm text-status-warning">{message}</p> : null}
+      </Card>
+      {data ? (
+        <Card className="space-y-4 p-5">
+          <h3 className="font-semibold">Goals ({data.summary?.reportingCurrency ?? currency})</h3>
+          {data.summary?.missingRateCurrencies?.length ? (
+            <p className="rounded border bg-muted/30 p-3 text-sm text-status-warning">No reporting rate for: {data.summary.missingRateCurrencies.join(", ")}. Those goals are excluded from the totals below.</p>
+          ) : null}
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Metric label="Total target" value={fmt(data.summary?.totalTarget, data.summary?.reportingCurrency ?? currency)} />
+            <Metric label="Saved so far" value={fmt(data.summary?.totalSaved, data.summary?.reportingCurrency ?? currency)} />
+            <Metric label="Required / month" value={fmt(data.summary?.totalRequiredMonthly, data.summary?.reportingCurrency ?? currency)} />
+          </div>
+          {data.goals?.length ? (
+            <div className="space-y-3">
+              {data.goals.map((goal: any) => (
+                <div key={goal.id ?? goal.name} className="rounded border p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="font-medium">{goal.name}</div>
+                    <div className="flex items-center gap-2">
+                      <Badge tone={goalTone(goal.status) as any}>{String(goal.status).replace(/_/g, " ")}</Badge>
+                      {goal.id ? <Button type="button" onClick={() => deleteGoal(goal.id)}>Delete</Button> : null}
+                    </div>
+                  </div>
+                  <div className="mt-2 h-2 w-full overflow-hidden rounded bg-muted">
+                    <div className="h-full bg-gradient-to-r from-brand-violet to-brand-teal" style={{ width: `${Math.min(100, Number(goal.progressPercent) || 0)}%` }} />
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-2 text-sm text-subdued sm:grid-cols-4">
+                    <span>{Number(goal.progressPercent)}% saved</span>
+                    <span>{fmt(goal.currentAmount, goal.currency)} / {fmt(goal.targetAmount, goal.currency)}</span>
+                    <span>{goal.monthsRemaining != null ? `${goal.monthsRemaining} mo left` : "open-ended"}</span>
+                    <span>{goal.requiredMonthlyContributionRounded != null ? `need ${fmt(goal.requiredMonthlyContributionRounded, goal.currency)}/mo` : "—"}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : <p className="text-sm text-subdued">No goals yet. Add one to start tracking.</p>}
+        </Card>
+      ) : <Placeholder text="Refresh to load your goals, or add one. Required monthly contributions are rounded up to the nearest 5; totals convert to your base currency using stored reporting rates." />}
     </div>
   );
 }

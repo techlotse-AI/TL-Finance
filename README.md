@@ -1,5 +1,10 @@
 # TL Finance
 
+[![Release](https://img.shields.io/github/v/release/techlotse-AI/TL-Finance?sort=semver&label=release)](https://github.com/techlotse-AI/TL-Finance/releases)
+[![CI](https://github.com/techlotse-AI/TL-Finance/actions/workflows/ci.yml/badge.svg)](https://github.com/techlotse-AI/TL-Finance/actions/workflows/ci.yml)
+[![Security gate: Trivy CRITICAL](https://img.shields.io/badge/security%20gate-Trivy%20CRITICAL-2ea44f?logo=aquasec&logoColor=white)](https://github.com/techlotse-AI/TL-Finance/actions/workflows/ci.yml)
+[![License: Source-Available](https://img.shields.io/badge/license-Source--Available-blue)](LICENSE.md)
+
 TL Finance is a Docker-first, privacy-focused household finance application.
 The Budget and Analyze tiers are implemented. Optimize includes deterministic
 scenarios, emergency-fund sizing, Swiss Pillar 3a calculations, and explainable

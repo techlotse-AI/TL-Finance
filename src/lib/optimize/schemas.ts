@@ -357,3 +357,32 @@ export const netWorthSchema = z.object({
 });
 
 export type NetWorthRequest = z.infer<typeof netWorthSchema>;
+
+
+// --- v0.9.0 D2: financial goals / sinking funds ---
+
+export const goalCreateSchema = z.object({
+  name: nameSchema.max(120),
+  currency: currencySchema,
+  targetAmount: positiveAmountSchema,
+  currentAmount: nonNegativeMoneySchema.optional(),
+  // Target date as an ISO date string (YYYY-MM-DD); null/omitted = open-ended.
+  targetDate: z.coerce.date().nullable().optional(),
+  plannedMonthlyContribution: nonNegativeMoneySchema.nullable().optional(),
+  notes: z.string().trim().max(500).nullable().optional(),
+});
+
+export type GoalCreateRequest = z.infer<typeof goalCreateSchema>;
+
+export const goalUpdateSchema = z
+  .object({
+    name: nameSchema.max(120).optional(),
+    targetAmount: positiveAmountSchema.optional(),
+    currentAmount: nonNegativeMoneySchema.optional(),
+    targetDate: z.coerce.date().nullable().optional(),
+    plannedMonthlyContribution: nonNegativeMoneySchema.nullable().optional(),
+    notes: z.string().trim().max(500).nullable().optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, "Provide at least one field to update.");
+
+export type GoalUpdateRequest = z.infer<typeof goalUpdateSchema>;

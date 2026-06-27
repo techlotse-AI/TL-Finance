@@ -191,6 +191,7 @@ model Household {
   holdings          Holding[]
   pensionVehicles   PensionVehicle[]
   scenarioComparisons ScenarioComparison[]
+  financialGoals    FinancialGoal[]
 }
 
 model HouseholdMember {
@@ -688,6 +689,36 @@ model ScenarioComparison {
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
   household           Household @relation(fields: [householdId], references: [id], onDelete: Restrict)
+
+  @@unique([householdId, name])
+  @@index([householdId, deletedAt])
+}
+
+// --- Optimize: financial goals / sinking funds (v0.9.0, D2) ---
+// A savings target with an optional target date and current saved amount. Pure
+// Optimize: it reports on progress and the contribution required to reach the
+// target by the date. It is balance-bearing only in the sense that the saver
+// records `currentAmount`; it never feeds the Budget money-flow. Additive,
+// soft-deleted, household-scoped, audited.
+
+model FinancialGoal {
+  id                         String    @id @default(cuid())
+  householdId                String
+  name                       String
+  currency                   String    @db.VarChar(3)
+  targetAmount               Decimal   @db.Decimal(18, 4)
+  currentAmount              Decimal   @db.Decimal(18, 4) @default(0)
+  // Optional target date; when set the engine paces the required monthly
+  // contribution against it. Null means an open-ended goal.
+  targetDate                 DateTime? @db.Date
+  // The saver's current planned monthly contribution, if any.
+  plannedMonthlyContribution Decimal?  @db.Decimal(18, 4)
+  notes                      String?
+  active                     Boolean   @default(true)
+  deletedAt                  DateTime?
+  createdAt                  DateTime  @default(now())
+  updatedAt                  DateTime  @updatedAt
+  household                  Household @relation(fields: [householdId], references: [id], onDelete: Restrict)
 
   @@unique([householdId, name])
   @@index([householdId, deletedAt])

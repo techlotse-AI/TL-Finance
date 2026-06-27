@@ -98,29 +98,52 @@ export function BudgetAnalysisPanel() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // No synchronous setState before the first `await`, so this is safe to call
-  // from an effect (see react-hooks/set-state-in-effect): state only changes in
-  // the async continuation once the request resolves.
-  async function load() {
+  // Pure fetcher: never touches React state, so it is safe to call anywhere.
+  async function fetchAnalysis(): Promise<{ ok: true; data: Analysis } | { ok: false; error: string }> {
     try {
       const response = await fetch("/api/budget/analysis");
       const payload = await response.json().catch(() => null);
       if (!response.ok) {
-        setError(payload?.error?.message ?? "Could not load budget analysis.");
-        return;
+        return { ok: false, error: payload?.error?.message ?? "Could not load budget analysis." };
       }
-      setError(null);
-      setData(payload as Analysis);
+      return { ok: true, data: payload as Analysis };
     } catch {
-      setError("Could not load budget analysis.");
-    } finally {
-      setLoading(false);
+      return { ok: false, error: "Could not load budget analysis." };
     }
   }
 
+  // State updates happen only inside the resolution callback (the pattern the
+  // react-hooks/set-state-in-effect rule endorses), never synchronously in the
+  // effect body.
   useEffect(() => {
-    void load();
+    let cancelled = false;
+    void fetchAnalysis().then((result) => {
+      if (cancelled) return;
+      if (result.ok) {
+        setData(result.data);
+        setError(null);
+      } else {
+        setError(result.error);
+      }
+      setLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  async function refresh() {
+    setLoading(true);
+    setError(null);
+    const result = await fetchAnalysis();
+    if (result.ok) {
+      setData(result.data);
+      setError(null);
+    } else {
+      setError(result.error);
+    }
+    setLoading(false);
+  }
 
   if (loading) return <Card className="p-5"><p className="text-sm text-subdued">Loading budget analysis…</p></Card>;
   if (error) return <Card className="p-5"><p className="text-sm text-status-warning">{error}</p></Card>;
@@ -131,7 +154,7 @@ export function BudgetAnalysisPanel() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Budget analysis</h2>
-        <Button type="button" onClick={() => { setLoading(true); setError(null); void load(); }}>Refresh</Button>
+        <Button type="button" onClick={() => void refresh()}>Refresh</Button>
       </div>
 
       {data.excludedCurrencyLines?.length ? (

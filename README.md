@@ -63,3 +63,6 @@ npm run build
 
 See [docs/README.md](docs/README.md) for the product and engineering
 documentation index.
+
+<!-- Automation pipeline check (#42) -->
+

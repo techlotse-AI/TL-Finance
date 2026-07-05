@@ -140,3 +140,95 @@ Added an "Account minimums" money-flow view that reverses the graph: it sums
 funded budget items by paid-from account and by category, yielding each account's
 minimum monthly requirement and each category's total (account → category →
 item, no income/transfers), with a summary table. Unit-tested pure transform.
+
+## v0.9.0 - Resilience & goals (Released — final pass before public Alpha)
+
+Completed Phase D. Added financial goals / sinking funds (additive migration
+`20260626120000_v0_9_0_financial_goals`, golden-tested `optimize/goals.ts`,
+household-scoped `/api/optimize/goals` CRUD, and an Optimize **Goals** tab):
+per-goal amount remaining, required monthly contribution to hit the target by
+its date, progress, and on-track/ahead/behind/reached/unreachable/open-ended
+status, aggregated in the household base currency. Added a deterministic budget
+spend & savings analysis engine (`budget/analysis.ts` + `/api/budget/analysis`
++ `BudgetAnalysisPanel`): top spend categories, spend by group, essential vs
+discretionary ratio, savings rate, 50/30/20 comparison, realistic savings
+opportunities, a zero-based balance check, and plain-language insights, with
+budget visualizations. Introduced whole-amount ("zero-cent") budgeting
+(`money/rounding.ts`: round-to-nearest-5 + `formatWhole`) and a ±5
+reconciliation tolerance, while stored money stays exact `Decimal(18,4)`.
+Optimized the Docker image, added README badges, made the Trivy gate update a
+single vuln issue in place, and added standard repo files (VERSION, LICENSE.md,
+root CHANGELOG.md, CLAUDE.md). Full local gate verified green (typecheck, lint,
+220 tests, next build); released as git tag `v0.9.0`.
+
+---
+
+## Forward plan — v0.9.1 → v0.9.8 (road to 1.0.0-alpha.1)
+
+Three product tracks run through this series — **Budget (proper UI in place)**,
+**Analyze (Revolut / UBS / FNB)**, and **Optimize (a full future-planning and
+tracking suite)** — bookended by a stabilization/security opener and a
+release-candidate hardening close. Every step must land the full gate green
+(`typecheck && lint && test && build`) and change nothing in a lower tier.
+
+### v0.9.1 - Stabilize & secure (foundation)
+
+Get every tier to a verified-green baseline before feature work. Resolve the
+bundled-**undici** HIGH (CVE-2026-12151) by bumping the Node base image to a
+patch that ships undici ≥ 6.27.0 and confirm the Trivy scan is clean (closes
+#33). Land the held Dependabot work correctly: group `vitest` +
+`@vitest/coverage-v8` so they bump together (unblocks #35/#39) and review/adopt
+the eslint 10 major (#38) and actions/checkout 7 (#34). Fix CI branch-protection
+ergonomics so the tag-only `publish` check doesn't leave PRs permanently
+`BLOCKED`. Seed `STYLING.md` and shared design tokens for the Budget UI work.
+
+### v0.9.2 - Budget UI, part 1 — structure & IA
+
+Consolidate income → accounts/pockets → transfers → categories → items into one
+coherent, navigable Budget workspace with consistent empty/loading/error states.
+Responsive layout and a keyboard/accessibility pass on the core budget forms.
+Enforce whole-amount money display (`formatWhole`, round-to-5) everywhere.
+
+### v0.9.3 - Budget UI, part 2 — visualization & flow
+
+Polish the money-flow graph (spending-accounts, pure-budget, and
+account-minimums views) with legends, zoom, and print/export. Promote the
+spend/savings analysis (50/30/20, savings opportunities, insights) to
+first-class dashboard cards, and surface reconciliation/adherence inline with
+clear ±5-tolerance messaging.
+
+### v0.9.4 - Analyze — Revolut + UBS hardening
+
+Re-verify and harden the Revolut and UBS (account + card) statement parsers
+against fresh sanitized fixtures; expand golden coverage for multi-currency,
+refunds, fees, and FX matching. Polish the import review-queue UX and make
+fail-closed parse errors actionable.
+
+### v0.9.5 - Analyze — FNB (South Africa)
+
+Add an FNB statement parser (CSV/OFX) with sanitized fixtures, idempotent
+commit, and ZAR handling, wired into the import picker. Lay ZA country-profile
+groundwork (currency, date formats) and extend allocation rules and FX matching
+to ZAR flows.
+
+### v0.9.6 - Optimize — unified planning dashboard
+
+Bring the existing engines (scenarios, income-protection emergency fund, Pillar
+3a, pensions & retirement readiness, debt payoff, net-worth, goals) into a
+single cohesive **Plan** dashboard with cross-links and a shared assumptions
+panel. Persist point-in-time net-worth snapshots to draw a net-worth trend, and
+surface goal-progress tracking alongside it. Optimize stays side-effect free.
+
+### v0.9.7 - Optimize — future-planning expansion
+
+Add the FX currency-exposure report, an inflation / real-terms toggle across
+projections, and a tax-pack export. Add structured holdings imports
+(Frankly/VIAC, Saxo). Optional what-if overlays combining goals, debt, and
+retirement into a single projection.
+
+### v0.9.8 - Release candidate → 1.0.0-alpha.1 gateway
+
+End-to-end verification across Budget/Analyze/Optimize, a performance pass, and
+`docs/` consolidation. Prepare the alpha rename in `MIGRATION.md` (relax
+`version:check` for pre-release tags first). Ship the long-deferred **TOTP 2FA**
+and login alerts as the security capstone, then cut `1.0.0-alpha.1`.

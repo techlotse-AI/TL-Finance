@@ -9,6 +9,16 @@ The detailed historical log for v0.1–v0.8 lives in
 
 ## [Unreleased]
 
+### Changed
+
+- Dependency refresh (Dependabot, CI-green): lucide-react 1.21.0 → 1.22.0,
+  recharts 3.8.1 → 3.9.0, postcss 8.5.15 → 8.5.16.
+
+### Removed
+
+- Deleted an orphaned duplicate of `TL-Project.MD` that had been committed under
+  a FUSE placeholder filename (`.fuse_hidden…`).
+
 ## [0.9.0] - 2026-06-26 — "Resilience & goals" (final pass before public Alpha)
 
 ### Added

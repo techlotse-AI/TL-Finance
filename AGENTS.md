@@ -38,10 +38,13 @@ Release sequence:
 Unavailable paid tiers remain visible as locked or "Coming later." Server-side
 entitlements are authoritative; client-side hiding is never authorization.
 
-The current checkout is **v0.5.0**. Budget and Analyze are implemented,
-Optimize deterministic tools are implemented, and public-ready security and
-operations controls are implemented. Tagged releases publish versioned
-containers only after the release verification and container security gates.
+For the shipped version, `VERSION`, `package.json`, and git tags are
+authoritative (see `CLAUDE.md`) — do not hardcode a version here. As of this
+writing Budget and Analyze are implemented, Optimize deterministic tools are
+implemented, Phase D (emergency fund, financial goals, debt, net-worth) is
+complete, and public-ready security and operations controls are implemented.
+Tagged releases (`vX.Y.Z`) publish versioned containers only after the release
+verification and container security gates.
 
 ---
 

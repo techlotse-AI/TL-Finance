@@ -6,8 +6,13 @@ const packageVersion = packageJson.version;
 const lockVersion = packageLock.version;
 const lockRootVersion = packageLock.packages?.[""]?.version;
 
-if (!/^\d+\.\d+\.\d+$/.test(packageVersion)) {
-  throw new Error(`package.json version must be semantic x.y.z, received ${packageVersion}.`);
+// Accept a stable `x.y.z` or a pre-release `x.y.z-alpha.N` / `x.y.z-beta.N` /
+// `x.y.z-rc.N` (the public-alpha channel — MIGRATION.md §2).
+const SEMVER = /^\d+\.\d+\.\d+(?:-(?:alpha|beta|rc)\.\d+)?$/;
+if (!SEMVER.test(packageVersion)) {
+  throw new Error(
+    `package.json version must be semantic x.y.z or x.y.z-alpha.N, received ${packageVersion}.`,
+  );
 }
 
 // The top-level VERSION file is the single source of truth (MIGRATION.md §2);
@@ -32,10 +37,12 @@ if (lockVersion !== packageVersion || lockRootVersion !== packageVersion) {
 // Docker image metadata.
 if (process.env.GITHUB_REF_TYPE === "tag") {
   const tag = process.env.GITHUB_REF_NAME ?? "";
-  if (!/^v\d+\.\d+\.\d+$/.test(tag)) {
-    throw new Error(`Release tag ${tag} must be semantic v x.y.z (e.g. v0.8.2).`);
+  if (!/^v\d+\.\d+\.\d+(?:-(?:alpha|beta|rc)\.\d+)?$/.test(tag)) {
+    throw new Error(`Release tag ${tag} must be semantic v x.y.z or v x.y.z-alpha.N (e.g. v0.8.2, v1.0.0-alpha.1).`);
   }
-  console.log(`Release tag ${tag} is well-formed; publishing ${tag.slice(1)} + latest.`);
+  // Pre-release tags publish to a pre-release channel (`:alpha`), never `:latest`.
+  const channel = /-/.test(tag) ? tag.slice(tag.indexOf("-") + 1).replace(/\.\d+$/, "") : "latest";
+  console.log(`Release tag ${tag} is well-formed; publishing ${tag.slice(1)} + ${channel}.`);
 }
 
 console.log(`package.json/package-lock version ${packageVersion} is consistent.`);

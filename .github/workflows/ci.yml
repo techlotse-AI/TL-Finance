@@ -93,10 +93,17 @@ jobs:
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
             # Release: tag is the source of truth for the version.
             version="${GITHUB_REF_NAME#v}"
-            echo "channel=release" >> "${GITHUB_OUTPUT}"
+            case "${version}" in
+              *-alpha.*) channel="prerelease"; moving="alpha" ;;
+              *-beta.*)  channel="prerelease"; moving="beta" ;;
+              *-rc.*)    channel="prerelease"; moving="rc" ;;
+              *)         channel="release";    moving="latest" ;;
+            esac
+            echo "channel=${channel}" >> "${GITHUB_OUTPUT}"
             echo "version=${version}" >> "${GITHUB_OUTPUT}"
-            # Versioned image + moving `latest` tag.
-            echo "tags=${GITHUB_REF_NAME} latest" >> "${GITHUB_OUTPUT}"
+            # Versioned image + the moving channel tag: pre-releases move `:alpha`
+            # (never `:latest`), stable releases move `:latest`.
+            echo "tags=${GITHUB_REF_NAME} ${moving}" >> "${GITHUB_OUTPUT}"
           else
             # Nightly: built from main, never tagged `latest`.
             short_sha="${GITHUB_SHA:0:12}"

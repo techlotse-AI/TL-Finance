@@ -48,3 +48,6 @@ Implemented endpoints:
 | `POST` | `/api/optimize/net-worth` | Point-in-time net-worth statement aggregating account balances, holdings, and pensions minus debts, in the reporting currency with per-line reconciliation |
 | `POST` | `/api/optimize/pillar-3a` | Swiss Pillar 3a maximum, remaining headroom, tax saving, and growth projection |
 | `POST` | `/api/optimize/recommendations` | Ranked, explainable recommendations from emergency fund, Pillar 3a, and Analyze findings |
+| `POST` | `/api/optimize/wealth/projection` | Non-persistent real-terms wealth projection with a contribution schedule (steps, annual lump sums, one-time injections) and lever-vs-baseline comparison |
+| `POST` | `/api/optimize/wealth/drawdown` | Non-persistent retirement drawdown: fixed-horizon annuity, endowment, and fixed-expense depletion modes with yearly balance curves |
+| `GET, POST` | `/api/optimize/wealth/plans`, `PUT, DELETE /api/optimize/wealth/plans/{id}` | Persisted wealth-plan configurations (shared JSON config, `wealthPlanConfigSchema` v1) driving the projection and drawdown views |

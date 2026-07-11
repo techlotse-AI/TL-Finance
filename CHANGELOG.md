@@ -9,6 +9,19 @@ The detailed historical log for v0.1–v0.8 lives in
 
 ## [Unreleased]
 
+### Added
+
+- **Optimize — Wealth planner engines (module groundwork).** Two new pure,
+  golden-tested engines: `src/lib/optimize/wealth-projection.ts` (compound
+  growth in real terms with a contribution schedule — base monthly, absolute
+  step changes, annual lump sums, start-of-month one-time injections — yearly
+  pay-ins/growth split, lever-vs-baseline comparison, and a
+  growth-covers-contribution marker) and `src/lib/optimize/drawdown.ts`
+  (retirement drawdown: fixed-horizon annuity draw, endowment draw `V·i`,
+  fixed-expense depletion age with a truthful `sustainable` flag, and yearly
+  balance curves). Shared `WealthPlan` config schema (`wealthPlanConfigSchema`,
+  version 1) documented in `src/lib/optimize/schemas.ts`.
+
 ## [0.9.0] - 2026-06-26 — "Resilience & goals" (final pass before public Alpha)
 
 ### Added

@@ -23,6 +23,14 @@ The authoritative schema is `prisma/schema.prisma`.
 - `StatementImport`, `ActualTransaction`, `ActualTransactionAllocation`
 - `TransactionAllocationRule`, `TransactionTransferMatch`
 
+## Optimize
+
+- `Holding`, `HoldingLot`, `PensionVehicle`
+- `ScenarioComparison`, `FinancialGoal`
+- `WealthPlan` (v0.9.1 — shared wealth-planner configuration as Json,
+  validated against `wealthPlanConfigSchema` v1; results are always recomputed,
+  never persisted)
+
 All household-owned models carry `householdId`. Money uses
 `Decimal(18, 4)`. Percentage fractions use `Decimal(8, 6)`. Budget models do
 not contain current balances, forecasts, returns, or future values.

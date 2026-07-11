@@ -35,6 +35,10 @@ interface Analysis {
   totalIncome: string;
   totalExpense: string;
   totalSavingAllocations: string;
+  provisionsMonthly: string;
+  savingMonthly: string;
+  investingMonthly: string;
+  retirementMonthly: string;
   netMonthly: string;
   savingsRatePercent: number;
   essentialMonthly: string;
@@ -163,13 +167,23 @@ export function BudgetAnalysisPanel() {
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Metric label="Monthly income" value={fmt(data.totalIncome, currency)} />
-        <Metric label="Monthly expenses" value={fmt(data.totalExpense, currency)} />
+        <Metric
+          label="Monthly expenses"
+          value={fmt(data.totalExpense, currency)}
+          note={Number(data.provisionsMonthly) > 0 ? `incl. ${fmt(data.provisionsMonthly, currency)} provisions` : undefined}
+        />
         <Metric label="Savings rate" value={`${data.savingsRatePercent}%`} />
         <Metric
           label="Unallocated / month"
           value={fmt(data.netMonthly, currency)}
           badge={data.balancesToZero ? <Badge tone="success">balanced</Badge> : <Badge tone="warning">off by &gt; 5</Badge>}
         />
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Metric label="Saving / month" value={fmt(data.savingMonthly, currency)} />
+        <Metric label="Investing / month" value={fmt(data.investingMonthly, currency)} />
+        <Metric label="Retirement / month" value={fmt(data.retirementMonthly, currency)} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -218,11 +232,12 @@ export function BudgetAnalysisPanel() {
   );
 }
 
-function Metric({ label, value, badge }: { label: string; value: string; badge?: React.ReactNode }) {
+function Metric({ label, value, badge, note }: { label: string; value: string; badge?: React.ReactNode; note?: string }) {
   return (
     <div className="rounded border bg-muted/30 p-3">
       <p className="flex items-center justify-between text-xs text-subdued">{label}{badge}</p>
       <p className="mt-1 text-lg font-semibold tabular-nums">{value}</p>
+      {note ? <p className="mt-0.5 text-xs text-subdued">{note}</p> : null}
     </div>
   );
 }

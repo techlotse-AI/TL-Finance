@@ -2,6 +2,8 @@ import type { FlowLink, FlowNode } from "@/lib/budget/money-flow";
 
 const NODE_WIDTH = 150;
 const MIN_NODE_HEIGHT = 58;
+/** Account nodes carry a third text line (in/out totals), so they start taller. */
+const ACCOUNT_MIN_NODE_HEIGHT = 74;
 const NODE_PADDING = 12;
 const COLUMN_GAP = 80;
 const ROW_GAP = 24;
@@ -168,6 +170,7 @@ export function layoutMoneyFlow(
       height: node.height,
       value: node.value,
       spending: node.spending,
+      provision: node.provision,
     })),
     links: positionedLinks,
     columns: columns
@@ -251,7 +254,7 @@ function updateNodeMetrics(nodes: MutableVisualNode[], links: VisualLink[]) {
   for (const node of nodes) {
     node.value = Math.max(incomingValue.get(node.visualId) ?? 0, outgoingValue.get(node.visualId) ?? 0);
     node.height = Math.max(
-      MIN_NODE_HEIGHT,
+      node.kind === "account" ? ACCOUNT_MIN_NODE_HEIGHT : MIN_NODE_HEIGHT,
       Math.max(incomingWidth.get(node.visualId) ?? 0, outgoingWidth.get(node.visualId) ?? 0) + NODE_PADDING * 2,
     );
   }

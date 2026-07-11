@@ -37,6 +37,27 @@ describe("computeBudgetAnalysis — totals", () => {
     expect(r.essentialMonthly).toBe("3800.0000");
     expect(r.essentialRatioPercent).toBe(76);
   });
+
+  it("splits saving allocations by kind and sums provision expenses", () => {
+    const r = computeBudgetAnalysis({
+      reportingCurrency: "CHF",
+      lines: [
+        ...lines(),
+        // Annual car insurance saved monthly — a provision expense.
+        { name: "Car insurance", group: "Insurance", category: "Car", kind: "EXPENSE", essential: true, monthlyAmount: "110", provision: true },
+        { name: "ETF plan", group: "Savings", category: "ETF", kind: "INVESTMENT", essential: false, monthlyAmount: "400" },
+      ],
+    });
+
+    expect(r.provisionsMonthly).toBe("110.0000");
+    expect(r.savingMonthly).toBe("1000.0000");
+    expect(r.investingMonthly).toBe("400.0000");
+    expect(r.retirementMonthly).toBe("590.0000");
+    // The split sums back to the total saving allocations.
+    expect(r.totalSavingAllocations).toBe("1990.0000");
+    // Provisions stay inside the expense total, not beside it.
+    expect(r.totalExpense).toBe("5110.0000");
+  });
 });
 
 describe("computeBudgetAnalysis — breakdowns", () => {

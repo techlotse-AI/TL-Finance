@@ -9,6 +9,19 @@ The detailed historical log for v0.1–v0.8 lives in
 
 ## [Unreleased]
 
+### Added
+
+- **Budget — Provisions and per-account in/out totals in the money-flow graph.**
+  A non-monthly expense (quarterly/yearly/selected-months) is now treated as a
+  provision — an annual bill saved monthly — and its flows render with a short
+  dash distinct from the transfer dash. Account nodes show an "in X · out Y"
+  line, a tooltip stating "in equals out" (within the ±5 tolerance) or the
+  unallocated remainder, and an amber dot when a remainder exists.
+  `MoneyFlowResult` gains `accountTotals` plus totals splits
+  (`expenseProvisions`, `savings`, `investments`, `retirement`). The budget
+  analysis reports `provisionsMonthly` and the saving/investing/retirement
+  split, surfaced as new cards on the Budget page.
+
 ## [0.9.0] - 2026-06-26 — "Resilience & goals" (final pass before public Alpha)
 
 ### Added

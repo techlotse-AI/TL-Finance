@@ -27,6 +27,8 @@ export interface FlowNode {
   colorKey?: string;
   /** True when this is a "spending"/"daily" account node (Issue #30). */
   spending?: boolean;
+  /** True for a provision item — an annual/periodic bill saved monthly. */
+  provision?: boolean;
 }
 
 export interface FlowLink {
@@ -40,6 +42,8 @@ export interface FlowLink {
   internalTransfer: boolean;
   routeKind: FlowRouteKind;
   colorKey: string;
+  /** True when this flow funds a provision item (rendered dashed). */
+  provision?: boolean;
 }
 
 export interface FlowPocket {
@@ -82,6 +86,11 @@ export interface FlowBudgetItem {
   monthlyAmount: string;
   paidFromPocketId?: string;
   paidToPocketId?: string;
+  /**
+   * True for a provision (sinking-fund) item: an annual or periodic bill saved
+   * monthly. Derived by callers from a non-monthly recurrence; rendered dashed.
+   */
+  provision?: boolean;
 }
 
 export interface ExchangeRate {
@@ -113,15 +122,36 @@ export interface MoneyFlowWarning {
   amount: string;
 }
 
+/** Per-account (pocket) in/out totals for the graph's node badges. */
+export interface AccountFlowTotals {
+  pocketId: string;
+  label: string;
+  /** Everything arriving on the graph: income allocations, incoming transfers, contribution destinations. */
+  inflow: string;
+  /** Everything leaving: outgoing transfers and budget-item funding. */
+  outflow: string;
+  /** Available funds not yet routed (income + transfers − funding); drives the unallocated flag. */
+  residual: string;
+  /** True when the residual is within the ±tolerance — the account's "in = out" state. */
+  fullyAllocated: boolean;
+}
+
 export interface MoneyFlowResult {
   reportingCurrency: string;
   nodes: FlowNode[];
   links: FlowLink[];
   warnings: MoneyFlowWarning[];
+  accountTotals: AccountFlowTotals[];
   totals: {
     income: string;
     expenses: string;
+    /** Of which: expense items flagged as provisions (annual bills saved monthly). */
+    expenseProvisions: string;
     contributions: string;
+    /** The contributions split by kind (contributions = savings + investments + retirement). */
+    savings: string;
+    investments: string;
+    retirement: string;
     transfers: string;
     unallocated: string;
     oneTimeIncome: string;
@@ -150,9 +180,18 @@ export function buildMoneyFlow(input: BuildMoneyFlowInput): MoneyFlowResult {
     return money(value).times(rate);
   };
 
+  const pocketInflow = new Map<string, Decimal>();
+  const pocketOutflow = new Map<string, Decimal>();
+
   const addNode = (node: FlowNode) => nodes.set(node.id, node);
   const addPocketAmount = (pocketId: string, amount: Decimal) => {
     pocketAvailable.set(pocketId, (pocketAvailable.get(pocketId) ?? new Decimal(0)).plus(amount));
+  };
+  const addPocketInflow = (pocketId: string, amount: Decimal) => {
+    pocketInflow.set(pocketId, (pocketInflow.get(pocketId) ?? new Decimal(0)).plus(amount));
+  };
+  const addPocketOutflow = (pocketId: string, amount: Decimal) => {
+    pocketOutflow.set(pocketId, (pocketOutflow.get(pocketId) ?? new Decimal(0)).plus(amount));
   };
 
   for (const pocket of input.pockets) {
@@ -188,6 +227,7 @@ export function buildMoneyFlow(input: BuildMoneyFlowInput): MoneyFlowResult {
     for (const allocation of source.allocations) {
       const reportingAmount = convert(allocation.amount, source.currency);
       addPocketAmount(allocation.pocketId, reportingAmount);
+      addPocketInflow(allocation.pocketId, reportingAmount);
       links.push({
         id: `income-allocation:${source.id}:${allocation.pocketId}`,
         source: incomeNodeId(source.id),
@@ -208,6 +248,8 @@ export function buildMoneyFlow(input: BuildMoneyFlowInput): MoneyFlowResult {
     if (reportingAmount.isZero()) continue;
     addPocketAmount(transfer.fromPocketId, reportingAmount.negated());
     addPocketAmount(transfer.toPocketId, reportingAmount);
+    addPocketOutflow(transfer.fromPocketId, reportingAmount);
+    addPocketInflow(transfer.toPocketId, reportingAmount);
     links.push({
       id: `transfer:${transfer.id}`,
       source: pocketNodeId(transfer.fromPocketId),
@@ -228,8 +270,9 @@ export function buildMoneyFlow(input: BuildMoneyFlowInput): MoneyFlowResult {
     const categoryId = categoryNodeId(item.categoryId);
     const itemId = itemNodeId(item.id);
     const colorKey = `${item.kind}:${item.categoryId}`;
+    const provision = item.provision === true;
     addNode({ id: categoryId, label: item.categoryName, kind: "category", routeKind: item.kind, colorKey });
-    addNode({ id: itemId, label: item.name, kind: "item", routeKind: item.kind, colorKey });
+    addNode({ id: itemId, label: item.name, kind: "item", routeKind: item.kind, colorKey, provision });
 
     if (!item.paidFromPocketId) {
       warnings.push({
@@ -242,6 +285,7 @@ export function buildMoneyFlow(input: BuildMoneyFlowInput): MoneyFlowResult {
     }
 
     addPocketAmount(item.paidFromPocketId, reportingAmount.negated());
+    addPocketOutflow(item.paidFromPocketId, reportingAmount);
     links.push({
       id: `item-category:${item.id}`,
       source: pocketNodeId(item.paidFromPocketId),
@@ -253,6 +297,7 @@ export function buildMoneyFlow(input: BuildMoneyFlowInput): MoneyFlowResult {
       internalTransfer: false,
       routeKind: item.kind,
       colorKey,
+      provision,
     });
     links.push({
       id: `category-item:${item.id}`,
@@ -265,9 +310,11 @@ export function buildMoneyFlow(input: BuildMoneyFlowInput): MoneyFlowResult {
       internalTransfer: false,
       routeKind: item.kind,
       colorKey,
+      provision,
     });
 
     if (item.kind !== "expense" && item.paidToPocketId) {
+      addPocketInflow(item.paidToPocketId, reportingAmount);
       links.push({
         id: `contribution-destination:${item.id}`,
         source: itemId,
@@ -279,6 +326,7 @@ export function buildMoneyFlow(input: BuildMoneyFlowInput): MoneyFlowResult {
         internalTransfer: false,
         routeKind: item.kind,
         colorKey,
+        provision,
       });
     }
   }
@@ -306,25 +354,52 @@ export function buildMoneyFlow(input: BuildMoneyFlowInput): MoneyFlowResult {
       .filter((item) => item.kind === "expense")
       .map((item) => convert(item.monthlyAmount, item.currency)),
   );
-  const contributions = sumMoney(
+  const expenseProvisions = sumMoney(
     input.budgetItems
-      .filter((item) => item.kind !== "expense")
+      .filter((item) => item.kind === "expense" && item.provision === true)
       .map((item) => convert(item.monthlyAmount, item.currency)),
   );
+  const sumByKind = (kind: FlowBudgetItem["kind"]) =>
+    sumMoney(
+      input.budgetItems
+        .filter((item) => item.kind === kind)
+        .map((item) => convert(item.monthlyAmount, item.currency)),
+    );
+  const savings = sumByKind("saving");
+  const investments = sumByKind("investment");
+  const retirement = sumByKind("retirement");
+  const contributions = savings.plus(investments).plus(retirement);
   const transfers = sumMoney(
     input.transfers.map((transfer) => convert(transfer.monthlyAmount, transfer.currency)),
   );
   const unallocated = income.minus(expenses).minus(contributions);
+
+  const accountTotals: AccountFlowTotals[] = input.pockets.map((pocket) => {
+    const residual = pocketAvailable.get(pocket.id) ?? new Decimal(0);
+    return {
+      pocketId: pocket.id,
+      label: pocket.name,
+      inflow: serializeMoney(pocketInflow.get(pocket.id) ?? 0),
+      outflow: serializeMoney(pocketOutflow.get(pocket.id) ?? 0),
+      residual: serializeMoney(residual),
+      fullyAllocated: !outsideTolerance(residual),
+    };
+  });
 
   return {
     reportingCurrency: input.reportingCurrency,
     nodes: [...nodes.values()],
     links,
     warnings,
+    accountTotals,
     totals: {
       income: serializeMoney(income),
       expenses: serializeMoney(expenses),
+      expenseProvisions: serializeMoney(expenseProvisions),
       contributions: serializeMoney(contributions),
+      savings: serializeMoney(savings),
+      investments: serializeMoney(investments),
+      retirement: serializeMoney(retirement),
       transfers: serializeMoney(transfers),
       unallocated: serializeMoney(unallocated),
       oneTimeIncome: serializeMoney(input.oneTimeIncomeTotal ?? 0),

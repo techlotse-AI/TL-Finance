@@ -1,14 +1,14 @@
 "use client";
 
-import type { FlowLink, FlowNode } from "@/lib/budget/money-flow";
+import type { AccountFlowTotals, FlowLink, FlowNode } from "@/lib/budget/money-flow";
 import { collapseToBudgetFlow } from "@/lib/budget/money-flow-budget-view";
 import { buildAccountMinimumFlow } from "@/lib/budget/money-flow-reverse";
 import { focusMoneyFlowLinks } from "@/lib/budget/money-flow-focus";
 import { layoutMoneyFlow } from "@/lib/budget/money-flow-layout";
 import {
   buildFlowColorMap,
+  flowLinkDasharray,
   flowRouteColor,
-  flowRouteDasharray,
   flowRouteKey,
   flowRouteLabel,
 } from "@/lib/budget/money-flow-presentation";
@@ -19,6 +19,8 @@ interface MoneyFlowGraphProps {
   nodes: FlowNode[];
   links: FlowLink[];
   reportingCurrency: string;
+  /** Per-account in/out totals; when present, account nodes show them plus an unallocated marker. */
+  accountTotals?: AccountFlowTotals[];
 }
 
 const routeOrder: Record<FlowLink["routeKind"], number> = {
@@ -30,7 +32,11 @@ const routeOrder: Record<FlowLink["routeKind"], number> = {
   transfer: 5,
 };
 
-export function MoneyFlowGraph({ nodes, links, reportingCurrency }: MoneyFlowGraphProps) {
+export function MoneyFlowGraph({ nodes, links, reportingCurrency, accountTotals }: MoneyFlowGraphProps) {
+  const totalsByPocketNode = useMemo(
+    () => new Map((accountTotals ?? []).map((entry) => [`pocket:${entry.pocketId}`, entry])),
+    [accountTotals],
+  );
   const [account, setAccount] = useState("all");
   const [category, setCategory] = useState("all");
   const [currency, setCurrency] = useState("all");
@@ -176,6 +182,7 @@ export function MoneyFlowGraph({ nodes, links, reportingCurrency }: MoneyFlowGra
       </div>
       <p className="mb-3 text-xs text-subdued">
         Normalized monthly baseline. Income sources follow their receiving-account lanes; categories and budget items are ordered by value. Line width represents monthly amount.
+        Long dashes mark internal transfers; short dashes mark provisions (annual bills saved monthly). An amber dot on an account means it still has an unallocated remainder.
       </p>
       {filteredLinks.length === 0 ? (
         <div className="grid min-h-48 place-items-center rounded border border-dashed bg-muted/20 p-8 text-center text-sm text-subdued">
@@ -212,14 +219,14 @@ export function MoneyFlowGraph({ nodes, links, reportingCurrency }: MoneyFlowGra
           return (
             <g className="group" key={link.id} tabIndex={0}>
               <title>
-                {routeLabel} · {link.description}: {formatMoney(link.amount, reportingCurrency)}
+                {`${routeLabel} · ${link.description}${link.provision ? " (provision)" : ""}: ${formatMoney(link.amount, reportingCurrency)}`}
               </title>
               <path
                 d={link.path}
                 fill="none"
                 opacity={link.internalTransfer ? 0.55 : 0.72}
                 stroke={routeColor(link.routeKind, link.colorKey)}
-                strokeDasharray={flowRouteDasharray(link.routeKind)}
+                strokeDasharray={flowLinkDasharray(link.routeKind, link.provision)}
                 strokeLinecap="round"
                 strokeWidth={link.strokeWidth}
               />
@@ -233,11 +240,18 @@ export function MoneyFlowGraph({ nodes, links, reportingCurrency }: MoneyFlowGra
             : node.routeKind && node.colorKey
             ? routeColor(node.routeKind, node.colorKey)
             : "var(--border)";
+          const accountFlow = node.kind === "account" ? totalsByPocketNode.get(node.id) : undefined;
           return (
             <a href={nodeHref(node.kind)} key={node.visualId}>
             <g tabIndex={0}>
               <title>
-                {node.label}, {node.kind}, {formatMoney(String(node.value), reportingCurrency)}
+                {`${node.label}, ${node.kind}${node.provision ? " (provision)" : ""}, ${formatMoney(String(node.value), reportingCurrency)}${
+                  accountFlow
+                    ? accountFlow.fullyAllocated
+                      ? ". Fully allocated: in equals out within tolerance."
+                      : `. Unallocated remainder: ${formatMoney(accountFlow.residual, reportingCurrency)}.`
+                    : ""
+                }`}
               </title>
               <rect
                 fill="var(--muted)"
@@ -252,13 +266,16 @@ export function MoneyFlowGraph({ nodes, links, reportingCurrency }: MoneyFlowGra
               {isSpending ? (
                 <circle cx={node.x + node.width - 10} cy={node.y - node.height / 2 + 10} fill="#00D1C7" r="4" />
               ) : null}
+              {accountFlow && !accountFlow.fullyAllocated ? (
+                <circle cx={node.x + 10} cy={node.y - node.height / 2 + 10} fill="var(--warning)" r="4" />
+              ) : null}
               <text
                 fill="var(--foreground)"
                 fontSize="12"
                 fontWeight="600"
                 textAnchor="middle"
                 x={node.x + node.width / 2}
-                y={node.y - 4}
+                y={accountFlow ? node.y - 12 : node.y - 4}
               >
                 {truncate(node.label, 21)}
               </text>
@@ -267,10 +284,21 @@ export function MoneyFlowGraph({ nodes, links, reportingCurrency }: MoneyFlowGra
                 fontSize="10"
                 textAnchor="middle"
                 x={node.x + node.width / 2}
-                y={node.y + 14}
+                y={accountFlow ? node.y + 4 : node.y + 14}
               >
                 {formatMoney(String(node.value), reportingCurrency)}
               </text>
+              {accountFlow ? (
+                <text
+                  fill="var(--subdued)"
+                  fontSize="9"
+                  textAnchor="middle"
+                  x={node.x + node.width / 2}
+                  y={node.y + 18}
+                >
+                  {`in ${formatMoney(accountFlow.inflow, reportingCurrency)} · out ${formatMoney(accountFlow.outflow, reportingCurrency)}`}
+                </text>
+              ) : null}
             </g>
             </a>
           );

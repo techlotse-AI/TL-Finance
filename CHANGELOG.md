@@ -28,6 +28,15 @@ The detailed historical log for v0.1–v0.8 lives in
   and `POST /api/optimize/wealth/drawdown` (stateless calculations), plus
   `GET/POST /api/optimize/wealth/plans` and `PUT/DELETE
   /api/optimize/wealth/plans/{id}` for saved plan configurations.
+- **Optimize — Wealth planner tab (first Recharts consumer).** New "Wealth
+  planner" tab: one shared plan configuration drives the wealth-over-time
+  chart (ordinal per-rate blue ramp), the pay-ins vs internal-growth stacked
+  areas with the growth-covers-contribution marker, the lever comparison with
+  deltas at the horizon, and the drawdown value curves plus the monthly-draw
+  rate × horizon table. Chart series colors are new `--chart-*` tokens,
+  validated for lightness band, chroma, CVD separation, and surface contrast
+  against the card surface; every chart ships a stacked legend block (no
+  overlapping end labels), an empty state, and a tabular alternative.
 
 ## [0.9.0] - 2026-06-26 — "Resilience & goals" (final pass before public Alpha)
 

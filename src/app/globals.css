@@ -59,6 +59,25 @@
   --flow-retirement-1: #e879f9;
   --flow-retirement-2: #d946ef;
   --flow-retirement-3: #f0abfc;
+  /* Wealth-planner chart palette (v0.9.1). Validated with the dataviz
+     six-checks/ordinal validator against the card surface #0f151c:
+     - rate ramp: ordinal single-hue blue, light (lowest rate) → dark (highest)
+     - pay-ins/growth: categorical pair, CVD ΔE 65.6, both ≥ 3:1 on surface
+     - drawdown: endowment green + one-hue orange deplete ramp + blue fixed
+       expense; cross-family trio CVD ΔE ≥ 39 */
+  --chart-rate-1: #bfdbfe;
+  --chart-rate-2: #93c5fd;
+  --chart-rate-3: #60a5fa;
+  --chart-rate-4: #3b82f6;
+  --chart-rate-5: #2563eb;
+  --chart-rate-6: #1e40af;
+  --chart-payins: #0d9488;
+  --chart-growth: #8b5cf6;
+  --chart-endowment: #059669;
+  --chart-deplete-1: #fdba74;
+  --chart-deplete-2: #f97316;
+  --chart-deplete-3: #c2410c;
+  --chart-fixed-expense: #3b82f6;
 }
 
 * {

@@ -30,6 +30,8 @@ export interface BudgetLineInput {
   essential: boolean;
   /** Recurrence-normalized monthly amount in the reporting currency. */
   monthlyAmount: string;
+  /** True for an EXPENSE provision — an annual/periodic bill saved monthly. */
+  provision?: boolean;
 }
 
 export interface BudgetAnalysisInput {
@@ -74,6 +76,12 @@ export interface BudgetAnalysisResult {
   totalIncome: string;
   totalExpense: string;
   totalSavingAllocations: string;
+  /** Of which: EXPENSE lines flagged as provisions (annual bills saved monthly). */
+  provisionsMonthly: string;
+  /** The saving-allocation split by kind (their sum is totalSavingAllocations). */
+  savingMonthly: string;
+  investingMonthly: string;
+  retirementMonthly: string;
   /** income - expense - saving allocations. */
   netMonthly: string;
   /** (saving allocations + positive net) / income, 0..100. */
@@ -117,6 +125,10 @@ export function computeBudgetAnalysis(input: BudgetAnalysisInput): BudgetAnalysi
   let totalIncome = new Decimal(0);
   let totalExpense = new Decimal(0);
   let totalSaving = new Decimal(0);
+  let provisions = new Decimal(0);
+  let saving = new Decimal(0);
+  let investing = new Decimal(0);
+  let retirement = new Decimal(0);
   let essential = new Decimal(0);
   let discretionary = new Decimal(0);
   let needs = new Decimal(0);
@@ -133,6 +145,9 @@ export function computeBudgetAnalysis(input: BudgetAnalysisInput): BudgetAnalysi
         break;
       case "EXPENSE":
         totalExpense = totalExpense.plus(amount);
+        if (line.provision) {
+          provisions = provisions.plus(amount);
+        }
         if (line.essential) {
           essential = essential.plus(amount);
           needs = needs.plus(amount);
@@ -147,6 +162,9 @@ export function computeBudgetAnalysis(input: BudgetAnalysisInput): BudgetAnalysi
         // SAVING / INVESTMENT / RETIREMENT
         if (SAVING_KINDS.has(line.kind)) {
           totalSaving = totalSaving.plus(amount);
+          if (line.kind === "SAVING") saving = saving.plus(amount);
+          if (line.kind === "INVESTMENT") investing = investing.plus(amount);
+          if (line.kind === "RETIREMENT") retirement = retirement.plus(amount);
         }
         break;
     }
@@ -253,6 +271,10 @@ export function computeBudgetAnalysis(input: BudgetAnalysisInput): BudgetAnalysi
     totalIncome: serializeMoney(totalIncome),
     totalExpense: serializeMoney(totalExpense),
     totalSavingAllocations: serializeMoney(totalSaving),
+    provisionsMonthly: serializeMoney(provisions),
+    savingMonthly: serializeMoney(saving),
+    investingMonthly: serializeMoney(investing),
+    retirementMonthly: serializeMoney(retirement),
     netMonthly: serializeMoney(netMonthly),
     savingsRatePercent,
     essentialMonthly: serializeMoney(essential),

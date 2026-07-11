@@ -91,6 +91,11 @@ export async function GET() {
         kind: item.kind as BudgetLineInput["kind"],
         essential: item.essential,
         monthlyAmount: monthly,
+        // A non-monthly expense is a provision: an annual/periodic bill saved
+        // monthly (weekly and one-time recurrences are not provisions).
+        provision:
+          item.kind === "EXPENSE" &&
+          (item.recurrence === "QUARTERLY" || item.recurrence === "YEARLY" || item.recurrence === "CUSTOM_MONTHS"),
       });
     }
 

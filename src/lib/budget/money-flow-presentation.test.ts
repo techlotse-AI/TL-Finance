@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildFlowColorMap,
+  flowLinkDasharray,
   flowRouteColor,
   flowRouteDasharray,
   flowRouteKey,
@@ -31,5 +32,14 @@ describe("money-flow presentation", () => {
     expect(flowRouteLabel("transfer")).toBe("Internal transfer");
     expect(flowRouteDasharray("transfer")).toBeTruthy();
     expect(flowRouteDasharray("expense")).toBeUndefined();
+  });
+
+  it("gives provisions a dash distinct from transfers", () => {
+    expect(flowLinkDasharray("expense", true)).toBeTruthy();
+    expect(flowLinkDasharray("expense", true)).not.toBe(flowLinkDasharray("transfer"));
+    expect(flowLinkDasharray("expense")).toBeUndefined();
+    expect(flowLinkDasharray("expense", false)).toBeUndefined();
+    // Transfers keep their dash regardless of the provision flag.
+    expect(flowLinkDasharray("transfer")).toBe(flowRouteDasharray("transfer"));
   });
 });

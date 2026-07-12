@@ -6,6 +6,14 @@ updates:
       interval: weekly
     open-pull-requests-limit: 10
     versioning-strategy: increase
+    # Packages whose versions are locked to each other by peer dependencies must
+    # bump in a single PR, or `npm ci` fails with ERESOLVE (vitest core and its
+    # coverage provider pin the exact same version).
+    groups:
+      vitest:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
 
   - package-ecosystem: github-actions
     directory: /

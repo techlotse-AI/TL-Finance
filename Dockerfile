@@ -4,7 +4,7 @@
 # dependencies and the full module tree never reach it. BuildKit cache mounts
 # keep `npm ci` fast across builds without bloating any layer.
 
-FROM node:26.4.0-alpine AS base
+FROM node:26.5.0-alpine AS base
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 # Patch OS packages once; reused by every downstream stage that derives from base.
@@ -35,7 +35,7 @@ USER node
 CMD ["./node_modules/.bin/prisma", "migrate", "deploy"]
 
 # --- Runtime image (minimal standalone server) ---
-FROM node:26.4.0-alpine AS runner
+FROM node:26.5.0-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1

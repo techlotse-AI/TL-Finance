@@ -31,7 +31,6 @@ The detailed historical log for v0.1–v0.8 lives in
   fixed-expense depletion age with a truthful `sustainable` flag, and yearly
   balance curves). Shared `WealthPlan` config schema (`wealthPlanConfigSchema`,
   version 1) documented in `src/lib/optimize/schemas.ts`.
->>>>>>> origin/main
 
 ## [0.9.0] - 2026-06-26 — "Resilience & goals" (final pass before public Alpha)
 

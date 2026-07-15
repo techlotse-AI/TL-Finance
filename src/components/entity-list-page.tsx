@@ -1,6 +1,7 @@
 import { Plus } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { BudgetSubNav } from "@/components/budget-sub-nav";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
@@ -31,6 +32,7 @@ export function EntityListPage({
 }: EntityListPageProps) {
   return (
     <div className="mx-auto max-w-app space-y-6">
+      <BudgetSubNav />
       <PageHeader
         actions={actionLabel ? (
           <Button disabled title="Persistence workflow is not connected yet">

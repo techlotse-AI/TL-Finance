@@ -10,6 +10,7 @@ import {
   LeverComparisonChart,
   PayInsVsGrowthChart,
   WealthProjectionChart,
+  percentLabel,
 } from "@/components/charts/wealth-charts";
 import type { DrawdownResult } from "@/lib/optimize/drawdown";
 import type { WealthProjectionResult, WealthProjectionSeries } from "@/lib/optimize/wealth-projection";
@@ -53,11 +54,6 @@ function fmt(amount: string | number | undefined, currency: string): string {
   } catch {
     return `${value.toFixed(0)} ${currency}`;
   }
-}
-
-function percentLabel(rate: string): string {
-  const percent = Number(rate) * 100;
-  return `${percent.toFixed(percent % 1 === 0 ? 0 : 1)}%`;
 }
 
 async function requestJson(

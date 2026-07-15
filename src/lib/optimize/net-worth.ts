@@ -23,6 +23,15 @@ export type NetWorthCategory =
   | "debt"
   | "other_liability";
 
+/**
+ * "Comfort threshold" (issue #53): 1/100th of 1% (0.0001) of net worth. Below
+ * this amount, a price difference is financially negligible relative to total
+ * wealth and isn't worth spending mental energy comparing — a "don't sweat it"
+ * line that rises as net worth grows. Zero (never negative) when net worth is
+ * negative or zero.
+ */
+export const COMFORT_THRESHOLD_RATE = 0.0001;
+
 const LIABILITY_CATEGORIES: ReadonlySet<NetWorthCategory> = new Set<NetWorthCategory>([
   "debt",
   "other_liability",
@@ -74,6 +83,8 @@ export interface NetWorthResult {
   missingRateCurrencies: string[];
   /** assets / liabilities, or null when there are no liabilities. */
   assetToLiabilityRatio: number | null;
+  /** See {@link COMFORT_THRESHOLD_RATE}. */
+  comfortThreshold: string;
 }
 
 export function computeNetWorth(input: NetWorthInput): NetWorthResult {
@@ -140,5 +151,8 @@ export function computeNetWorth(input: NetWorthInput): NetWorthResult {
     assetToLiabilityRatio: totalLiabilities.isZero()
       ? null
       : Number(totalAssets.dividedBy(totalLiabilities).toFixed(2)),
+    comfortThreshold: serializeMoney(
+      netWorth.isNegative() ? new Decimal(0) : netWorth.times(COMFORT_THRESHOLD_RATE),
+    ),
   };
 }

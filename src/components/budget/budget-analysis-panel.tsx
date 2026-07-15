@@ -5,15 +5,7 @@ import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-
-function fmt(amount: string | number | undefined, currency: string): string {
-  const value = typeof amount === "string" ? Number(amount) : amount ?? 0;
-  try {
-    return new Intl.NumberFormat("en-CH", { style: "currency", currency, maximumFractionDigits: 0 }).format(value);
-  } catch {
-    return `${Math.round(value)} ${currency}`;
-  }
-}
+import { formatWhole } from "@/lib/money/rounding";
 
 interface Slice {
   label: string;
@@ -76,7 +68,7 @@ function Bars({ slices, currency }: { slices: Slice[]; currency: string }) {
               style={{ width: `${(slice.monthlyRounded / max) * 100}%`, backgroundColor: BAR_COLORS[index % BAR_COLORS.length] }}
             />
           </span>
-          <span className="tabular-nums whitespace-nowrap">{fmt(slice.monthlyRounded, currency)} <span className="text-subdued">({slice.percentOfExpense}%)</span></span>
+          <span className="tabular-nums whitespace-nowrap">{formatWhole(slice.monthlyRounded, currency)} <span className="text-subdued">({slice.percentOfExpense}%)</span></span>
         </div>
       ))}
     </div>
@@ -92,7 +84,7 @@ function GuidelineRow({ name, g, currency }: { name: string; g: Guideline; curre
         <span className="block h-full rounded" style={{ width: `${Math.min(100, g.actualPercent)}%`, backgroundColor: tone }} />
         <span className="absolute top-0 h-4 w-px bg-foreground/60" style={{ left: `${Math.min(100, g.targetPercent)}%` }} />
       </span>
-      <span className="tabular-nums whitespace-nowrap">{g.actualPercent}% · {fmt(g.actualMonthly, currency)}</span>
+      <span className="tabular-nums whitespace-nowrap">{g.actualPercent}% · {formatWhole(g.actualMonthly, currency)}</span>
     </div>
   );
 }
@@ -166,24 +158,24 @@ export function BudgetAnalysisPanel() {
       ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Metric label="Monthly income" value={fmt(data.totalIncome, currency)} />
+        <Metric label="Monthly income" value={formatWhole(data.totalIncome, currency)} />
         <Metric
           label="Monthly expenses"
-          value={fmt(data.totalExpense, currency)}
-          note={Number(data.provisionsMonthly) > 0 ? `incl. ${fmt(data.provisionsMonthly, currency)} provisions` : undefined}
+          value={formatWhole(data.totalExpense, currency)}
+          note={Number(data.provisionsMonthly) > 0 ? `incl. ${formatWhole(data.provisionsMonthly, currency)} provisions` : undefined}
         />
         <Metric label="Savings rate" value={`${data.savingsRatePercent}%`} />
         <Metric
           label="Unallocated / month"
-          value={fmt(data.netMonthly, currency)}
+          value={formatWhole(data.netMonthly, currency)}
           badge={data.balancesToZero ? <Badge tone="success">balanced</Badge> : <Badge tone="warning">off by &gt; 5</Badge>}
         />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <Metric label="Saving / month" value={fmt(data.savingMonthly, currency)} />
-        <Metric label="Investing / month" value={fmt(data.investingMonthly, currency)} />
-        <Metric label="Retirement / month" value={fmt(data.retirementMonthly, currency)} />
+        <Metric label="Saving / month" value={formatWhole(data.savingMonthly, currency)} />
+        <Metric label="Investing / month" value={formatWhole(data.investingMonthly, currency)} />
+        <Metric label="Retirement / month" value={formatWhole(data.retirementMonthly, currency)} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -200,7 +192,7 @@ export function BudgetAnalysisPanel() {
             <GuidelineRow name="Savings" g={data.needsWantsSavings.savings} currency={currency} />
           </div>
           <div className="grid grid-cols-2 gap-3 pt-2">
-            <Metric label="Essential spend" value={fmt(data.essentialMonthly, currency)} />
+            <Metric label="Essential spend" value={formatWhole(data.essentialMonthly, currency)} />
             <Metric label="Essential ratio" value={`${data.essentialRatioPercent}%`} />
           </div>
         </Card>
@@ -213,7 +205,7 @@ export function BudgetAnalysisPanel() {
             {data.savingsOpportunities.map((o) => (
               <div key={o.category} className="flex items-center justify-between gap-3 rounded border p-3 text-sm">
                 <span><span className="font-medium">{o.category}</span> <span className="text-subdued">· {o.group} · {o.percentOfIncome}% of income</span></span>
-                <span className="tabular-nums whitespace-nowrap text-status-success">save ~{fmt(o.suggestedMonthlySaving, currency)}/mo</span>
+                <span className="tabular-nums whitespace-nowrap text-status-success">save ~{formatWhole(o.suggestedMonthlySaving, currency)}/mo</span>
               </div>
             ))}
           </div>

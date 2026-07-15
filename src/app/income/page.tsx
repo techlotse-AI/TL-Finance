@@ -5,7 +5,7 @@ import { requirePageContext } from "@/lib/auth/page-context";
 import { fromDbRecurrence } from "@/lib/budget/db-mapping";
 import { normalizeMonthly } from "@/lib/budget/recurrence";
 import { prisma } from "@/lib/db/prisma";
-import { formatMoney } from "@/lib/money/decimal";
+import { formatWhole } from "@/lib/money/rounding";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +32,8 @@ export default async function IncomePage() {
     <EntityListPage
       caption="Planned income sources"
       description="Expected income and its reconciled receiving-account allocations."
+      emptyDescription="Add your first income source below to start routing it to an account."
+      emptyTitle="No income sources yet"
       headers={["Income source", "Recurrence", "Native amount", "Receiving account", "Status"]}
       note={<IncomeCreateForm
         baseCurrency={household.baseCurrency}
@@ -48,7 +50,7 @@ export default async function IncomePage() {
         return [
           <span className="font-medium" key={source.id}>{source.name}</span>,
           source.recurrence.toLowerCase().replace("_", " "),
-          <span className="tabular-nums" key={`${source.id}:amount`}>{formatMoney(normalized.monthlyAmount, source.currency)}</span>,
+          <span className="tabular-nums" key={`${source.id}:amount`}>{formatWhole(normalized.monthlyAmount, source.currency)}</span>,
           source.allocations.map((allocation) => `${allocation.accountPocket.account.name} · ${allocation.accountPocket.currency}`).join(", "),
           <Badge key={`${source.id}:status`} tone="success">Reconciled</Badge>,
         ];

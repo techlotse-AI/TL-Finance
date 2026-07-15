@@ -3,7 +3,7 @@ import { BudgetItemCreateForm } from "@/components/create-forms";
 import { BudgetItemActions } from "@/components/budget-item-actions";
 import { BudgetAnalysisPanel } from "@/components/budget/budget-analysis-panel";
 import { Badge } from "@/components/ui/badge";
-import { formatMoney } from "@/lib/money/decimal";
+import { formatWhole } from "@/lib/money/rounding";
 import { requirePageContext } from "@/lib/auth/page-context";
 import { fromDbRecurrence } from "@/lib/budget/db-mapping";
 import { normalizeMonthly } from "@/lib/budget/recurrence";
@@ -33,6 +33,8 @@ export default async function BudgetPage() {
       <EntityListPage
       caption="Normalized monthly budget items"
       description="Recurring expenses and routed saving, investment, and retirement allocations."
+      emptyDescription="Add your first budget item below to start planning expenses and allocations."
+      emptyTitle="No budget items yet"
       headers={["Budget item", "Kind", "Category", "Paid from", "Paid to", "Entered amount", "Monthly amount", "Route", "Actions"]}
       note={<BudgetItemCreateForm
         baseCurrency={household.baseCurrency}
@@ -51,10 +53,10 @@ export default async function BudgetPage() {
         item.paidFromAccountPocket ? `${item.paidFromAccountPocket.account.name} · ${item.paidFromAccountPocket.currency}` : "—",
         item.paidToAccountPocket ? `${item.paidToAccountPocket.account.name} · ${item.paidToAccountPocket.currency}` : "—",
         <span className="tabular-nums" key={`${item.id}:entered`}>
-          {formatMoney(item.amount.toString(), item.currency)}
+          {formatWhole(item.amount.toString(), item.currency)}
           <span className="block text-xs text-subdued">{recurrenceLabel(fromDbRecurrence(item.recurrence), item.selectedMonths)}</span>
         </span>,
-        <span className="tabular-nums" key={`${item.id}:amount`}>{formatMoney(normalizeMonthly({ amount: item.amount.toString(), recurrence: fromDbRecurrence(item.recurrence), selectedMonths: item.selectedMonths }).monthlyAmount, item.currency)}</span>,
+        <span className="tabular-nums" key={`${item.id}:amount`}>{formatWhole(normalizeMonthly({ amount: item.amount.toString(), recurrence: fromDbRecurrence(item.recurrence), selectedMonths: item.selectedMonths }).monthlyAmount, item.currency)}</span>,
         item.paidFromAccountPocket ? (
           <Badge key={`${item.id}:route`} tone="success">Routed</Badge>
         ) : (

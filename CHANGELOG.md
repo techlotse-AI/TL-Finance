@@ -11,12 +11,19 @@ The detailed historical log for v0.1–v0.8 lives in
 
 ### Added
 
+- **Optimize — Net worth comfort threshold.** `computeNetWorth` reports
+  `comfortThreshold`: 0.01% of net worth (floored at zero when net worth is
+  negative), the point below which a price difference is financially
+  negligible against total wealth and not worth spending mental energy
+  comparing. Surfaced as a new metric on the Optimize Net worth panel via
+  `formatWhole`.
 - **Budget — Provisions and per-account in/out totals in the money-flow graph.**
   A non-monthly expense (quarterly/yearly/selected-months) is now treated as a
   provision — an annual bill saved monthly — and its flows render with a short
   dash distinct from the transfer dash. Account nodes show an "in X · out Y"
-  line, a tooltip stating "in equals out" (within the ±5 tolerance) or the
-  unallocated remainder, and an amber dot when a remainder exists.
+  line, a tooltip stating whether the account is fully allocated (within the
+  ±5 tolerance) or has an unallocated remainder, and an amber dot when a
+  remainder exists.
   `MoneyFlowResult` gains `accountTotals` plus totals splits
   (`expenseProvisions`, `savings`, `investments`, `retirement`). The budget
   analysis reports `provisionsMonthly` and the saving/investing/retirement

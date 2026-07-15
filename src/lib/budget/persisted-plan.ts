@@ -143,6 +143,12 @@ export async function buildPersistedMoneyFlow(client: PlanClient, householdId: s
       }).monthlyAmount,
       paidFromPocketId: item.paidFromAccountPocketId ?? undefined,
       paidToPocketId: item.paidToAccountPocketId ?? undefined,
+      // A non-monthly expense IS a provision: an annual/periodic bill whose
+      // normalized monthly amount is saved toward the due date (weekly and
+      // one-time recurrences are not provisions).
+      provision:
+        item.kind === "EXPENSE" &&
+        (item.recurrence === "QUARTERLY" || item.recurrence === "YEARLY" || item.recurrence === "CUSTOM_MONTHS"),
     })),
   });
   for (const rate of latestRates) {

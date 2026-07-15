@@ -50,7 +50,7 @@ export function OnboardingForm() {
         <label className="text-sm font-medium">
           Category preset
           <select className={inputClass} defaultValue="swiss" name="countryProfile">
-            <option value="swiss">Swiss</option><option value="generic">Generic</option>
+            <option value="swiss">Swiss</option><option value="za">South African</option><option value="generic">Generic</option>
           </select>
         </label>
       </div>

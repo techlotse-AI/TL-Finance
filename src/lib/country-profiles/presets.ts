@@ -39,9 +39,30 @@ const swissPreset: CategoryPreset[] = [
   },
 ];
 
+/**
+ * South African household starter categories (v0.9.5 groundwork). Unlike a
+ * statement parser, these are only default suggestions the household can
+ * rename or delete freely — no real bank export format to match, so ordinary
+ * domain knowledge of common SA household line items is sufficient here.
+ */
+const zaPreset: CategoryPreset[] = [
+  ...genericPreset,
+  {
+    group: "South African household",
+    categories: [
+      { name: "Medical aid", kind: "EXPENSE", essential: true },
+      { name: "UIF", kind: "EXPENSE", essential: true },
+      { name: "Rates and levies", kind: "EXPENSE", essential: true },
+      { name: "Retirement annuity", kind: "RETIREMENT" },
+      { name: "Tax-free savings account", kind: "SAVING" },
+    ],
+  },
+];
+
 export const categoryPresets = {
   generic: genericPreset,
   swiss: swissPreset,
+  za: zaPreset,
 } as const;
 
 export type CountryProfileKey = keyof typeof categoryPresets;

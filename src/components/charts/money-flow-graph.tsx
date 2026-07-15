@@ -248,7 +248,7 @@ export function MoneyFlowGraph({ nodes, links, reportingCurrency, accountTotals 
                 {`${node.label}, ${node.kind}${node.provision ? " (provision)" : ""}, ${formatMoney(String(node.value), reportingCurrency)}${
                   accountFlow
                     ? accountFlow.fullyAllocated
-                      ? ". Fully allocated: in equals out within tolerance."
+                      ? ". Fully allocated: no unallocated remainder within tolerance."
                       : `. Unallocated remainder: ${formatMoney(accountFlow.residual, reportingCurrency)}.`
                     : ""
                 }`}

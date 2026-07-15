@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ScenarioCalculator } from "@/components/optimize/scenario-calculator";
 import { WealthPlannerPanel } from "@/components/optimize/wealth-planner-panel";
+import { formatWhole } from "@/lib/money/rounding";
 
 const inputClass = "min-h-10 w-full rounded border bg-muted px-3 text-sm";
 const TABS = [
@@ -825,6 +826,16 @@ function NetWorthPanel({ currency }: { currency: string }) {
               <Metric label="Total assets" value={fmt(result.totalAssets, result.reportingCurrency)} tone="success" />
               <Metric label="Total liabilities" value={fmt(result.totalLiabilities, result.reportingCurrency)} tone="danger" />
               <Metric label="Net worth" value={fmt(result.netWorth, result.reportingCurrency)} tone={Number(result.netWorth) >= 0 ? "success" : "danger"} />
+            </div>
+            <div>
+              <Metric
+                label="Comfort threshold"
+                value={formatWhole(result.comfortThreshold, result.reportingCurrency)}
+              />
+              <p className="mt-1 text-xs text-subdued">
+                0.01% of your net worth. Price differences below this are negligible against your total wealth
+                — not worth spending mental energy comparing.
+              </p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               {result.byCategory.map((entry: any) => (

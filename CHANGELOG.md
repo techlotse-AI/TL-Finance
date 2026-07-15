@@ -11,6 +11,23 @@ The detailed historical log for v0.1–v0.8 lives in
 
 ### Added
 
+- **Analyze — South Africa (FNB) groundwork (v0.9.5, partial).** ZAR was
+  already a supported currency and the FX-matching/allocation code was
+  already currency-agnostic — confirmed with new golden tests rather than
+  assumed, no code changes needed there. Added a new `za` country profile
+  (`countryProfile` enum + a South African starter category preset: medical
+  aid, UIF, rates and levies, retirement annuity, tax-free savings account),
+  wired into household creation, the onboarding form, and backup
+  import/export validation. Added dependency-free OFX 1.x SGML / OFX 2.x XML
+  reading (`src/lib/statements/ofx.ts`) as shared infrastructure, mirroring
+  `csv.ts`'s conventions — a single tag/value tokenizer handles both dialects
+  uniformly. **The FNB parser itself remains unbuilt and unregistered**:
+  AGENTS.md requires at least two real sanitized fixtures before a parser
+  goes production-ready, none exist for FNB, and no OFX dialect has been
+  validated against a real export. `ofx.ts` implements the public OFX spec's
+  transaction shape against hand-crafted, spec-shaped test data — explicitly
+  not sanitized real bank exports — and stays unwired from the parser
+  registry until real FNB samples are available.
 - **Budget — coherent, navigable workspace and a first-class Categories page
   (v0.9.2, part 2).** New `BudgetSubNav` cross-links the six Budget-tier
   pages (Monthly plan, Income, Accounts, Transfers, Categories, Budget

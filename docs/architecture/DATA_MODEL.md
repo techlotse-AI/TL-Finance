@@ -51,6 +51,13 @@ the Budget planned money-flow graph.
 - `ScenarioComparison`: a saved projection definition (starting amount, monthly
   contribution, horizon, and per-scenario return assumptions stored as JSON),
   unique per household name. Results are recomputed from the stored definition.
+- `WealthPlan` (v0.9.1): a saved wealth-planner configuration, unique per
+  household name. The `config` Json column holds the shared plan (validated
+  against `wealthPlanConfigSchema` version 1 — ages, initial balance,
+  contribution schedule, projection rates, and drawdown settings) that drives
+  both the wealth-projection and drawdown views. All rates are real returns;
+  results are recomputed from the stored configuration and never persisted.
+  Migration: `20260711000000_v0_9_1_wealth_plans` (additive).
 
 All four tables carry `householdId`, soft-delete (`active`/`deletedAt`), and are
 written through audited routes. Migrations:

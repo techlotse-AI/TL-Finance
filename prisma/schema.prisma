@@ -192,6 +192,7 @@ model Household {
   pensionVehicles   PensionVehicle[]
   scenarioComparisons ScenarioComparison[]
   financialGoals    FinancialGoal[]
+  wealthPlans       WealthPlan[]
 }
 
 model HouseholdMember {
@@ -719,6 +720,30 @@ model FinancialGoal {
   createdAt                  DateTime  @default(now())
   updatedAt                  DateTime  @updatedAt
   household                  Household @relation(fields: [householdId], references: [id], onDelete: Restrict)
+
+  @@unique([householdId, name])
+  @@index([householdId, deletedAt])
+}
+
+// --- Optimize: cashflow & wealth planner (v0.9.1) ---
+// One shared plan configuration (`config` Json, validated against
+// `wealthPlanConfigSchema` version 1 in src/lib/optimize/schemas.ts) drives
+// both the wealth-projection and drawdown views. All rates are real returns
+// and all values are in today's purchasing power. Pure Optimize: it never
+// feeds the Budget money-flow. Additive, soft-deleted, household-scoped,
+// audited.
+
+model WealthPlan {
+  id          String    @id @default(cuid())
+  householdId String
+  name        String
+  currency    String    @db.VarChar(3)
+  config      Json
+  active      Boolean   @default(true)
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Restrict)
 
   @@unique([householdId, name])
   @@index([householdId, deletedAt])

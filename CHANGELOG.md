@@ -17,6 +17,17 @@ The detailed historical log for v0.1–v0.8 lives in
   negligible against total wealth and not worth spending mental energy
   comparing. Surfaced as a new metric on the Optimize Net worth panel via
   `formatWhole`.
+- **Budget — consistent empty/loading/error states and whole-amount display
+  (v0.9.2, part 1).** New `EmptyState` primitive wired into `DataTable`, so
+  the income/accounts/transfers/budget-item lists show helpful copy instead
+  of a blank table at zero rows. Route-level `loading.tsx` skeletons and a
+  shared `error.tsx` boundary (with a "Try again" action) now exist for the
+  Budget dashboard and the four Budget-tier pages. Every Budget-tier money
+  display (dashboard, income, transfers, budget items, the budget analysis
+  panel) now uses `formatWhole` (round-to-nearest-5) instead of 2-decimal or
+  ad hoc formatting, matching the "zero-cent" budgeting rule. Fixed
+  `TransferCreateForm`, the one create form missing `<label>` elements
+  (relied on placeholder text only).
 - **Budget — Provisions and per-account in/out totals in the money-flow graph.**
   A non-monthly expense (quarterly/yearly/selected-months) is now treated as a
   provision — an annual bill saved monthly — and its flows render with a short

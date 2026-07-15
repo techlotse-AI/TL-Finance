@@ -1,12 +1,29 @@
 import type { ReactNode } from "react";
 
+import { EmptyState } from "@/components/ui/empty-state";
+
 interface DataTableProps {
   headers: string[];
   rows: ReactNode[][];
   caption: string;
+  emptyTitle?: string;
+  emptyDescription?: string;
 }
 
-export function DataTable({ headers, rows, caption }: DataTableProps) {
+export function DataTable({
+  headers,
+  rows,
+  caption,
+  emptyTitle = "Nothing here yet",
+  emptyDescription,
+}: DataTableProps) {
+  if (rows.length === 0) {
+    return (
+      <div role="table" aria-label={caption}>
+        <EmptyState description={emptyDescription} title={emptyTitle} />
+      </div>
+    );
+  }
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-left text-sm">

@@ -14,6 +14,8 @@ interface EntityListPageProps {
   rows: ReactNode[][];
   caption: string;
   note?: ReactNode;
+  emptyTitle?: string;
+  emptyDescription?: string;
 }
 
 export function EntityListPage({
@@ -24,6 +26,8 @@ export function EntityListPage({
   rows,
   caption,
   note,
+  emptyTitle,
+  emptyDescription,
 }: EntityListPageProps) {
   return (
     <div className="mx-auto max-w-app space-y-6">
@@ -39,7 +43,13 @@ export function EntityListPage({
       />
       {note}
       <Card>
-        <DataTable caption={caption} headers={headers} rows={rows} />
+        <DataTable
+          caption={caption}
+          emptyDescription={emptyDescription}
+          emptyTitle={emptyTitle}
+          headers={headers}
+          rows={rows}
+        />
       </Card>
     </div>
   );

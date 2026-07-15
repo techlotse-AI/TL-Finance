@@ -9,7 +9,7 @@ import { requirePageContext } from "@/lib/auth/page-context";
 import { buildPersistedMoneyFlow } from "@/lib/budget/persisted-plan";
 import { flowRouteLabel } from "@/lib/budget/money-flow-presentation";
 import { prisma } from "@/lib/db/prisma";
-import { formatMoney } from "@/lib/money/decimal";
+import { formatWhole } from "@/lib/money/rounding";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +38,7 @@ export default async function MonthlyPlanPage() {
           <Card className="p-4" key={label}>
             <p className="text-xs font-medium uppercase tracking-wide text-subdued">{label}</p>
             <p className="mt-2 text-xl font-semibold tabular-nums">
-              {formatMoney(value, demoPlan.reportingCurrency)}
+              {formatWhole(value, demoPlan.reportingCurrency)}
             </p>
             {index === 3 ? (
               <p className="mt-2 flex items-center gap-1 text-xs text-brand-teal">
@@ -93,7 +93,7 @@ export default async function MonthlyPlanPage() {
                 <div>
                   <p>{warning.message}</p>
                   <p className="mt-1 text-xs text-subdued">
-                    {formatMoney(warning.amount, demoPlan.reportingCurrency)}
+                    {formatWhole(warning.amount, demoPlan.reportingCurrency)}
                   </p>
                 </div>
               </li>
@@ -115,7 +115,7 @@ export default async function MonthlyPlanPage() {
             demoPlan.nodes.find((node) => node.id === link.target)?.label ?? link.target,
             link.description,
             <span className="tabular-nums" key={link.id}>
-              {formatMoney(link.amount, demoPlan.reportingCurrency)}
+              {formatWhole(link.amount, demoPlan.reportingCurrency)}
             </span>,
             link.internalTransfer
               ? <Badge key={link.id}>Internal transfer</Badge>

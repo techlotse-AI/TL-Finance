@@ -177,10 +177,28 @@ export function TransferCreateForm({ pockets }: { pockets: Array<{ id: string; c
     name: d.get("name"), fromAccountPocketId: d.get("from"), toAccountPocketId: d.get("to"),
     amount: d.get("amount"), currency: d.get("currency"), recurrence: "monthly", selectedMonths: [], startDate: new Date().toISOString(),
   })}>
-    <input className={input} name="name" placeholder="Transfer name" required />
-    <select className={input} name="from" required>{pockets.map((p) => <option key={p.id} value={p.id}>From: {p.accountName} · {p.currency}</option>)}</select>
-    <select className={input} name="to" required>{pockets.map((p) => <option key={p.id} value={p.id}>To: {p.accountName} · {p.currency}</option>)}</select>
-    <div className="grid grid-cols-[1fr_96px] gap-3"><input className={input} name="amount" placeholder="Amount" required /><input className={input} defaultValue="CHF" name="currency" required /></div>
+    <label className="grid gap-2 text-sm text-subdued">
+      Transfer name
+      <input className={input} name="name" required />
+    </label>
+    <label className="grid gap-2 text-sm text-subdued">
+      From account
+      <select className={input} name="from" required>{pockets.map((p) => <option key={p.id} value={p.id}>{p.accountName} · {p.currency}</option>)}</select>
+    </label>
+    <label className="grid gap-2 text-sm text-subdued">
+      To account
+      <select className={input} name="to" required>{pockets.map((p) => <option key={p.id} value={p.id}>{p.accountName} · {p.currency}</option>)}</select>
+    </label>
+    <div className="grid grid-cols-[1fr_96px] gap-3">
+      <label className="grid gap-2 text-sm text-subdued">
+        Amount
+        <input className={input} inputMode="decimal" name="amount" required />
+      </label>
+      <label className="grid gap-2 text-sm text-subdued">
+        Currency
+        <input className={input} defaultValue="CHF" maxLength={3} name="currency" required />
+      </label>
+    </div>
   </ApiCreateForm>;
 }
 

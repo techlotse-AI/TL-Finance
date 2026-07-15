@@ -28,6 +28,8 @@ export default async function AccountsPage() {
     <EntityListPage
       caption="Planned payment-route accounts and supported currencies"
       description="Add each account and select the currencies it supports. TL Finance manages the internal currency routes automatically. Budget does not store balances."
+      emptyDescription="Add your first account below to start routing income and expenses."
+      emptyTitle="No accounts yet"
       headers={["Account", "Type", "Institution", "Statement reference", "Supported currencies", "Status", "Actions"]}
       note={<div className="grid gap-4 lg:grid-cols-2"><AccountCreateForm baseCurrency={household.baseCurrency} /><PocketCreateForm accounts={accounts.map(({ id, name }) => ({ id, name }))} baseCurrency={household.baseCurrency} /></div>}
       rows={accounts.map((account) => [

@@ -54,8 +54,9 @@ function compact(value: number, currency: string): string {
   }
 }
 
-function percentLabel(rate: string): string {
-  return `${(Number(rate) * 100).toFixed(Number(rate) * 100 % 1 === 0 ? 0 : 1)}%`;
+export function percentLabel(rate: string): string {
+  const percent = Math.round(Number(rate) * 10000) / 100;
+  return `${percent.toFixed(Number.isInteger(percent) ? 0 : 1)}%`;
 }
 
 const axisTick = { fill: "var(--subdued)", fontSize: 12 } as const;

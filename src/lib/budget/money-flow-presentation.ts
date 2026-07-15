@@ -82,6 +82,16 @@ export function flowRouteDasharray(routeKind: FlowRouteKind): string | undefined
   return routeKind === "transfer" ? "10 7" : undefined;
 }
 
+/**
+ * Dash pattern for a link: transfers keep their long dash; provision flows
+ * (annual bills saved monthly) get a distinct short dash so the two dashed
+ * meanings stay tellable apart.
+ */
+export function flowLinkDasharray(routeKind: FlowRouteKind, provision?: boolean): string | undefined {
+  if (routeKind === "transfer") return "10 7";
+  return provision ? "3 5" : undefined;
+}
+
 function stableHash(value: string): number {
   let hash = 2166136261;
   for (let index = 0; index < value.length; index += 1) {

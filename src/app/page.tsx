@@ -18,7 +18,7 @@ export default async function MonthlyPlanPage() {
   const demoPlan = await buildPersistedMoneyFlow(prisma, context.householdId);
   const summary = [
     ["Normalized income", demoPlan.totals.income],
-    ["Expenses", demoPlan.totals.expenses],
+    ["Expenses (incl. provisions)", demoPlan.totals.expenses],
     ["Saving, investment, retirement", demoPlan.totals.contributions],
     ["Internal transfers", demoPlan.totals.transfers],
     ["Unallocated", demoPlan.totals.unallocated],
@@ -70,6 +70,7 @@ export default async function MonthlyPlanPage() {
         </div>
         <div className="p-4">
           <MoneyFlowGraph
+            accountTotals={demoPlan.accountTotals}
             links={demoPlan.links}
             nodes={demoPlan.nodes}
             reportingCurrency={demoPlan.reportingCurrency}

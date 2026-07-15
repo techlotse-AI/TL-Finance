@@ -38,6 +38,18 @@ export const demoBudgetItems: FlowBudgetItem[] = [
     paidFromPocketId: "daily-chf",
   },
   {
+    // Annual bill saved monthly — exercises the dashed provision rendering.
+    id: "insurance-annual",
+    name: "Car & household insurance (annual)",
+    kind: "expense",
+    categoryId: "insurance",
+    categoryName: "Insurance",
+    currency: "CHF",
+    monthlyAmount: "120.0000",
+    paidFromPocketId: "daily-chf",
+    provision: true,
+  },
+  {
     id: "pillar3a",
     name: "Pillar 3a contribution",
     kind: "retirement",

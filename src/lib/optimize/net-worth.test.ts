@@ -2,6 +2,41 @@ import { describe, expect, it } from "vitest";
 
 import { computeNetWorth, isLiabilityCategory } from "@/lib/optimize/net-worth";
 
+describe("comfortThreshold", () => {
+  it("is 0.01% of a positive net worth", () => {
+    const result = computeNetWorth({
+      reportingCurrency: "CHF",
+      rates: {},
+      lines: [{ label: "Cash", category: "cash", currency: "CHF", amount: "500000" }],
+    });
+    expect(result.netWorth).toBe("500000.0000");
+    expect(result.comfortThreshold).toBe("50.0000"); // 500000 * 0.0001
+  });
+
+  it("floors at zero when net worth is negative", () => {
+    const result = computeNetWorth({
+      reportingCurrency: "CHF",
+      rates: {},
+      lines: [{ label: "Mortgage", category: "debt", currency: "CHF", amount: "300000" }],
+    });
+    expect(result.netWorth).toBe("-300000.0000");
+    expect(result.comfortThreshold).toBe("0.0000");
+  });
+
+  it("is zero when net worth is exactly zero", () => {
+    const result = computeNetWorth({
+      reportingCurrency: "CHF",
+      rates: {},
+      lines: [
+        { label: "Cash", category: "cash", currency: "CHF", amount: "1000" },
+        { label: "Loan", category: "debt", currency: "CHF", amount: "1000" },
+      ],
+    });
+    expect(result.netWorth).toBe("0.0000");
+    expect(result.comfortThreshold).toBe("0.0000");
+  });
+});
+
 describe("isLiabilityCategory", () => {
   it("classifies debt and other_liability as liabilities", () => {
     expect(isLiabilityCategory("debt")).toBe(true);

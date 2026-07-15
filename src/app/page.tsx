@@ -1,5 +1,6 @@
 import { AlertTriangle, ArrowLeftRight, CheckCircle2 } from "lucide-react";
 
+import { BudgetSubNav } from "@/components/budget-sub-nav";
 import { MoneyFlowGraph } from "@/components/charts/money-flow-graph";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -28,6 +29,7 @@ export default async function MonthlyPlanPage() {
 
   return (
     <div className="mx-auto max-w-app space-y-6">
+      <BudgetSubNav />
       <PageHeader
         description="Review normalized recurring income, internal account routes, and planned allocations. Internal transfers are shown but not counted as spending."
         title="Planned monthly flow"

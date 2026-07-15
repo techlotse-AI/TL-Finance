@@ -11,6 +11,18 @@ The detailed historical log for v0.1–v0.8 lives in
 
 ### Added
 
+- **Budget — coherent, navigable workspace and a first-class Categories page
+  (v0.9.2, part 2).** New `BudgetSubNav` cross-links the six Budget-tier
+  pages (Monthly plan, Income, Accounts, Transfers, Categories, Budget
+  items), rendered on every one of them so they read as one workspace
+  instead of disconnected sidebar routes. Category management (previously
+  only reachable from Settings, alongside unrelated household/backup/member
+  concerns) moved to its own `/categories` page, completing the roadmap's
+  stated income → accounts → transfers → categories → items sequence;
+  Settings links to the new location for anyone who bookmarked the old spot.
+  No data model changes — same `/api/categories` endpoints, same
+  `CategoryCreateForm`/`CategoryActions` components, just relocated into the
+  Budget IA.
 - **Optimize — Net worth comfort threshold.** `computeNetWorth` reports
   `comfortThreshold`: 0.01% of net worth (floored at zero when net worth is
   negative), the point below which a price difference is financially

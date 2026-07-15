@@ -7,10 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ScenarioCalculator } from "@/components/optimize/scenario-calculator";
+import { WealthPlannerPanel } from "@/components/optimize/wealth-planner-panel";
 
 const inputClass = "min-h-10 w-full rounded border bg-muted px-3 text-sm";
 const TABS = [
   "Scenarios",
+  "Wealth planner",
   "Emergency fund",
   "Pillar 3a",
   "Holdings",
@@ -64,6 +66,7 @@ export function OptimizeWorkspace({ currency }: { currency: string }) {
         ))}
       </nav>
       {tab === "Scenarios" ? <ScenarioCalculator currency={currency} /> : null}
+      {tab === "Wealth planner" ? <WealthPlannerPanel currency={currency} /> : null}
       {tab === "Emergency fund" ? <EmergencyFundPanel currency={currency} /> : null}
       {tab === "Pillar 3a" ? <Pillar3aPanel currency={currency} /> : null}
       {tab === "Holdings" ? <HoldingsPanel currency={currency} /> : null}

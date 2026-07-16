@@ -21,13 +21,87 @@ The detailed historical log for v0.1–v0.8 lives in
   import/export validation. Added dependency-free OFX 1.x SGML / OFX 2.x XML
   reading (`src/lib/statements/ofx.ts`) as shared infrastructure, mirroring
   `csv.ts`'s conventions — a single tag/value tokenizer handles both dialects
-  uniformly. **The FNB parser itself remains unbuilt and unregistered**:
-  AGENTS.md requires at least two real sanitized fixtures before a parser
-  goes production-ready, none exist for FNB, and no OFX dialect has been
-  validated against a real export. `ofx.ts` implements the public OFX spec's
-  transaction shape against hand-crafted, spec-shaped test data — explicitly
-  not sanitized real bank exports — and stays unwired from the parser
-  registry until real FNB samples are available.
+  uniformly. When this groundwork was written the FNB parser itself was still
+  blocked on real sanitized fixtures (AGENTS.md requires at least two before
+  production-ready status); real statements arrived the same day and the
+  parser shipped separately — see the FNB parser entry below. `ofx.ts`
+  implements the public OFX spec's transaction shape against hand-crafted,
+  spec-shaped test data — explicitly not sanitized real bank exports — and
+  stays unwired from the parser registry until an institution's OFX dialect
+  is validated against a real export.
+- **Analyze — FNB Private Clients Current Account statement parser (v0.9.5).**
+  Reads FNB's real emailed "Tax Invoice/Statement" PDF format, ZAR only. Adds
+  `unpdf` as a documented exception to the locked, otherwise dependency-free
+  statement-ingestion stack (see AGENTS.md Stack) — every other parser reads
+  plain text; there is no dependency-free way to read a PDF's content stream.
+  The PDF-extraction step (`pdf.ts`) is a thin wrapper; all real parsing logic
+  is a pure, fixture-tested function (`parseFnbCurrentAccountText`) operating
+  on already-extracted text, same architecture as the OFX reader. Verified
+  against two real statements one month apart (sanitized for the committed
+  fixtures — name/address/account number fabricated, transaction shape and
+  amounts real): every row's running balance reconciles exactly against the
+  printed Opening/Closing Balance and the "Turnover for Statement Period"
+  credit/debit counts, satisfying AGENTS.md's two-real-fixture rule. Handles
+  format quirks confirmed from the real files: dates are "DD Mon" with the
+  year resolved from the printed statement period (not guessed), amounts are
+  a bare number for a debit vs. a "Cr" suffix for a credit (never a minus
+  sign), and the trailing monthly-fee row's description is dropped by PDF
+  text extraction in both real files (a "#"-glyph encoding quirk) and is
+  filled in as "Monthly Account Fee" rather than left blank. Also adds a
+  second, dependency-free FNB parser for the "ACCOUNT TRANSACTION HISTORY"
+  CSV export from FNB online banking (year-first `YYYY/MM/DD` dates — a new
+  `normalizeDate` pattern — and an already-signed amount column, no Cr/Dr
+  suffix; a metadata preamble precedes the real header row). Fully
+  functional and registered, but catalogued `productionReady: false` since
+  only one real sanitized fixture was available (this export only covers
+  whatever window is pulled, observed as one month) — AGENTS.md's
+  two-real-fixture rule holds it back from the advertised picker list until
+  a second sample confirms the format across exports. The PDF statement is
+  the primary source; this CSV is a supplementary, more-current-but-shorter
+  window.
+
+## [0.9.3] - 2026-07-16 — "Budget workspace & Analyze hardening"
+
+### Added
+
+- **Analyze — Revolut + UBS hardening (v0.9.4).** Expanded golden coverage
+  onto two fixtures that existed but were never exercised by tests:
+  `revolut-2.csv` (a EUR wallet with an exchange credit, a transfer, and a
+  positive refund — real multi-currency and refund coverage) and
+  `ubs-card-2.csv` (a "Payment received" credit row). Added a fixture-driven
+  FX-match golden test: real parser output for a Revolut CHF exchange debit
+  and its matching EUR exchange credit (added to `revolut-2.csv`, mirroring
+  how Revolut's actual export produces a same-day `EXCHANGE` row on both
+  currency wallets) is run through `findTransferCandidates`, not synthetic
+  in-memory rows. The `unsupported_statement` error is now actionable: a new
+  `detectStatementParserAttempts`/`UnsupportedStatementError` carries every
+  registered parser's confidence and rejection reason, surfaced as "Tried:
+  ubs-account (UBS): not semicolon-delimited; …" instead of a generic
+  message, and distinguishes an ambiguous tie from no match at all.
+  Review-queue UX: transactions can now be split across multiple categories
+  (the backend already supported it; the UI never exposed it), the list is
+  paginated (25/page with a total count) instead of a hardcoded 100-row cap,
+  bulk select/allocate/ignore works across a page, and the import preview's
+  warning list can be expanded past 25 or exported as CSV.
+- **Budget — money-flow graph visualization & flow polish (v0.9.3).** The
+  money-flow graph gained zoom (buttons, drag-to-pan, and keyboard +/-/arrow
+  controls, clamped 100%-300%), print (`print:hidden` chrome so only the
+  legend and graph show), and SVG export (always exports the full untouched
+  graph regardless of current zoom/pan). Legend entries are now clickable to
+  isolate a route (dims the rest). The accessible tabular alternative for the
+  full/pure-budget views moved from a static, always-full-data table on the
+  dashboard into the graph component itself, so it now always matches the
+  active view mode and filters instead of ignoring them. Reconciliation and
+  allocation messaging states the ±5 tolerance explicitly instead of implying
+  it. The spend/savings analysis panel was split into reusable cards
+  (`SpendByCategoryCard`, `GuidelineCard`, `SavingsOpportunitiesCard`,
+  `InsightsCard`) shared between the full `/budget` panel and a new
+  server-rendered `BudgetInsightsSummaryCard` (savings rate, essential ratio,
+  top insight) on the Monthly-plan dashboard — no extra client round-trip; a
+  new `loadBudgetAnalysis` loader is shared by both the dashboard and the
+  `/api/budget/analysis` route. An entitlement-gated `AdherenceCrossLinkCard`
+  points Budget users at Analyze's planned-vs-actual adherence without
+  duplicating that computation (adherence stays an Analyze-owned concept).
 - **Budget — coherent, navigable workspace and a first-class Categories page
   (v0.9.2, part 2).** New `BudgetSubNav` cross-links the six Budget-tier
   pages (Monthly plan, Income, Accounts, Transfers, Categories, Budget

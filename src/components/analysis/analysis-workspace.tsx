@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect */
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useState, type ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -120,18 +120,29 @@ function Notice({ children }: { children: ReactNode }) {
 
 /* ----------------------------------- Import ---------------------------------- */
 
+const WARNING_PREVIEW_COUNT = 25;
+
+function warningsToCsv(warnings: Array<{ rowNumber?: number; code?: string; message: string }>): string {
+  const escape = (value: string) => `"${value.replace(/"/g, '""')}"`;
+  const header = "Row,Code,Message";
+  const rows = warnings.map((warning) => [warning.rowNumber ?? "", warning.code ?? "", escape(warning.message)].join(","));
+  return [header, ...rows].join("\n");
+}
+
 function ImportPanel({ pockets, parsers, onChanged }: Props & { onChanged: () => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [pocketId, setPocketId] = useState(pockets[0]?.id ?? "");
   const [preview, setPreview] = useState<any>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [showAllWarnings, setShowAllWarnings] = useState(false);
 
   async function runPreview() {
     if (!file) return;
     setBusy(true);
     setMessage(null);
     setPreview(null);
+    setShowAllWarnings(false);
     const contentBase64 = await fileToBase64(file);
     const { ok, data } = await postJson("/api/analysis/imports/preview", { filename: file.name, contentBase64 });
     setBusy(false);
@@ -163,6 +174,17 @@ function ImportPanel({ pockets, parsers, onChanged }: Props & { onChanged: () =>
     setPreview(null);
     setFile(null);
     onChanged();
+  }
+
+  function exportWarningsCsv() {
+    if (!preview?.warnings?.length) return;
+    const blob = new Blob([warningsToCsv(preview.warnings)], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.download = `${preview.parserKey}-warnings.csv`;
+    link.href = url;
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   return (
@@ -218,10 +240,18 @@ function ImportPanel({ pockets, parsers, onChanged }: Props & { onChanged: () =>
             <details className="rounded border bg-muted/30 p-3 text-sm text-subdued">
               <summary className="cursor-pointer font-medium text-status-warning">{preview.warnings.length} skipped / flagged rows</summary>
               <ul className="mt-2 space-y-1">
-                {preview.warnings.slice(0, 25).map((warning: any, index: number) => (
+                {(showAllWarnings ? preview.warnings : preview.warnings.slice(0, WARNING_PREVIEW_COUNT)).map((warning: any, index: number) => (
                   <li key={index}>Row {warning.rowNumber ?? "—"}: {warning.message}</li>
                 ))}
               </ul>
+              <div className="mt-2 flex items-center gap-3">
+                {preview.warnings.length > WARNING_PREVIEW_COUNT ? (
+                  <button className="text-xs text-brand-teal hover:underline" onClick={() => setShowAllWarnings((current) => !current)} type="button">
+                    {showAllWarnings ? "Show fewer" : `Show all ${preview.warnings.length}`}
+                  </button>
+                ) : null}
+                <button className="text-xs text-brand-teal hover:underline" onClick={exportWarningsCsv} type="button">Export as CSV</button>
+              </div>
             </details>
           ) : null}
           <div className="overflow-x-auto">
@@ -249,21 +279,35 @@ function ImportPanel({ pockets, parsers, onChanged }: Props & { onChanged: () =>
 
 /* ----------------------------------- Review ---------------------------------- */
 
+const REVIEW_PAGE_SIZE = 25;
+
 function ReviewPanel({ categories, onChanged }: Props & { onChanged: () => void }) {
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
   const [selection, setSelection] = useState<Record<string, string>>({});
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkCategoryId, setBulkCategoryId] = useState("");
+  const [splitOpenId, setSplitOpenId] = useState<string | null>(null);
+  const [splitRows, setSplitRows] = useState<Record<string, Array<{ categoryId: string; amount: string }>>>({});
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (targetPage = page) => {
     setLoading(true);
-    const response = await fetch("/api/analysis/transactions?state=review&limit=100");
-    const data = await response.json().catch(() => ({ transactions: [] }));
+    const response = await fetch(`/api/analysis/transactions?state=review&limit=${REVIEW_PAGE_SIZE}&offset=${targetPage * REVIEW_PAGE_SIZE}`);
+    const data = await response.json().catch(() => ({ transactions: [], total: 0 }));
     setTransactions(data.transactions ?? []);
+    setTotal(data.total ?? 0);
+    setSelectedIds(new Set());
     setLoading(false);
-  }, []);
+  }, [page]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(page); }, [page, load]);
+
+  function goToPage(next: number) {
+    setPage(Math.max(0, next));
+  }
 
   async function allocate(transaction: any) {
     const categoryId = selection[transaction.id] ?? categories[0]?.id;
@@ -288,17 +332,130 @@ function ReviewPanel({ categories, onChanged }: Props & { onChanged: () => void 
     if (ok) { setMessage(`Applied rules: ${data.matched} of ${data.scanned} matched.`); await load(); onChanged(); }
   }
 
+  function toggleSelect(id: string) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds((current) =>
+      current.size === transactions.length ? new Set() : new Set(transactions.map((transaction) => transaction.id)),
+    );
+  }
+
+  async function bulkAllocate() {
+    if (!bulkCategoryId || selectedIds.size === 0) return;
+    const targets = transactions.filter((transaction) => selectedIds.has(transaction.id));
+    const results = await Promise.all(targets.map((transaction) =>
+      postJson(`/api/analysis/transactions/${transaction.id}/allocate`, {
+        allocations: [{ categoryId: bulkCategoryId, amount: transaction.amount }],
+        confirm: true,
+      }),
+    ));
+    const failed = results.filter((result) => !result.ok).length;
+    setMessage(failed === 0
+      ? `Allocated ${targets.length} transaction${targets.length === 1 ? "" : "s"}.`
+      : `Allocated ${targets.length - failed} of ${targets.length}; ${failed} failed.`);
+    await load();
+    onChanged();
+  }
+
+  async function bulkIgnore() {
+    if (selectedIds.size === 0) return;
+    const targets = transactions.filter((transaction) => selectedIds.has(transaction.id));
+    await Promise.all(targets.map((transaction) =>
+      postJson(`/api/analysis/transactions/${transaction.id}/ignore`, { ignored: true }),
+    ));
+    setMessage(`Ignored ${targets.length} transaction${targets.length === 1 ? "" : "s"}.`);
+    await load();
+    onChanged();
+  }
+
+  function openSplit(transaction: any) {
+    setSplitOpenId(transaction.id);
+    setSplitRows((current) => ({
+      ...current,
+      [transaction.id]: current[transaction.id] ?? [
+        { categoryId: categories[0]?.id ?? "", amount: transaction.amount },
+        { categoryId: "", amount: "0" },
+      ],
+    }));
+  }
+
+  function closeSplit() {
+    setSplitOpenId(null);
+  }
+
+  function updateSplitRow(transactionId: string, index: number, field: "categoryId" | "amount", value: string) {
+    setSplitRows((current) => ({
+      ...current,
+      [transactionId]: (current[transactionId] ?? []).map((row, i) => (i === index ? { ...row, [field]: value } : row)),
+    }));
+  }
+
+  function addSplitRow(transactionId: string) {
+    setSplitRows((current) => ({
+      ...current,
+      [transactionId]: [...(current[transactionId] ?? []), { categoryId: "", amount: "0" }],
+    }));
+  }
+
+  function removeSplitRow(transactionId: string, index: number) {
+    setSplitRows((current) => ({
+      ...current,
+      [transactionId]: (current[transactionId] ?? []).filter((_, i) => i !== index),
+    }));
+  }
+
+  function splitTotal(transactionId: string): number {
+    return (splitRows[transactionId] ?? []).reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
+  }
+
+  async function confirmSplit(transaction: any) {
+    const rows = (splitRows[transaction.id] ?? []).filter((row) => row.categoryId && Number(row.amount) !== 0);
+    if (rows.length === 0) return;
+    const { ok, data } = await postJson(`/api/analysis/transactions/${transaction.id}/allocate`, {
+      allocations: rows.map((row) => ({ categoryId: row.categoryId, amount: row.amount })),
+      confirm: true,
+    });
+    if (!ok) { setMessage(data?.error?.message ?? "Split allocation failed."); return; }
+    closeSplit();
+    await load();
+    onChanged();
+  }
+
+  const totalPages = Math.max(1, Math.ceil(total / REVIEW_PAGE_SIZE));
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-subdued">Unknown activity stays here until you categorize it — nothing is silently assigned.</p>
         <div className="flex gap-2">
           <Button variant="secondary" onClick={applyRules}>Apply rules</Button>
-          <Button variant="secondary" onClick={load}>Refresh</Button>
+          <Button variant="secondary" onClick={() => load()}>Refresh</Button>
         </div>
       </div>
       <RuleCreator categories={categories} onCreated={() => setMessage("Rule saved. Use Apply rules to run it.")} />
       <Notice>{message}</Notice>
+      {selectedIds.size > 0 ? (
+        <Card className="flex flex-wrap items-center gap-3 p-3">
+          <span className="text-sm font-medium">{selectedIds.size} selected</span>
+          <select
+            className="min-h-9 rounded border bg-muted px-2 text-sm"
+            onChange={(event) => setBulkCategoryId(event.target.value)}
+            value={bulkCategoryId}
+          >
+            <option value="">Allocate all to…</option>
+            {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+          </select>
+          <Button disabled={!bulkCategoryId} onClick={bulkAllocate} variant="secondary">Allocate selected</Button>
+          <button className="text-xs text-subdued hover:text-foreground" onClick={bulkIgnore} type="button">Ignore selected</button>
+          <button className="ml-auto text-xs text-subdued hover:text-foreground" onClick={() => setSelectedIds(new Set())} type="button">Clear selection</button>
+        </Card>
+      ) : null}
       <Card className="p-0">
         {loading ? (
           <p className="p-5 text-sm text-subdued">Loading…</p>
@@ -309,6 +466,14 @@ function ReviewPanel({ categories, onChanged }: Props & { onChanged: () => void 
             <table className="w-full border-collapse text-left text-sm">
               <thead className="bg-muted/70 text-xs uppercase tracking-wide text-subdued">
                 <tr>
+                  <th className="px-3 py-2">
+                    <input
+                      aria-label="Select all on this page"
+                      checked={selectedIds.size === transactions.length}
+                      onChange={toggleSelectAll}
+                      type="checkbox"
+                    />
+                  </th>
                   <th className="px-3 py-2">Date</th>
                   <th className="px-3 py-2">Description</th>
                   <th className="px-3 py-2 text-right">Amount</th>
@@ -318,38 +483,112 @@ function ReviewPanel({ categories, onChanged }: Props & { onChanged: () => void 
               </thead>
               <tbody>
                 {transactions.map((transaction) => (
-                  <tr key={transaction.id} className="border-b last:border-0 align-middle">
-                    <td className="px-3 py-2 tabular-nums">{String(transaction.bookingDate).slice(0, 10)}</td>
-                    <td className="px-3 py-2">
-                      <span className="block">{transaction.description}</span>
-                      <span className="text-xs text-subdued">{transaction.accountPocket?.account?.name} · {transaction.sourceInstitution}</span>
-                    </td>
-                    <td className={`px-3 py-2 text-right tabular-nums ${Number(transaction.amount) < 0 ? "text-status-danger" : "text-status-success"}`}>{fmt(transaction.amount, transaction.currency)}</td>
-                    <td className="px-3 py-2">
-                      <select
-                        className="min-h-9 rounded border bg-muted px-2 text-sm"
-                        value={selection[transaction.id] ?? ""}
-                        onChange={(event) => setSelection((current) => ({ ...current, [transaction.id]: event.target.value }))}
-                      >
-                        <option value="">Select category…</option>
-                        {categories.map((category) => (
-                          <option key={category.id} value={category.id}>{category.name}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-3 py-2">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="secondary" onClick={() => allocate(transaction)}>Allocate</Button>
-                        <button className="text-xs text-subdued hover:text-foreground" onClick={() => ignore(transaction)}>Ignore</button>
-                      </div>
-                    </td>
-                  </tr>
+                  <Fragment key={transaction.id}>
+                    <tr className="border-b last:border-0 align-middle">
+                      <td className="px-3 py-2">
+                        <input
+                          aria-label={`Select ${transaction.description}`}
+                          checked={selectedIds.has(transaction.id)}
+                          onChange={() => toggleSelect(transaction.id)}
+                          type="checkbox"
+                        />
+                      </td>
+                      <td className="px-3 py-2 tabular-nums">{String(transaction.bookingDate).slice(0, 10)}</td>
+                      <td className="px-3 py-2">
+                        <span className="block">{transaction.description}</span>
+                        <span className="text-xs text-subdued">{transaction.accountPocket?.account?.name} · {transaction.sourceInstitution}</span>
+                      </td>
+                      <td className={`px-3 py-2 text-right tabular-nums ${Number(transaction.amount) < 0 ? "text-status-danger" : "text-status-success"}`}>{fmt(transaction.amount, transaction.currency)}</td>
+                      <td className="px-3 py-2">
+                        <select
+                          className="min-h-9 rounded border bg-muted px-2 text-sm"
+                          value={selection[transaction.id] ?? ""}
+                          onChange={(event) => setSelection((current) => ({ ...current, [transaction.id]: event.target.value }))}
+                        >
+                          <option value="">Select category…</option>
+                          {categories.map((category) => (
+                            <option key={category.id} value={category.id}>{category.name}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="flex justify-end gap-2">
+                          <Button variant="secondary" onClick={() => allocate(transaction)}>Allocate</Button>
+                          <button
+                            className="text-xs text-subdued hover:text-foreground"
+                            onClick={() => (splitOpenId === transaction.id ? closeSplit() : openSplit(transaction))}
+                            type="button"
+                          >
+                            Split
+                          </button>
+                          <button className="text-xs text-subdued hover:text-foreground" onClick={() => ignore(transaction)}>Ignore</button>
+                        </div>
+                      </td>
+                    </tr>
+                    {splitOpenId === transaction.id ? (
+                      <tr className="border-b bg-muted/20 last:border-0">
+                        <td className="px-3 py-3" colSpan={6}>
+                          <div className="space-y-2">
+                            <p className="text-xs text-subdued">Split this transaction across multiple categories. Amounts must sum to the transaction total.</p>
+                            {(splitRows[transaction.id] ?? []).map((row, index) => (
+                              <div className="flex items-center gap-2" key={index}>
+                                <select
+                                  className="min-h-9 flex-1 rounded border bg-muted px-2 text-sm"
+                                  onChange={(event) => updateSplitRow(transaction.id, index, "categoryId", event.target.value)}
+                                  value={row.categoryId}
+                                >
+                                  <option value="">Select category…</option>
+                                  {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+                                </select>
+                                <input
+                                  className="min-h-9 w-32 rounded border bg-muted px-2 text-right text-sm tabular-nums"
+                                  inputMode="decimal"
+                                  onChange={(event) => updateSplitRow(transaction.id, index, "amount", event.target.value)}
+                                  value={row.amount}
+                                />
+                                <button
+                                  aria-label="Remove split row"
+                                  className="text-xs text-subdued hover:text-status-danger"
+                                  onClick={() => removeSplitRow(transaction.id, index)}
+                                  type="button"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ))}
+                            <div className="flex flex-wrap items-center gap-3">
+                              <button className="text-xs text-brand-teal hover:underline" onClick={() => addSplitRow(transaction.id)} type="button">+ Add category</button>
+                              <span className={`text-xs tabular-nums ${Math.abs(splitTotal(transaction.id) - Number(transaction.amount)) < 0.005 ? "text-status-success" : "text-status-warning"}`}>
+                                Split total {splitTotal(transaction.id).toFixed(2)} of {fmt(transaction.amount, transaction.currency)}
+                              </span>
+                              <div className="ml-auto flex gap-2">
+                                <Button onClick={() => confirmSplit(transaction)}>Confirm split</Button>
+                                <button className="text-xs text-subdued hover:text-foreground" onClick={closeSplit} type="button">Cancel</button>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : null}
+                  </Fragment>
                 ))}
               </tbody>
             </table>
           </div>
         )}
       </Card>
+      {total > REVIEW_PAGE_SIZE ? (
+        <div className="flex items-center justify-between text-sm text-subdued">
+          <span>
+            Showing {page * REVIEW_PAGE_SIZE + 1}–{Math.min(total, (page + 1) * REVIEW_PAGE_SIZE)} of {total}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button disabled={page === 0} onClick={() => goToPage(page - 1)} variant="secondary">Previous</Button>
+            <span>Page {page + 1} of {totalPages}</span>
+            <Button disabled={page + 1 >= totalPages} onClick={() => goToPage(page + 1)} variant="secondary">Next</Button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

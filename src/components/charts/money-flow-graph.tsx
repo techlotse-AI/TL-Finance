@@ -1,5 +1,9 @@
 "use client";
 
+import { Download, Minus, Plus, Printer, RotateCcw } from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
+import { DataTable } from "@/components/ui/data-table";
 import type { AccountFlowTotals, FlowLink, FlowNode } from "@/lib/budget/money-flow";
 import { collapseToBudgetFlow } from "@/lib/budget/money-flow-budget-view";
 import { buildAccountMinimumFlow } from "@/lib/budget/money-flow-reverse";
@@ -13,7 +17,22 @@ import {
   flowRouteLabel,
 } from "@/lib/budget/money-flow-presentation";
 import { formatMoney } from "@/lib/money/decimal";
-import { useMemo, useState } from "react";
+import { RECONCILIATION_TOLERANCE } from "@/lib/money/rounding";
+import {
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
+
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 3;
+const ZOOM_STEP = 1.25;
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
 
 interface MoneyFlowGraphProps {
   nodes: FlowNode[];
@@ -41,6 +60,10 @@ export function MoneyFlowGraph({ nodes, links, reportingCurrency, accountTotals 
   const [category, setCategory] = useState("all");
   const [currency, setCurrency] = useState("all");
   const [viewMode, setViewMode] = useState<"full" | "budget" | "reverse">("full");
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const svgRef = useRef<SVGSVGElement>(null);
+  const dragRef = useRef<{ pointerId: number; startX: number; startY: number; startPan: { x: number; y: number } } | null>(null);
   const reverse = useMemo(
     () => buildAccountMinimumFlow(nodes, links, reportingCurrency),
     [nodes, links, reportingCurrency],
@@ -56,6 +79,7 @@ export function MoneyFlowGraph({ nodes, links, reportingCurrency, accountTotals 
   );
   const linkedNodeIds = new Set(filteredLinks.flatMap((link) => [link.source, link.target]));
   const filteredNodes = base.nodes.filter((node) => linkedNodeIds.has(node.id));
+  const nodeLabelById = useMemo(() => new Map(base.nodes.map((node) => [node.id, node.label])), [base.nodes]);
   const layout = useMemo(
     () => layoutMoneyFlow(filteredNodes, filteredLinks),
     [filteredLinks, filteredNodes],
@@ -63,6 +87,7 @@ export function MoneyFlowGraph({ nodes, links, reportingCurrency, accountTotals 
   const colorByRoute = useMemo(() => buildFlowColorMap(links), [links]);
   const routeColor = (routeKind: FlowLink["routeKind"], colorKey: string) =>
     colorByRoute.get(flowRouteKey(routeKind, colorKey)) ?? flowRouteColor(routeKind, colorKey);
+  const [highlightedKey, setHighlightedKey] = useState<string | null>(null);
   const legendEntries = useMemo(() => {
     const seen = new Set<string>();
     return filteredLinks.flatMap((link) => {
@@ -97,24 +122,140 @@ export function MoneyFlowGraph({ nodes, links, reportingCurrency, accountTotals 
     );
   }
 
+  const viewWidth = layout.width / zoom;
+  const viewHeight = layout.height / zoom;
+  const maxPanX = Math.max(0, layout.width - viewWidth);
+  const maxPanY = Math.max(0, layout.height - viewHeight);
+  const clampedPan = { x: clamp(pan.x, 0, maxPanX), y: clamp(pan.y, 0, maxPanY) };
+  const viewBox = `${clampedPan.x} ${clampedPan.y} ${viewWidth} ${viewHeight}`;
+  const panStep = 60 / zoom;
+
+  function zoomIn() {
+    setZoom((current) => clamp(current * ZOOM_STEP, MIN_ZOOM, MAX_ZOOM));
+  }
+  function zoomOut() {
+    setZoom((current) => {
+      const next = clamp(current / ZOOM_STEP, MIN_ZOOM, MAX_ZOOM);
+      if (next === MIN_ZOOM) setPan({ x: 0, y: 0 });
+      return next;
+    });
+  }
+  function resetView() {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  }
+  function handlePointerDown(event: ReactPointerEvent<SVGSVGElement>) {
+    if (zoom <= MIN_ZOOM) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragRef.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, startPan: clampedPan };
+  }
+  function handlePointerMove(event: ReactPointerEvent<SVGSVGElement>) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+    const dx = ((event.clientX - drag.startX) * viewWidth) / rect.width;
+    const dy = ((event.clientY - drag.startY) * viewHeight) / rect.height;
+    setPan({
+      x: clamp(drag.startPan.x - dx, 0, maxPanX),
+      y: clamp(drag.startPan.y - dy, 0, maxPanY),
+    });
+  }
+  function handlePointerUp(event: ReactPointerEvent<SVGSVGElement>) {
+    if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null;
+  }
+  function handleKeyDown(event: ReactKeyboardEvent<SVGSVGElement>) {
+    if (event.key === "ArrowLeft") { setPan((p) => ({ ...p, x: clamp(p.x - panStep, 0, maxPanX) })); event.preventDefault(); }
+    else if (event.key === "ArrowRight") { setPan((p) => ({ ...p, x: clamp(p.x + panStep, 0, maxPanX) })); event.preventDefault(); }
+    else if (event.key === "ArrowUp") { setPan((p) => ({ ...p, y: clamp(p.y - panStep, 0, maxPanY) })); event.preventDefault(); }
+    else if (event.key === "ArrowDown") { setPan((p) => ({ ...p, y: clamp(p.y + panStep, 0, maxPanY) })); event.preventDefault(); }
+    else if (event.key === "+" || event.key === "=") { zoomIn(); event.preventDefault(); }
+    else if (event.key === "-" || event.key === "_") { zoomOut(); event.preventDefault(); }
+    else if (event.key === "0") { resetView(); event.preventDefault(); }
+  }
+  function handleExportSvg() {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const clone = svg.cloneNode(true) as SVGSVGElement;
+    clone.setAttribute("viewBox", `0 0 ${layout.width} ${layout.height}`);
+    clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    const serialized = new XMLSerializer().serializeToString(clone);
+    const blob = new Blob([`<?xml version="1.0" standalone="no"?>\r\n${serialized}`], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.download = `money-flow-${viewMode}.svg`;
+    link.href = url;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div role="region" aria-label="Planned monthly money-flow graph">
-      <div className="mb-4 flex flex-wrap items-center gap-2" role="group" aria-label="Graph view">
-        <span className="text-xs font-medium text-subdued">View:</span>
-        {([["full", "Full flow"], ["budget", "Pure budget"], ["reverse", "Account minimums"]] as const).map(([mode, label]) => (
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2 print:hidden">
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Graph view">
+          <span className="text-xs font-medium text-subdued">View:</span>
+          {([["full", "Full flow"], ["budget", "Pure budget"], ["reverse", "Account minimums"]] as const).map(([mode, label]) => (
+            <button
+              key={mode}
+              type="button"
+              aria-pressed={viewMode === mode}
+              onClick={() => setViewMode(mode)}
+              className={`rounded px-3 py-1.5 text-sm font-medium transition ${viewMode === mode ? "bg-gradient-to-br from-brand-violet to-brand-teal text-white" : "bg-muted text-subdued hover:text-foreground"}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-1" role="group" aria-label="Zoom, print, and export">
           <button
-            key={mode}
+            aria-label="Zoom out"
+            className="grid size-8 place-items-center rounded border bg-muted text-subdued transition hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+            disabled={zoom <= MIN_ZOOM}
+            onClick={zoomOut}
             type="button"
-            aria-pressed={viewMode === mode}
-            onClick={() => setViewMode(mode)}
-            className={`rounded px-3 py-1.5 text-sm font-medium transition ${viewMode === mode ? "bg-gradient-to-br from-brand-violet to-brand-teal text-white" : "bg-muted text-subdued hover:text-foreground"}`}
           >
-            {label}
+            <Minus className="size-4" strokeWidth={1.5} />
           </button>
-        ))}
-        <span className="text-xs text-subdued">{viewMode === "budget" ? "Income → category → item, accounts excluded." : viewMode === "reverse" ? "Budget items summed by account and category; account → category → item." : "Income, account routing, categories, and items."}</span>
+          <span className="w-10 text-center text-xs tabular-nums text-subdued">{Math.round(zoom * 100)}%</span>
+          <button
+            aria-label="Zoom in"
+            className="grid size-8 place-items-center rounded border bg-muted text-subdued transition hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+            disabled={zoom >= MAX_ZOOM}
+            onClick={zoomIn}
+            type="button"
+          >
+            <Plus className="size-4" strokeWidth={1.5} />
+          </button>
+          <button
+            aria-label="Reset zoom and pan"
+            className="grid size-8 place-items-center rounded border bg-muted text-subdued transition hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+            disabled={zoom === MIN_ZOOM && clampedPan.x === 0 && clampedPan.y === 0}
+            onClick={resetView}
+            type="button"
+          >
+            <RotateCcw className="size-4" strokeWidth={1.5} />
+          </button>
+          <span className="mx-1 h-5 w-px bg-border" />
+          <button
+            aria-label="Print this graph"
+            className="grid size-8 place-items-center rounded border bg-muted text-subdued transition hover:text-foreground"
+            onClick={() => window.print()}
+            type="button"
+          >
+            <Printer className="size-4" strokeWidth={1.5} />
+          </button>
+          <button
+            aria-label="Export this graph as SVG"
+            className="grid size-8 place-items-center rounded border bg-muted text-subdued transition hover:text-foreground"
+            onClick={handleExportSvg}
+            type="button"
+          >
+            <Download className="size-4" strokeWidth={1.5} />
+          </button>
+        </div>
       </div>
-      <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <p className="mb-4 text-xs text-subdued print:hidden">{viewMode === "budget" ? "Income → category → item, accounts excluded." : viewMode === "reverse" ? "Budget items summed by account and category; account → category → item." : "Income, account routing, categories, and items."}</p>
+      <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3 print:hidden">
         {viewMode !== "budget" ? (
           <Filter label="Account" value={account} onChange={setAccount}>
             <option value="all">All accounts</option>
@@ -162,9 +303,16 @@ export function MoneyFlowGraph({ nodes, links, reportingCurrency, accountTotals 
           </div>
         </div>
       ) : null}
-      <div className="mb-4 flex flex-wrap gap-x-5 gap-y-2 rounded border bg-muted/20 px-3 py-2" aria-label="Money-flow legend">
+      <div className="mb-4 flex flex-wrap gap-x-5 gap-y-2 rounded border bg-muted/20 px-3 py-2" aria-label="Money-flow legend" role="group">
         {legendEntries.map((entry) => (
-          <div className="flex items-center gap-2 text-xs" key={entry.key}>
+          <button
+            aria-pressed={highlightedKey === entry.key}
+            className={`flex items-center gap-2 rounded px-1.5 py-0.5 text-xs transition ${highlightedKey === entry.key ? "bg-muted ring-1 ring-inset ring-brand-teal" : "hover:bg-muted/60"}`}
+            key={entry.key}
+            onClick={() => setHighlightedKey((current) => (current === entry.key ? null : entry.key))}
+            title="Click to isolate this route"
+            type="button"
+          >
             <span
               aria-hidden="true"
               className="w-7 border-t-[3px]"
@@ -177,12 +325,13 @@ export function MoneyFlowGraph({ nodes, links, reportingCurrency, accountTotals 
             <span className="text-subdued">
               · {flowRouteLabel(entry.routeKind)} · {formatMoney(String(entry.value), reportingCurrency)}
             </span>
-          </div>
+          </button>
         ))}
       </div>
       <p className="mb-3 text-xs text-subdued">
         Normalized monthly baseline. Income sources follow their receiving-account lanes; categories and budget items are ordered by value. Line width represents monthly amount.
-        Long dashes mark internal transfers; short dashes mark provisions (annual bills saved monthly). An amber dot on an account means it still has an unallocated remainder.
+        Long dashes mark internal transfers; short dashes mark provisions (annual bills saved monthly). An amber dot on an account means it still has an unallocated remainder (±{RECONCILIATION_TOLERANCE} tolerance).
+        {zoom > MIN_ZOOM ? " Drag to pan, or use the arrow keys when the graph is focused." : " Use the zoom controls above, or click a legend entry to isolate that route."}
       </p>
       {filteredLinks.length === 0 ? (
         <div className="grid min-h-48 place-items-center rounded border border-dashed bg-muted/20 p-8 text-center text-sm text-subdued">
@@ -192,9 +341,16 @@ export function MoneyFlowGraph({ nodes, links, reportingCurrency, accountTotals 
       <div className="overflow-x-auto">
       <svg
         aria-describedby="money-flow-description"
-        className="min-w-[900px] w-full"
+        className={`min-w-[900px] w-full outline-none print:min-w-0 ${zoom > MIN_ZOOM ? "cursor-grab active:cursor-grabbing" : ""}`}
+        onKeyDown={handleKeyDown}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        ref={svgRef}
         role="img"
-        viewBox={`0 0 ${layout.width} ${layout.height}`}
+        tabIndex={0}
+        viewBox={viewBox}
       >
         <desc id="money-flow-description">
           Planned monthly income, account routing, categories, and budget items in{" "}
@@ -216,6 +372,8 @@ export function MoneyFlowGraph({ nodes, links, reportingCurrency, accountTotals 
         ))}
         {layout.links.map((link) => {
           const routeLabel = flowRouteLabel(link.routeKind);
+          const linkKey = flowRouteKey(link.routeKind, link.colorKey);
+          const dimmed = highlightedKey !== null && highlightedKey !== linkKey;
           return (
             <g className="group" key={link.id} tabIndex={0}>
               <title>
@@ -224,7 +382,7 @@ export function MoneyFlowGraph({ nodes, links, reportingCurrency, accountTotals 
               <path
                 d={link.path}
                 fill="none"
-                opacity={link.internalTransfer ? 0.55 : 0.72}
+                opacity={dimmed ? 0.12 : link.internalTransfer ? 0.55 : 0.72}
                 stroke={routeColor(link.routeKind, link.colorKey)}
                 strokeDasharray={flowLinkDasharray(link.routeKind, link.provision)}
                 strokeLinecap="round"
@@ -306,6 +464,24 @@ export function MoneyFlowGraph({ nodes, links, reportingCurrency, accountTotals 
       </svg>
       </div>
       )}
+      {viewMode !== "reverse" ? (
+        <div className="mt-4">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-subdued">Accessible table</p>
+          <DataTable
+            caption={`Planned money flow edges, ${viewMode === "budget" ? "pure-budget view" : "full-flow view"}, matching the filters and view above`}
+            emptyDescription="Adjust the filters above, or add income allocations and funded budget items."
+            emptyTitle="No planned flows match the current view"
+            headers={["From", "To", "Route", "Monthly amount", "Treatment"]}
+            rows={filteredLinks.map((link) => [
+              nodeLabelById.get(link.source) ?? link.source,
+              nodeLabelById.get(link.target) ?? link.target,
+              link.description,
+              <span className="tabular-nums" key={link.id}>{formatMoney(link.amount, reportingCurrency)}</span>,
+              link.internalTransfer ? <Badge key={link.id}>Internal transfer</Badge> : flowRouteLabel(link.routeKind),
+            ])}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

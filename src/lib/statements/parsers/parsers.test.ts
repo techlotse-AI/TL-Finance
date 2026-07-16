@@ -3,6 +3,9 @@ import { fileURLToPath } from "node:url";
 
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { findTransferCandidates } from "@/lib/analysis/transfer-match-engine";
+import type { TransferCandidateRow } from "@/lib/analysis/transfer-match";
+import { UnsupportedStatementError } from "@/lib/statements/errors";
 import { ensureParsersRegistered } from "@/lib/statements/parsers";
 import { previewStatement } from "@/lib/statements/preview";
 import { detectStatementParser } from "@/lib/statements/registry";
@@ -49,6 +52,17 @@ describe("UBS card parser", () => {
     expect(result.rows[0].amount).toBe("-42.0000");
     expect(result.rows[3].amount).toBe("30.0000");
   });
+
+  it("treats a credit/payment-received row as positive with no warnings", async () => {
+    const result = await preview("ubs-card-2.csv");
+    expect(result.parserKey).toBe("ubs-card");
+    expect(result.rows).toHaveLength(3);
+    expect(result.rows[0].amount).toBe("-19.9000");
+    expect(result.rows[1].amount).toBe("-88.1000");
+    expect(result.rows[2].amount).toBe("200.0000");
+    expect(result.rows[2].description).toBe("Payment received");
+    expect(result.warnings).toHaveLength(0);
+  });
 });
 
 describe("Revolut parser", () => {
@@ -60,6 +74,56 @@ describe("Revolut parser", () => {
     const codes = result.warnings.map((warning) => warning.code);
     expect(codes).toContain("non_completed");
     expect(codes).toContain("fee_present");
+  });
+
+  it("imports a EUR wallet with an exchange credit, a transfer, and a refund with no warnings", async () => {
+    const result = await preview("revolut-2.csv");
+    expect(result.parserKey).toBe("revolut");
+    expect(result.rows).toHaveLength(4);
+    expect(result.rows.every((row) => row.currency === "EUR")).toBe(true);
+    expect(result.rows[0].amount).toBe("490.8500"); // EXCHANGE credit
+    expect(result.rows[1].amount).toBe("-22.4000"); // CARD_PAYMENT
+    expect(result.rows[2].amount).toBe("-150.0000"); // TRANSFER
+    expect(result.rows[2].counterparty).toBe("TRANSFER");
+    expect(result.rows[3].amount).toBe("12.4000"); // CARD_REFUND, positive
+    expect(result.warnings).toHaveLength(0);
+  });
+});
+
+describe("cross-parser FX matching", () => {
+  it("pairs a real Revolut CHF exchange debit with the matching EUR exchange credit from a different statement", async () => {
+    const chf = await preview("revolut-1.csv");
+    const eur = await preview("revolut-2.csv");
+    const chfExchange = chf.rows.find((row) => row.counterparty === "EXCHANGE")!;
+    const eurExchange = eur.rows.find((row) => row.counterparty === "EXCHANGE")!;
+    expect(chfExchange.amount).toBe("-100.0000");
+    expect(eurExchange.amount).toBe("490.8500");
+
+    const rows: TransferCandidateRow[] = [
+      {
+        id: "chf-exchange",
+        householdId: "household-1",
+        accountPocketId: "pocket-chf",
+        bookingDate: chfExchange.bookingDate,
+        amount: chfExchange.amount,
+        currency: "CHF",
+        counterparty: chfExchange.counterparty,
+      },
+      {
+        id: "eur-exchange",
+        householdId: "household-1",
+        accountPocketId: "pocket-eur",
+        bookingDate: eurExchange.bookingDate,
+        amount: eurExchange.amount,
+        currency: "EUR",
+        counterparty: eurExchange.counterparty,
+      },
+    ];
+
+    const matches = findTransferCandidates(rows);
+    expect(matches).toHaveLength(1);
+    expect(matches[0]).toMatchObject({ debitId: "chf-exchange", creditId: "eur-exchange", fx: true });
+    expect(matches[0].evidence).toContain("matching counterparty");
   });
 });
 
@@ -91,6 +155,21 @@ describe("detection and dedupe", () => {
   it("returns no parser for unrecognized content", () => {
     const content = new TextEncoder().encode("this is not a statement at all\njust prose\n");
     expect(detectStatementParser({ filename: "x.txt", content })).toBeNull();
+  });
+
+  it("throws an UnsupportedStatementError carrying every parser's detection reason for unrecognized content", async () => {
+    const content = new TextEncoder().encode("this is not a statement at all\njust prose\n");
+    await expect(previewStatement({ filename: "x.txt", content })).rejects.toBeInstanceOf(UnsupportedStatementError);
+    try {
+      await previewStatement({ filename: "x.txt", content });
+      expect.unreachable();
+    } catch (error) {
+      expect(error).toBeInstanceOf(UnsupportedStatementError);
+      const attempts = (error as UnsupportedStatementError).attempts;
+      expect(attempts.length).toBeGreaterThanOrEqual(4); // ubs-account, ubs-card, revolut, generic-csv at minimum
+      expect(attempts.every((attempt) => attempt.detection.confidence === 0)).toBe(true);
+      expect(attempts.every((attempt) => attempt.detection.reasons.length > 0)).toBe(true);
+    }
   });
 
   it("produces a stable, unique dedupe hash per row", async () => {

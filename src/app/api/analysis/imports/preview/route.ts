@@ -7,6 +7,7 @@ import { requestIp } from "@/lib/auth/request";
 import { statementPreviewSchema } from "@/lib/analysis/schemas";
 import { buildAccountSuggestion } from "@/lib/analysis/account-suggestion";
 import { prisma } from "@/lib/db/prisma";
+import { UnsupportedStatementError, unsupportedStatementMessage } from "@/lib/statements/errors";
 import { previewStatement } from "@/lib/statements/preview";
 
 export async function POST(request: Request) {
@@ -20,7 +21,10 @@ export async function POST(request: Request) {
         content: Uint8Array.from(Buffer.from(input.contentBase64, "base64")),
         contentType: input.contentType,
       });
-    } catch {
+    } catch (error) {
+      if (error instanceof UnsupportedStatementError) {
+        throw new ApiError(422, "unsupported_statement", unsupportedStatementMessage(error));
+      }
       throw new ApiError(422, "unsupported_statement", "No production-ready parser recognized this statement.");
     }
     const matchingAccounts = preview.accountMatchReference

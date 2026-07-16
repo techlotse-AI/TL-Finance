@@ -11,6 +11,25 @@ The detailed historical log for v0.1–v0.8 lives in
 
 ### Added
 
+- **Budget — money-flow graph visualization & flow polish (v0.9.3).** The
+  money-flow graph gained zoom (buttons, drag-to-pan, and keyboard +/-/arrow
+  controls, clamped 100%-300%), print (`print:hidden` chrome so only the
+  legend and graph show), and SVG export (always exports the full untouched
+  graph regardless of current zoom/pan). Legend entries are now clickable to
+  isolate a route (dims the rest). The accessible tabular alternative for the
+  full/pure-budget views moved from a static, always-full-data table on the
+  dashboard into the graph component itself, so it now always matches the
+  active view mode and filters instead of ignoring them. Reconciliation and
+  allocation messaging states the ±5 tolerance explicitly instead of implying
+  it. The spend/savings analysis panel was split into reusable cards
+  (`SpendByCategoryCard`, `GuidelineCard`, `SavingsOpportunitiesCard`,
+  `InsightsCard`) shared between the full `/budget` panel and a new
+  server-rendered `BudgetInsightsSummaryCard` (savings rate, essential ratio,
+  top insight) on the Monthly-plan dashboard — no extra client round-trip; a
+  new `loadBudgetAnalysis` loader is shared by both the dashboard and the
+  `/api/budget/analysis` route. An entitlement-gated `AdherenceCrossLinkCard`
+  points Budget users at Analyze's planned-vs-actual adherence without
+  duplicating that computation (adherence stays an Analyze-owned concept).
 - **Budget — coherent, navigable workspace and a first-class Categories page
   (v0.9.2, part 2).** New `BudgetSubNav` cross-links the six Budget-tier
   pages (Monthly plan, Income, Accounts, Transfers, Categories, Budget

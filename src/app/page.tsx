@@ -1,16 +1,16 @@
 import { AlertTriangle, ArrowLeftRight, CheckCircle2 } from "lucide-react";
 
+import { AdherenceCrossLinkCard } from "@/components/budget/adherence-cross-link-card";
+import { BudgetInsightsSummaryCard } from "@/components/budget/budget-insights-summary-card";
 import { BudgetSubNav } from "@/components/budget-sub-nav";
 import { MoneyFlowGraph } from "@/components/charts/money-flow-graph";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { DataTable } from "@/components/ui/data-table";
 import { PageHeader } from "@/components/ui/page-header";
 import { requirePageContext } from "@/lib/auth/page-context";
 import { buildPersistedMoneyFlow } from "@/lib/budget/persisted-plan";
-import { flowRouteLabel } from "@/lib/budget/money-flow-presentation";
 import { prisma } from "@/lib/db/prisma";
-import { formatWhole } from "@/lib/money/rounding";
+import { formatWhole, RECONCILIATION_TOLERANCE } from "@/lib/money/rounding";
 
 export const dynamic = "force-dynamic";
 
@@ -66,7 +66,7 @@ export default async function MonthlyPlanPage() {
               <AlertTriangle className="mr-1 size-3" />
             )}
             {demoPlan.warnings.length === 0 && demoPlan.reconciled
-              ? "Reconciled"
+              ? `Reconciled (±${RECONCILIATION_TOLERANCE} tolerance)`
               : `${demoPlan.warnings.length} reconciliation warning${demoPlan.warnings.length === 1 ? "" : "s"}`}
           </Badge>
         </div>
@@ -84,6 +84,7 @@ export default async function MonthlyPlanPage() {
         <Card>
           <div className="border-b px-5 py-4">
             <h2 className="font-semibold">Reconciliation warnings</h2>
+            <p className="mt-1 text-xs text-subdued">Amounts within ±{RECONCILIATION_TOLERANCE} of zero are rounding noise, not shown here.</p>
           </div>
           <ul className="divide-y">
             {demoPlan.warnings.map((warning) => (
@@ -104,27 +105,8 @@ export default async function MonthlyPlanPage() {
         </Card>
       ) : null}
 
-      <Card>
-        <div className="border-b px-5 py-4">
-          <h2 className="font-semibold">Accessible flow table</h2>
-          <p className="mt-1 text-sm text-subdued">Every graph edge in tabular form.</p>
-        </div>
-        <DataTable
-          caption="Planned money flow edges"
-          headers={["From", "To", "Route", "Monthly amount", "Treatment"]}
-          rows={demoPlan.links.map((link) => [
-            demoPlan.nodes.find((node) => node.id === link.source)?.label ?? link.source,
-            demoPlan.nodes.find((node) => node.id === link.target)?.label ?? link.target,
-            link.description,
-            <span className="tabular-nums" key={link.id}>
-              {formatWhole(link.amount, demoPlan.reportingCurrency)}
-            </span>,
-            link.internalTransfer
-              ? <Badge key={link.id}>Internal transfer</Badge>
-              : flowRouteLabel(link.routeKind),
-          ])}
-        />
-      </Card>
+      <BudgetInsightsSummaryCard householdId={context.householdId} />
+      <AdherenceCrossLinkCard tier={context.tier} />
     </div>
   );
 }

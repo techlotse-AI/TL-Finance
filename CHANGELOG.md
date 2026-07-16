@@ -9,6 +9,8 @@ The detailed historical log for v0.1–v0.8 lives in
 
 ## [Unreleased]
 
+## [0.9.3] - 2026-07-16 — "Budget workspace & Analyze hardening"
+
 ### Added
 
 - **Analyze — Revolut + UBS hardening (v0.9.4).** Expanded golden coverage

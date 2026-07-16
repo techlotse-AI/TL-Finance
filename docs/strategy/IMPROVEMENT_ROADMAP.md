@@ -344,7 +344,7 @@ reconciliation to source rows. Strictly Optimize; never surfaced in Budget.
 | Login & new-device alerts | Security | Email on new-device signin; complements A1/A3 |
 | Passkeys / WebAuthn | Security | Phishing-resistant auth, after TOTP |
 | Progressive friction / CAPTCHA | Security | Add challenge after repeated failures before hard lock |
-| Additional country profiles | Platform | Wire FNB/Standard Bank/Investec into a ZA profile to match parser roadmap |
+| Additional country profiles | Platform | `za` profile shipped (v0.9.5 groundwork); wire FNB/Standard Bank/Investec parsers in once real sanitized fixtures are available |
 | Goal/subscription optimizers | Optimize | Extend findings into actionable savings suggestions |
 
 ---

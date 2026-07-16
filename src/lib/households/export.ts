@@ -73,7 +73,7 @@ const allocation = z.object({
 export const householdImportSchema = z.object({
   format: z.literal("tl-finance-household"),
   version: z.literal(1),
-  household: z.object({ name: nameSchema, baseCurrency: currencySchema, countryProfile: z.enum(["generic", "swiss"]) }),
+  household: z.object({ name: nameSchema, baseCurrency: currencySchema, countryProfile: z.enum(["generic", "swiss", "za"]) }),
   categoryGroups: z.array(z.object({ id, name: nameSchema, sortOrder: z.number().int() }).passthrough()),
   categories: z.array(z.object({
     id, groupId: id, name: nameSchema,

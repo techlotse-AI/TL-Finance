@@ -50,4 +50,13 @@ describe("findTransferCandidates", () => {
     ]);
     expect(matches).toHaveLength(1);
   });
+
+  it("matches an FX pair into ZAR the same way as any other currency pair (v0.9.5 groundwork)", () => {
+    const matches = findTransferCandidates([
+      row({ id: "d", amount: "-1000.0000", currency: "CHF", accountPocketId: "chf", reference: "FX-ZA-1" }),
+      row({ id: "c", amount: "19500.0000", currency: "ZAR", accountPocketId: "zar", reference: "FX-ZA-1" }),
+    ]);
+    expect(matches).toHaveLength(1);
+    expect(matches[0]).toMatchObject({ debitId: "d", creditId: "c", fx: true });
+  });
 });

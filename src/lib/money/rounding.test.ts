@@ -65,6 +65,12 @@ describe("formatWhole", () => {
     expect(formatted).not.toContain(".");
     expect(formatted).toContain("235");
   });
+
+  it("formats ZAR the same way as any other supported currency (v0.9.5 groundwork)", () => {
+    const formatted = formatWhole("1233.40", "ZAR");
+    expect(formatted).not.toContain(".");
+    expect(formatted).toContain("235");
+  });
 });
 
 describe("withinTolerance", () => {

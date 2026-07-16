@@ -9,10 +9,26 @@ The detailed historical log for v0.1–v0.8 lives in
 
 ## [Unreleased]
 
-## [0.9.3] - 2026-07-16 — "Budget workspace & Analyze hardening"
-
 ### Added
 
+- **Analyze — South Africa (FNB) groundwork (v0.9.5, partial).** ZAR was
+  already a supported currency and the FX-matching/allocation code was
+  already currency-agnostic — confirmed with new golden tests rather than
+  assumed, no code changes needed there. Added a new `za` country profile
+  (`countryProfile` enum + a South African starter category preset: medical
+  aid, UIF, rates and levies, retirement annuity, tax-free savings account),
+  wired into household creation, the onboarding form, and backup
+  import/export validation. Added dependency-free OFX 1.x SGML / OFX 2.x XML
+  reading (`src/lib/statements/ofx.ts`) as shared infrastructure, mirroring
+  `csv.ts`'s conventions — a single tag/value tokenizer handles both dialects
+  uniformly. When this groundwork was written the FNB parser itself was still
+  blocked on real sanitized fixtures (AGENTS.md requires at least two before
+  production-ready status); real statements arrived the same day and the
+  parser shipped separately — see the FNB parser entry below. `ofx.ts`
+  implements the public OFX spec's transaction shape against hand-crafted,
+  spec-shaped test data — explicitly not sanitized real bank exports — and
+  stays unwired from the parser registry until an institution's OFX dialect
+  is validated against a real export.
 - **Analyze — FNB Private Clients Current Account statement parser (v0.9.5).**
   Reads FNB's real emailed "Tax Invoice/Statement" PDF format, ZAR only. Adds
   `unpdf` as a documented exception to the locked, otherwise dependency-free
@@ -43,6 +59,11 @@ The detailed historical log for v0.1–v0.8 lives in
   a second sample confirms the format across exports. The PDF statement is
   the primary source; this CSV is a supplementary, more-current-but-shorter
   window.
+
+## [0.9.3] - 2026-07-16 — "Budget workspace & Analyze hardening"
+
+### Added
+
 - **Analyze — Revolut + UBS hardening (v0.9.4).** Expanded golden coverage
   onto two fixtures that existed but were never exercised by tests:
   `revolut-2.csv` (a EUR wallet with an exchange credit, a transfer, and a

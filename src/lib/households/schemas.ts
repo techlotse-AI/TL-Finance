@@ -5,7 +5,7 @@ import { currencySchema, idSchema, nameSchema } from "@/lib/budget/schemas";
 export const createHouseholdSchema = z.object({
   name: nameSchema,
   baseCurrency: currencySchema,
-  countryProfile: z.enum(["generic", "swiss"]).default("generic"),
+  countryProfile: z.enum(["generic", "swiss", "za"]).default("generic"),
 });
 
 export const selectHouseholdSchema = z.object({

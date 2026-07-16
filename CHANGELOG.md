@@ -9,6 +9,8 @@ The detailed historical log for v0.1–v0.8 lives in
 
 ## [Unreleased]
 
+## [0.9.4] - 2026-07-16 — "South Africa: FNB import"
+
 ### Added
 
 - **Analyze — South Africa (FNB) groundwork (v0.9.5, partial).** ZAR was

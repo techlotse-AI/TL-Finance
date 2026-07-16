@@ -179,4 +179,20 @@ describe("detection and dedupe", () => {
     expect(new Set(hashes).size).toBe(hashes.length);
     expect(second.rows.map((row) => row.dedupeHash)).toEqual(hashes);
   });
+
+  it("dedupe hashing holds for the FNB CSV export, including its repeated same-description fee rows (v0.9.5 idempotent-commit requirement)", async () => {
+    // The FNB fixture has three "#MONTHLY ACCOUNT FEE" rows with different
+    // dates/amounts and two identical-description "SAMPLE SENDER" credits on
+    // different dates — each must hash uniquely so idempotent commit never
+    // drops a legitimate repeat, while re-previewing the same file must
+    // reproduce identical hashes so re-importing it imports nothing new.
+    const first = await preview("fnb-transaction-history-1.csv");
+    expect(first.parserKey).toBe("fnb-transaction-history");
+    expect(first.institution).toBe("FNB");
+    const hashes = first.rows.map((row) => row.dedupeHash);
+    expect(new Set(hashes).size).toBe(hashes.length);
+
+    const second = await preview("fnb-transaction-history-1.csv");
+    expect(second.rows.map((row) => row.dedupeHash)).toEqual(hashes);
+  });
 });

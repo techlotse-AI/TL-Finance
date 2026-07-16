@@ -25,6 +25,7 @@ export function rowObject(header: string[], cells: string[]): Record<string, unk
 }
 
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})/;
+const ISO_SLASH_DATE = /^(\d{4})\/(\d{1,2})\/(\d{1,2})$/;
 const SWISS_DATE = /^(\d{1,2})[.](\d{1,2})[.](\d{2,4})$/;
 const SLASH_DATE = /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/;
 
@@ -35,6 +36,11 @@ export function normalizeDate(raw: string): string | null {
 
   const iso = ISO_DATE.exec(value);
   if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+
+  // Year-first with slashes (e.g. FNB's "2026/07/15") is unambiguous — check
+  // before the day/month-first SLASH_DATE below.
+  const isoSlash = ISO_SLASH_DATE.exec(value);
+  if (isoSlash) return composeDate(isoSlash[1], isoSlash[2], isoSlash[3]);
 
   const swiss = SWISS_DATE.exec(value);
   if (swiss) return composeDate(swiss[3], swiss[2], swiss[1]);

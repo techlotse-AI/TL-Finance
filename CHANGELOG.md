@@ -13,6 +13,36 @@ The detailed historical log for v0.1–v0.8 lives in
 
 ### Added
 
+- **Analyze — FNB Private Clients Current Account statement parser (v0.9.5).**
+  Reads FNB's real emailed "Tax Invoice/Statement" PDF format, ZAR only. Adds
+  `unpdf` as a documented exception to the locked, otherwise dependency-free
+  statement-ingestion stack (see AGENTS.md Stack) — every other parser reads
+  plain text; there is no dependency-free way to read a PDF's content stream.
+  The PDF-extraction step (`pdf.ts`) is a thin wrapper; all real parsing logic
+  is a pure, fixture-tested function (`parseFnbCurrentAccountText`) operating
+  on already-extracted text, same architecture as the OFX reader. Verified
+  against two real statements one month apart (sanitized for the committed
+  fixtures — name/address/account number fabricated, transaction shape and
+  amounts real): every row's running balance reconciles exactly against the
+  printed Opening/Closing Balance and the "Turnover for Statement Period"
+  credit/debit counts, satisfying AGENTS.md's two-real-fixture rule. Handles
+  format quirks confirmed from the real files: dates are "DD Mon" with the
+  year resolved from the printed statement period (not guessed), amounts are
+  a bare number for a debit vs. a "Cr" suffix for a credit (never a minus
+  sign), and the trailing monthly-fee row's description is dropped by PDF
+  text extraction in both real files (a "#"-glyph encoding quirk) and is
+  filled in as "Monthly Account Fee" rather than left blank. Also adds a
+  second, dependency-free FNB parser for the "ACCOUNT TRANSACTION HISTORY"
+  CSV export from FNB online banking (year-first `YYYY/MM/DD` dates — a new
+  `normalizeDate` pattern — and an already-signed amount column, no Cr/Dr
+  suffix; a metadata preamble precedes the real header row). Fully
+  functional and registered, but catalogued `productionReady: false` since
+  only one real sanitized fixture was available (this export only covers
+  whatever window is pulled, observed as one month) — AGENTS.md's
+  two-real-fixture rule holds it back from the advertised picker list until
+  a second sample confirms the format across exports. The PDF statement is
+  the primary source; this CSV is a supplementary, more-current-but-shorter
+  window.
 - **Analyze — Revolut + UBS hardening (v0.9.4).** Expanded golden coverage
   onto two fixtures that existed but were never exercised by tests:
   `revolut-2.csv` (a EUR wallet with an exchange credit, a transfer, and a

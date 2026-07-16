@@ -215,6 +215,18 @@ reconciliation warnings, keyboard access, and tabular alternatives.
 - ESLint
 - Docker multi-stage build
 
+**Exception:** `unpdf` (v0.9.5) — PDF text extraction for the FNB Private
+Clients Current Account statement parser. Every other statement parser is
+dependency-free by design (see `csv.ts`'s and `ofx.ts`'s own module doc
+comments), but there is no dependency-free way to read a PDF's content
+stream, and FNB's real emailed statement format is PDF, not CSV/OFX. `unpdf`
+wraps PDF.js for serverless/Node runtimes with zero required runtime
+dependencies of its own and no native binaries for text extraction (its only
+peer dependency, a canvas renderer for page-image rendering, is optional and
+unused here). Keep PDF parsers thin: extract text via `pdf.ts`, then do all
+real parsing logic in a pure, fixture-testable function operating on that
+text, exactly like `ofx.ts`'s tag/value reader.
+
 Keep this as one application and one database schema. Do not introduce
 microservices without measured evidence that the single-application design is
 insufficient.
@@ -400,7 +412,7 @@ UBS account CSV
 UBS card CSV
 Revolut CSV
 Zuger Kantonalbank structured export
-FNB CSV
+FNB Private Clients Current Account (PDF statement) — shipped v0.9.5
 Standard Bank structured export
 Investec structured export
 Frankly and VIAC contributions/withdrawals

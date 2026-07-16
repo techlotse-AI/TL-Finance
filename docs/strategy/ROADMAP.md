@@ -161,17 +161,57 @@ single vuln issue in place, and added standard repo files (VERSION, LICENSE.md,
 root CHANGELOG.md, CLAUDE.md). Full local gate verified green (typecheck, lint,
 220 tests, next build); released as git tag `v0.9.0`.
 
+## v0.9.3 - Budget workspace & Analyze hardening (Released)
+
+Released 2026-07-16 (tag `v0.9.3`), bundling the forward plan's v0.9.1–v0.9.4
+milestones under one tag. v0.9.1 stabilize/secure: the bundled-undici HIGH
+(#33) auto-closed via the Trivy dedupe gate after the Node base-image bump;
+vitest/coverage-v8 Dependabot grouping confirmed in place; the eslint 10 and
+TypeScript 7 majors were verified locally as blocked by `eslint-config-next`'s
+toolchain and parked with `@dependabot ignore`; STYLING.md seeded. v0.9.2
+Budget UI: consistent empty/loading/error states, `formatWhole` (round-to-5)
+on every Budget money display, a `BudgetSubNav` unifying the six Budget pages,
+and a first-class `/categories` page extracted from Settings. v0.9.3 Budget
+visualization/flow: money-flow graph zoom/pan/print/SVG-export, clickable
+legend isolation, the accessible table moved into the graph component so it
+tracks the active view/filters, analysis split into reusable cards with a
+server-rendered dashboard summary, explicit ±5-tolerance wording, and an
+entitlement-gated adherence cross-link. v0.9.4 Analyze hardening: previously
+dead fixtures wired into golden tests, a fixture-driven FX-match test,
+actionable "no parser recognized" errors listing every parser's rejection
+reason, and review-queue split-allocation/pagination/bulk-actions. Also:
+Optimize net-worth "comfort threshold" (0.01% of net worth, issue #53).
+
+## v0.9.4 - South Africa: FNB import (Released)
+
+Released 2026-07-16 (tag `v0.9.4`), carrying the forward plan's v0.9.5
+milestone. Two FNB parsers built from real statements supplied by the owner
+(sanitized fixtures committed, real files never persisted): the
+production-ready `fnb-current-account` parser reads the emailed "Tax
+Invoice/Statement" PDF (two real sanitized fixtures, running-balance
+reconciliation golden tests) — PDF support added `unpdf` as the stack's first
+documented locked-stack exception (AGENTS.md) since there is no
+dependency-free way to read a PDF content stream; and the functional
+`fnb-transaction-history` CSV parser (held at `productionReady: false` until
+a second real sample arrives). Plus the `za` country profile with a South
+African starter category preset, dependency-free OFX 1.x SGML / 2.x XML
+reading infrastructure (unwired until an institution's dialect is validated
+against a real export), ZAR flow confirmation tests, and an FNB dedupe-hash
+idempotency test.
+
 ---
 
-## Forward plan — v0.9.1 → v0.9.8 (road to 1.0.0-alpha.1)
+## Forward plan — v0.9.6 → v0.9.8 (road to 1.0.0-alpha.1)
 
-Three product tracks run through this series — **Budget (proper UI in place)**,
-**Analyze (Revolut / UBS / FNB)**, and **Optimize (a full future-planning and
-tracking suite)** — bookended by a stabilization/security opener and a
-release-candidate hardening close. Every step must land the full gate green
-(`typecheck && lint && test && build`) and change nothing in a lower tier.
+Three product tracks ran through the v0.9.1–v0.9.5 series — **Budget (proper
+UI in place)**, **Analyze (Revolut / UBS / FNB)**, and **Optimize (a full
+future-planning and tracking suite)** — bookended by a stabilization/security
+opener and a release-candidate hardening close. v0.9.1–v0.9.5 shipped (as
+tags `v0.9.3` and `v0.9.4`, above); v0.9.6–v0.9.8 remain. Every step must
+land the full gate green (`typecheck && lint && test && build`) and change
+nothing in a lower tier.
 
-### v0.9.1 - Stabilize & secure (foundation)
+### v0.9.1 - Stabilize & secure (foundation) — shipped in v0.9.3
 
 Get every tier to a verified-green baseline before feature work. Resolve the
 bundled-**undici** HIGH (CVE-2026-12151) by bumping the Node base image to a
@@ -182,14 +222,14 @@ the eslint 10 major (#38) and actions/checkout 7 (#34). Fix CI branch-protection
 ergonomics so the tag-only `publish` check doesn't leave PRs permanently
 `BLOCKED`. Seed `STYLING.md` and shared design tokens for the Budget UI work.
 
-### v0.9.2 - Budget UI, part 1 — structure & IA
+### v0.9.2 - Budget UI, part 1 — structure & IA — shipped in v0.9.3
 
 Consolidate income → accounts/pockets → transfers → categories → items into one
 coherent, navigable Budget workspace with consistent empty/loading/error states.
 Responsive layout and a keyboard/accessibility pass on the core budget forms.
 Enforce whole-amount money display (`formatWhole`, round-to-5) everywhere.
 
-### v0.9.3 - Budget UI, part 2 — visualization & flow
+### v0.9.3 - Budget UI, part 2 — visualization & flow — shipped in v0.9.3
 
 Polish the money-flow graph (spending-accounts, pure-budget, and
 account-minimums views) with legends, zoom, and print/export. Promote the
@@ -197,14 +237,14 @@ spend/savings analysis (50/30/20, savings opportunities, insights) to
 first-class dashboard cards, and surface reconciliation/adherence inline with
 clear ±5-tolerance messaging.
 
-### v0.9.4 - Analyze — Revolut + UBS hardening
+### v0.9.4 - Analyze — Revolut + UBS hardening — shipped in v0.9.3
 
 Re-verify and harden the Revolut and UBS (account + card) statement parsers
 against fresh sanitized fixtures; expand golden coverage for multi-currency,
 refunds, fees, and FX matching. Polish the import review-queue UX and make
 fail-closed parse errors actionable.
 
-### v0.9.5 - Analyze — FNB (South Africa)
+### v0.9.5 - Analyze — FNB (South Africa) — shipped in v0.9.4
 
 Add an FNB statement parser (CSV/OFX) with sanitized fixtures, idempotent
 commit, and ZAR handling, wired into the import picker. Lay ZA country-profile

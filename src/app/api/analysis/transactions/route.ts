@@ -16,6 +16,7 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const state = url.searchParams.get("state") ?? "review";
     const limit = Math.min(Math.max(Number(url.searchParams.get("limit") ?? "100"), 1), 200);
+    const offset = Math.max(Number(url.searchParams.get("offset") ?? "0"), 0);
     const pocketId = url.searchParams.get("pocketId");
 
     const where: Prisma.ActualTransactionWhereInput = {
@@ -24,20 +25,24 @@ export async function GET(request: Request) {
       ...(pocketId ? { accountPocketId: pocketId } : {}),
     };
 
-    const transactions = await prisma.actualTransaction.findMany({
-      where,
-      orderBy: [{ bookingDate: "desc" }, { id: "desc" }],
-      take: limit,
-      include: {
-        accountPocket: { include: { account: { select: { name: true } } } },
-        allocations: {
-          include: {
-            category: { select: { name: true } },
-            budgetItem: { select: { name: true } },
+    const [transactions, total] = await Promise.all([
+      prisma.actualTransaction.findMany({
+        where,
+        orderBy: [{ bookingDate: "desc" }, { id: "desc" }],
+        take: limit,
+        skip: offset,
+        include: {
+          accountPocket: { include: { account: { select: { name: true } } } },
+          allocations: {
+            include: {
+              category: { select: { name: true } },
+              budgetItem: { select: { name: true } },
+            },
           },
         },
-      },
-    });
+      }),
+      prisma.actualTransaction.count({ where }),
+    ]);
 
     const counts = await prisma.actualTransaction.groupBy({
       by: ["reviewState"],
@@ -47,7 +52,7 @@ export async function GET(request: Request) {
     const byState: Partial<Record<TransactionReviewState, number>> = {};
     for (const row of counts) byState[row.reviewState] = row._count._all;
 
-    return json({ transactions, counts: byState });
+    return json({ transactions, counts: byState, total, offset, limit });
   } catch (error) {
     return routeError(error);
   }

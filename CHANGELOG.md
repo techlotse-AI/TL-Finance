@@ -11,6 +11,25 @@ The detailed historical log for v0.1–v0.8 lives in
 
 ### Added
 
+- **Analyze — Revolut + UBS hardening (v0.9.4).** Expanded golden coverage
+  onto two fixtures that existed but were never exercised by tests:
+  `revolut-2.csv` (a EUR wallet with an exchange credit, a transfer, and a
+  positive refund — real multi-currency and refund coverage) and
+  `ubs-card-2.csv` (a "Payment received" credit row). Added a fixture-driven
+  FX-match golden test: real parser output for a Revolut CHF exchange debit
+  and its matching EUR exchange credit (added to `revolut-2.csv`, mirroring
+  how Revolut's actual export produces a same-day `EXCHANGE` row on both
+  currency wallets) is run through `findTransferCandidates`, not synthetic
+  in-memory rows. The `unsupported_statement` error is now actionable: a new
+  `detectStatementParserAttempts`/`UnsupportedStatementError` carries every
+  registered parser's confidence and rejection reason, surfaced as "Tried:
+  ubs-account (UBS): not semicolon-delimited; …" instead of a generic
+  message, and distinguishes an ambiguous tie from no match at all.
+  Review-queue UX: transactions can now be split across multiple categories
+  (the backend already supported it; the UI never exposed it), the list is
+  paginated (25/page with a total count) instead of a hardcoded 100-row cap,
+  bulk select/allocate/ignore works across a page, and the import preview's
+  warning list can be expanded past 25 or exported as CSV.
 - **Budget — money-flow graph visualization & flow polish (v0.9.3).** The
   money-flow graph gained zoom (buttons, drag-to-pan, and keyboard +/-/arrow
   controls, clamped 100%-300%), print (`print:hidden` chrome so only the

@@ -1,4 +1,5 @@
 import { listStatementParsers, registerStatementParser } from "@/lib/statements/registry";
+import { fnbCurrentAccountParser } from "@/lib/statements/parsers/fnb-current-account";
 import { genericCsvParser } from "@/lib/statements/parsers/generic-csv";
 import { revolutParser } from "@/lib/statements/parsers/revolut";
 import { ubsAccountParser } from "@/lib/statements/parsers/ubs-account";
@@ -40,6 +41,12 @@ export const parserCatalog: ParserCatalogEntry[] = [
     label: "Generic CSV template",
     productionReady: true,
     templateHint: "date,amount,currency,description and optional counterparty,reference,balance,account_iban. Amount is negative for outgoing.",
+  },
+  {
+    parser: fnbCurrentAccountParser,
+    label: "FNB Private Clients Current Account statement (PDF)",
+    productionReady: true,
+    templateHint: "The \"Tax Invoice/Statement\" PDF from FNB online banking or emailed statements. ZAR only.",
   },
 ];
 

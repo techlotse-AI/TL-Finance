@@ -75,7 +75,29 @@ app version and date at the bottom when you finish a pass.
 - [ ] Confirm Optimize wrote nothing into Budget (plan unchanged after a full
       Optimize session).
 
-## 5. Platform & operations
+## 5. Security: two-factor & device alerts
+
+- [ ] Settings → enable 2FA: secret + otpauth link shown; a wrong code is
+      rejected; the correct code activates and shows **ten recovery codes
+      exactly once**.
+- [ ] Sign out → sign in: password alone does **not** create a session; the
+      code step appears; wrong codes escalate toward lockout; the correct
+      code completes sign-in.
+- [ ] Replay: reusing the same 6-digit code for a second sign-in inside the
+      same 30 s window is rejected.
+- [ ] Recovery: sign in with a recovery code; the same recovery code is
+      rejected on a second attempt.
+- [ ] Disable 2FA requires password + a current code; afterwards password
+      alone signs in again.
+- [ ] Admin → Reset 2FA on a test user clears enforcement (password-only
+      sign-in works; the user can re-enroll).
+- [ ] New-device alert: sign in from a private/incognito window (or a second
+      browser) → alert email arrives with time + device; signing in again
+      from that same window does **not** re-alert.
+- [ ] Security events (admin) show the TOTP and new-device actions from the
+      steps above.
+
+## 6. Platform & operations
 
 - [ ] Household backup export → import restores as a new household with
       matching plan totals.

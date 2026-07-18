@@ -30,3 +30,20 @@ export const tokenCompleteSchema = z.object({
 export const passwordResetCompleteSchema = tokenCompleteSchema.extend({
   password: passwordSchema,
 });
+
+/** A 6-digit TOTP code or an XXXXX-XXXXX recovery code (spacing/dash tolerant). */
+const secondFactorCodeSchema = z.string().trim().min(6).max(16);
+
+export const totpActivateSchema = z.object({
+  code: secondFactorCodeSchema,
+});
+
+export const totpChallengeSchema = z.object({
+  challenge: z.string().min(32).max(256),
+  code: secondFactorCodeSchema,
+});
+
+export const totpDisableSchema = z.object({
+  password: z.string().min(1).max(128),
+  code: secondFactorCodeSchema,
+});

@@ -89,8 +89,9 @@ development override or development environment template on a public host.
 ## Required production controls
 
 Production deployments must provide strong, independent
-`AUDIT_IP_HASH_SECRET`, `RATE_LIMIT_HASH_SECRET`, and
-`SCHEDULED_BACKUP_TOKEN` values, use TLS at the ingress, configure
+`AUDIT_IP_HASH_SECRET`, `RATE_LIMIT_HASH_SECRET`,
+`SCHEDULED_BACKUP_TOKEN`, and `TOTP_ENCRYPTION_KEY` values (the last encrypts
+TOTP secrets at rest; rotating it invalidates every enrolled authenticator), use TLS at the ingress, configure
 `INSTANCE_ADMIN_EMAIL` before first signup, enable email verification with
 working SMTP, and persist and back up PostgreSQL data.
 

@@ -19,7 +19,7 @@ const required = [
 ];
 for (const path of required) await access(join(root, path));
 const env = await readFile(join(root, ".env.example"), "utf8");
-for (const name of ["RATE_LIMIT_HASH_SECRET", "EMAIL_VERIFICATION_REQUIRED", "SMTP_HOST", "SCHEDULED_BACKUP_TOKEN"]) {
+for (const name of ["RATE_LIMIT_HASH_SECRET", "EMAIL_VERIFICATION_REQUIRED", "SMTP_HOST", "SCHEDULED_BACKUP_TOKEN", "TOTP_ENCRYPTION_KEY"]) {
   if (!env.includes(`${name}=`)) throw new Error(`.env.example is missing ${name}.`);
 }
 console.log("v0.4 public-readiness artifact check passed.");

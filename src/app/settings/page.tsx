@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ExchangeRateCreateForm, HouseholdImportForm, MemberAddForm } from "@/components/create-forms";
 import { SessionManagement } from "@/components/account-security";
 import { HouseholdSwitcher } from "@/components/household-switcher";
+import { TotpSettings } from "@/components/totp-settings";
 import { ExchangeRateRefreshButton, UserBackupImportForm } from "@/components/settings-actions";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -16,11 +17,12 @@ export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   const context = await requirePageContext();
-  const [household, members, memberships, sessions] = await Promise.all([
+  const [household, members, memberships, sessions, me] = await Promise.all([
     prisma.household.findUniqueOrThrow({ where: { id: context.householdId }, include: { entitlement: true } }),
     prisma.householdMember.findMany({ where: { householdId: context.householdId }, include: { user: { select: { email: true, displayName: true } } }, orderBy: { createdAt: "asc" } }),
     prisma.householdMember.findMany({ where: { userId: context.userId, active: true, household: { active: true } }, select: { household: { select: { id: true, name: true } } }, orderBy: { household: { name: "asc" } } }),
     prisma.session.findMany({ where: { userId: context.userId, revokedAt: null, expiresAt: { gt: new Date() } }, select: { id: true, createdAt: true, expiresAt: true }, orderBy: { createdAt: "desc" } }),
+    prisma.user.findUniqueOrThrow({ where: { id: context.userId }, select: { totpActivatedAt: true } }),
   ]);
   return (
     <div className="mx-auto max-w-app space-y-6">
@@ -53,6 +55,7 @@ export default async function SettingsPage() {
         </Card>
       </div>
       <HouseholdSwitcher activeHouseholdId={context.householdId} households={memberships.map((membership) => membership.household)} />
+      <TotpSettings initialEnabled={Boolean(me.totpActivatedAt)} />
       <SessionManagement sessions={sessions.map((session) => ({ ...session, createdAt: session.createdAt.toISOString(), expiresAt: session.expiresAt.toISOString(), current: session.id === context.sessionId }))} />
       <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
         <MemberAddForm />

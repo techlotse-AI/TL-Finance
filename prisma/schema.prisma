@@ -136,6 +136,15 @@ model User {
   failedLoginCount      Int                      @default(0)
   lockedUntil           DateTime?
   lastFailedLoginAt     DateTime?
+  /// TOTP secret encrypted at rest (AES-256-GCM, versioned payload). Present
+  /// while enrollment is pending or active; null once disabled.
+  totpSecretCiphertext  String?
+  /// Set when the user proves possession of the secret; null = TOTP off or
+  /// enrollment pending.
+  totpActivatedAt       DateTime?
+  /// Highest accepted TOTP time-step, for replay protection: a code for a
+  /// step at or below this value is rejected even inside the verify window.
+  totpLastUsedStep      BigInt?
   createdAt             DateTime                 @default(now())
   updatedAt             DateTime                 @updatedAt
   sessions              Session[]
@@ -144,6 +153,53 @@ model User {
   passwordReset         PasswordResetToken[]
   auditEvents            AuditEvent[]
   rateLimitBuckets       RateLimitBucket[]
+  totpRecoveryCodes     TotpRecoveryCode[]
+  totpChallenges        TotpChallenge[]
+  knownDevices          KnownDevice[]
+}
+
+/// One-time TOTP recovery codes, stored hashed (sha256 hex) exactly like the
+/// email-verification and password-reset tokens. Consumed via usedAt.
+model TotpRecoveryCode {
+  id        String    @id @default(cuid())
+  userId    String
+  codeHash  String
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, codeHash])
+}
+
+/// Short-lived second-factor step between a correct password and a session.
+/// The signin route issues one instead of a session when TOTP is active; the
+/// challenge route consumes it. Token stored hashed, same pattern as sessions.
+model TotpChallenge {
+  id         String    @id @default(cuid())
+  userId     String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}
+
+/// Devices that have completed a successful sign-in, keyed by a hashed
+/// long-lived random device cookie. A successful sign-in from a device with
+/// no matching row triggers the new-device alert email.
+model KnownDevice {
+  id         String   @id @default(cuid())
+  userId     String
+  deviceHash String
+  /// Informational only (alert email context); truncated, never parsed.
+  userAgent  String?  @db.VarChar(255)
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, deviceHash])
 }
 
 model Session {

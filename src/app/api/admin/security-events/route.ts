@@ -13,6 +13,13 @@ export const SECURITY_EVENT_ACTIONS = [
   "auth.signout",
   "auth.password_reset.request",
   "auth.password_reset.complete",
+  "auth.totp.enroll_started",
+  "auth.totp.enabled",
+  "auth.totp.disabled",
+  "auth.totp.failed",
+  "auth.totp.recovery_used",
+  "auth.totp.admin_reset",
+  "auth.new_device",
   "platform.user.update",
 ] as const;
 

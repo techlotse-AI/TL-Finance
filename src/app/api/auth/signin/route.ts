@@ -2,20 +2,16 @@ import { cookies } from "next/headers";
 
 import { apiErrorResponse, ApiError } from "@/lib/api/errors";
 import { writeAuditEvent } from "@/lib/audit/write";
+import { DEVICE_COOKIE_NAME, deviceCookieOptions } from "@/lib/auth/devices";
+import { establishSession } from "@/lib/auth/establish-session";
 import { isLocked, lockoutPolicyFromEnv, registerFailedAttempt } from "@/lib/auth/lockout";
 import { assertTrustedOrigin } from "@/lib/auth/origin";
 import { verifyPassword } from "@/lib/auth/password";
 import { enforceRateLimit } from "@/lib/auth/rate-limit";
-import { defaultHouseholdIdForUser } from "@/lib/auth/active-household";
 import { requestIp } from "@/lib/auth/request";
 import { signInSchema } from "@/lib/auth/schemas";
-import {
-  createSessionToken,
-  hashSessionToken,
-  SESSION_COOKIE_NAME,
-  SESSION_TTL_SECONDS,
-  sessionCookieOptions,
-} from "@/lib/auth/session-token";
+import { SESSION_COOKIE_NAME, sessionCookieOptions } from "@/lib/auth/session-token";
+import { createOneTimeToken, hashOneTimeToken, TOTP_CHALLENGE_TTL_SECONDS } from "@/lib/auth/tokens";
 import { prisma } from "@/lib/db/prisma";
 
 // One generic error for every credential/lockout failure so that a locked
@@ -41,6 +37,7 @@ export async function POST(request: Request) {
         emailVerifiedAt: true,
         failedLoginCount: true,
         lockedUntil: true,
+        totpActivatedAt: true,
       },
     });
     const now = new Date();
@@ -98,36 +95,32 @@ export async function POST(request: Request) {
       throw new ApiError(403, "email_verification_required", "Verify your email address before signing in.");
     }
 
-    // Seed the active household so existing members are not sent to onboarding on
-    // every sign-in. Users with no household resolve to null and are onboarded.
-    const activeHouseholdId = await defaultHouseholdIdForUser(user.id);
-    const token = createSessionToken();
-    await prisma.$transaction(async (transaction) => {
-      await transaction.session.create({
+    // Second factor: a correct password is not a session when TOTP is active.
+    // Issue a short-lived challenge instead; the /api/auth/totp/challenge
+    // route completes the sign-in. Lockout state is intentionally NOT cleared
+    // here — only a fully completed sign-in clears it.
+    if (user.totpActivatedAt) {
+      const challengeToken = createOneTimeToken();
+      await prisma.totpChallenge.create({
         data: {
           userId: user.id,
-          tokenHash: hashSessionToken(token),
-          activeHouseholdId,
-          expiresAt: new Date(Date.now() + SESSION_TTL_SECONDS * 1000),
+          tokenHash: hashOneTimeToken(challengeToken),
+          expiresAt: new Date(Date.now() + TOTP_CHALLENGE_TTL_SECONDS * 1000),
         },
       });
-      // Clear any accumulated lockout state on a successful sign-in.
-      if (user.failedLoginCount > 0 || user.lockedUntil) {
-        await transaction.user.update({
-          where: { id: user.id },
-          data: { failedLoginCount: 0, lockedUntil: null },
-        });
-      }
-      await writeAuditEvent(transaction, {
-        userId: user.id,
-        action: "auth.signin",
-        resourceType: "Session",
-        ipAddress,
-      });
-    });
+      return Response.json({ totpRequired: true, challenge: challengeToken });
+    }
 
     const cookieStore = await cookies();
-    cookieStore.set(SESSION_COOKIE_NAME, token, sessionCookieOptions);
+    const { sessionToken, device } = await establishSession({
+      user,
+      ipAddress,
+      deviceToken: cookieStore.get(DEVICE_COOKIE_NAME)?.value ?? null,
+      userAgent: request.headers.get("user-agent"),
+      totpUsed: false,
+    });
+    cookieStore.set(SESSION_COOKIE_NAME, sessionToken, sessionCookieOptions);
+    cookieStore.set(DEVICE_COOKIE_NAME, device.deviceToken, deviceCookieOptions);
     return Response.json({ user: { id: user.id, email: user.email, displayName: user.displayName } });
   } catch (error) {
     return apiErrorResponse(error);

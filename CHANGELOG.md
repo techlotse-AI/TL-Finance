@@ -9,6 +9,34 @@ The detailed historical log for v0.1–v0.8 lives in
 
 ## [Unreleased]
 
+### Added
+
+- **Security — TOTP two-factor authentication (v0.9.7 capstone, gate 1a).**
+  RFC 6238 TOTP implemented dependency-free on Node `crypto` (HMAC-SHA1, 6
+  digits, 30 s steps) and golden-tested against the published RFC 4226/6238
+  vectors. Secrets are encrypted at rest (AES-256-GCM, versioned payload, new
+  required `TOTP_ENCRYPTION_KEY` env var) — the first reversible-encryption
+  use in the app; passwords and one-time tokens stay hashed. Enrollment is
+  two-phase (`/api/auth/totp/enroll` shows the secret + otpauth URI once;
+  `/activate` proves possession before anything is enforced) and returns ten
+  one-time recovery codes, stored sha256-hashed. Sign-in with TOTP active
+  returns a short-lived challenge instead of a session; the
+  `/api/auth/totp/challenge` route accepts a TOTP or recovery code, feeds
+  failures into the same escalating account lockout as wrong passwords, and
+  persists the accepted time-step so a captured code can never replay.
+  Disabling requires password + a current code; administrators get a
+  "Reset 2FA" recovery path mirroring account unlock (`auth.totp.admin_reset`).
+  All TOTP actions join the security-event review surface. Additive migration
+  `20260718000000_v0_9_7_totp_and_devices`.
+- **Security — new-device sign-in alert emails (v0.9.7 capstone, gate 1b).**
+  Devices are identified by a long-lived random httpOnly cookie stored only
+  hashed (no fingerprinting); a successful sign-in from an unknown device
+  records it and emails the account (existing SMTP path, best-effort — mail
+  failure never blocks sign-in) with time, device, and the
+  password-reset-revokes-all-sessions instruction. The account's first-ever
+  device is recorded silently so the post-signup sign-in doesn't train users
+  to ignore the alert. Audited as `auth.new_device`.
+
 ### Changed
 
 - **Docs — v1 plan realignment (2026-07-18).** `1.0.0-alpha.1` defined as a

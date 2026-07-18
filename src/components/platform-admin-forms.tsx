@@ -56,6 +56,19 @@ export function UserManagementForm({ users }: { users: ManagedUser[] }) {
     if (response.ok) router.refresh();
   }
 
+  async function resetTotp() {
+    const response = await fetch("/api/admin/users/reset-totp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: selectedId }),
+    });
+    const result = await response.json().catch(() => null) as { error?: { message?: string } } | null;
+    setMessage(response.ok
+      ? "Two-factor authentication reset. The user signs in with password only and can re-enroll."
+      : result?.error?.message ?? "Reset failed.");
+    if (response.ok) router.refresh();
+  }
+
   return (
     <Card className="p-5">
       <h2 className="font-semibold">User management</h2>
@@ -76,6 +89,7 @@ export function UserManagementForm({ users }: { users: ManagedUser[] }) {
         <div className="flex flex-wrap gap-2">
           <Button disabled={!selectedId} onClick={submit} type="button">Update user</Button>
           <Button disabled={!selectedId || !selected?.locked} onClick={unlock} type="button" variant="secondary">Unlock account</Button>
+          <Button disabled={!selectedId} onClick={resetTotp} type="button" variant="secondary" title="Recovery path when a user loses their authenticator and recovery codes">Reset 2FA</Button>
         </div>
       </div>
       {message ? <p className="mt-3 text-sm text-subdued" role="status">{message}</p> : null}

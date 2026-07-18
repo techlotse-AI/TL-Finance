@@ -9,6 +9,17 @@ The detailed historical log for v0.1–v0.8 lives in
 
 ## [Unreleased]
 
+### Changed
+
+- **Docs — v1 plan realignment (2026-07-18).** `1.0.0-alpha.1` defined as a
+  public self-host alpha, and the remaining milestones renumbered so milestone
+  numbers equal release tags: v0.9.5 unified planning dashboard → v0.9.6
+  future planning (#70, #41, inflation toggle, holdings imports pending real
+  fixtures) → v0.9.7 RC (TOTP 2FA + login alerts, self-host + user guides,
+  E2E checklist + restore rehearsal) → alpha. New
+  `docs/operations/E2E_CHECKLIST.md` manual release-gate checklist; loose ends
+  filed as issues #82–#88 under `post-v1` / `blocked-on-fixtures`.
+
 ## [0.9.4] - 2026-07-16 — "South Africa: FNB import"
 
 ### Added

@@ -201,15 +201,15 @@ idempotency test.
 
 ---
 
-## Forward plan — v0.9.6 → v0.9.8 (road to 1.0.0-alpha.1)
+## Shipped plan — original v0.9.1 → v0.9.5 milestones (historical)
 
-Three product tracks ran through the v0.9.1–v0.9.5 series — **Budget (proper
-UI in place)**, **Analyze (Revolut / UBS / FNB)**, and **Optimize (a full
-future-planning and tracking suite)** — bookended by a stabilization/security
-opener and a release-candidate hardening close. v0.9.1–v0.9.5 shipped (as
-tags `v0.9.3` and `v0.9.4`, above); v0.9.6–v0.9.8 remain. Every step must
-land the full gate green (`typecheck && lint && test && build`) and change
-nothing in a lower tier.
+Three product tracks ran through this series — **Budget (proper UI in
+place)**, **Analyze (Revolut / UBS / FNB)**, and **Optimize (a full
+future-planning and tracking suite)**. All five shipped, compressed into two
+tags (`v0.9.3` carried milestones v0.9.1–v0.9.4; `v0.9.4` carried milestone
+v0.9.5). The subsection numbers below are the *original milestone labels*,
+kept for history — **the remaining plan was renumbered on 2026-07-18 so that
+milestone numbers equal future tag numbers** (see "Release plan" below).
 
 ### v0.9.1 - Stabilize & secure (foundation) — shipped in v0.9.3
 
@@ -251,24 +251,81 @@ commit, and ZAR handling, wired into the import picker. Lay ZA country-profile
 groundwork (currency, date formats) and extend allocation rules and FX matching
 to ZAR flows.
 
-### v0.9.6 - Optimize — unified planning dashboard
+---
 
-Bring the existing engines (scenarios, income-protection emergency fund, Pillar
-3a, pensions & retirement readiness, debt payoff, net-worth, goals) into a
-single cohesive **Plan** dashboard with cross-links and a shared assumptions
-panel. Persist point-in-time net-worth snapshots to draw a net-worth trend, and
-surface goal-progress tracking alongside it. Optimize stays side-effect free.
+## Release plan — v0.9.5 → v0.9.7 → 1.0.0-alpha.1 (renumbered 2026-07-18)
 
-### v0.9.7 - Optimize — future-planning expansion
+**What 1.0.0-alpha.1 means (decided 2026-07-18): a public self-host alpha.**
+Strangers can `docker pull` and run TL-Finance for their own household; the
+documentation must stand alone, without the maintainer in the loop. Milestone
+numbers below equal the release tags that will carry them — the earlier
+milestone/tag drift ends here. Every release must land the full gate green
+(`typecheck && lint && test && build`) and change nothing in a lower tier.
 
-Add the FX currency-exposure report, an inflation / real-terms toggle across
-projections, and a tax-pack export. Add structured holdings imports
-(Frankly/VIAC, Saxo). Optional what-if overlays combining goals, debt, and
-retirement into a single projection.
+### v0.9.5 - Optimize — unified planning dashboard (formerly milestone v0.9.6)
 
-### v0.9.8 - Release candidate → 1.0.0-alpha.1 gateway
+Full scope, all of it release-blocking. Bring the existing engines (scenarios,
+income-protection emergency fund, Pillar 3a, pensions & retirement readiness,
+debt payoff, net-worth, goals) into a single cohesive **Plan** dashboard with
+cross-links and a shared assumptions panel. Persist point-in-time net-worth
+snapshots (additive migration — the first new table since `WealthPlan`) to
+draw a net-worth trend, and surface goal-progress tracking alongside it.
+Optimize stays side-effect free.
 
-End-to-end verification across Budget/Analyze/Optimize, a performance pass, and
-`docs/` consolidation. Prepare the alpha rename in `MIGRATION.md` (relax
-`version:check` for pre-release tags first). Ship the long-deferred **TOTP 2FA**
-and login alerts as the security capstone, then cut `1.0.0-alpha.1`.
+### v0.9.6 - Optimize — future planning (formerly milestone v0.9.7, rescoped)
+
+Release-blocking items only:
+
+- **De-risk glide path (#70)** — age-indexed return-rate schedule applied
+  through both `wealth-projection.ts` and `drawdown.ts` (additive
+  `deRiskSchedule` on the WealthPlan config JSON; closed-form drawdown falls
+  back to month-by-month simulation when a schedule is active).
+- **Investment purpose/horizon (#41)** — optional purpose on Goals (small
+  additive migration) and WealthPlans (JSON field), feeding sensible de-risk
+  defaults and recommendation tone.
+- **Inflation / real-terms toggle** — extend the wealth planner's real-terms
+  convention across all calculators as an explicit toggle.
+- **Structured holdings imports (Frankly/VIAC, Saxo)** — *dependency: the
+  owner supplies real sanitized statements; the two-real-fixture rule applies
+  exactly as it did for FNB.* If samples don't materialize in time, this item
+  moves to post-v1 rather than blocking the alpha on fabricated formats.
+
+Moved to post-v1 (below): FX currency-exposure report, tax-pack export,
+what-if overlays.
+
+### v0.9.7 - Release candidate → 1.0.0-alpha.1 (formerly milestone v0.9.8)
+
+The gates, decided 2026-07-18. All four block the alpha tag:
+
+1. **Security capstone:** TOTP 2FA and login/new-device email alerts.
+2. **Docs:** a **self-host guide** (docker-compose quickstart, env-var
+   reference, first-run onboarding, upgrade path, backup/restore walkthrough)
+   and an **end-user guide per tier** (plan a budget, import statements
+   including the FNB PDF, read the money-flow, run the calculators).
+3. **Verification:** the **manual E2E checklist**
+   (`docs/operations/E2E_CHECKLIST.md`) executed end-to-end on a real
+   deployment, and one full **backup → restore rehearsal** on the release
+   candidate.
+4. **Release mechanics:** the `MIGRATION.md` §2 alpha rename (`VERSION` →
+   `1.0.0-alpha.1`, pre-release tag publishes `:vX.Y.Z-alpha.N` + `:alpha`,
+   never `:latest`).
+
+Explicitly *not* gates (post-v1): automated browser E2E in CI, a numeric
+performance budget, an independent security review, progressive
+friction/CAPTCHA.
+
+---
+
+## Post-v1 backlog
+
+Deliberately after 1.0.0-alpha.1, in no committed order: FX currency-exposure
+report; tax-pack export; what-if overlays (goals+debt+retirement in one
+projection); ops/security runbook re-verification; contributor & parser guide
+(fixture rules, fail-closed discipline); automated browser E2E suite in CI;
+defined performance budget; independent security review; progressive
+friction/CAPTCHA; passkeys/WebAuthn; Monte Carlo mode in the wealth
+projection; salary-split full schedule override; remaining `docs/`
+consolidation. Fixture-blocked parser work (FNB CSV second sample, OFX
+validation against a real export, Zuger Kantonalbank / Standard Bank /
+Investec) is tracked as GitHub issues labeled `post-v1` /
+`blocked-on-fixtures`.

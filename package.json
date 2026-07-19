@@ -45,7 +45,7 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "4.3.2",
+    "@tailwindcss/postcss": "4.3.3",
     "@types/node": "26.1.1",
     "@types/nodemailer": "8.0.1",
     "@types/pg": "8.20.0",

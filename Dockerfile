@@ -6,14 +6,13 @@
 # either. BuildKit cache mounts keep `npm ci` fast across builds without
 # bloating any layer.
 #
-# The base tag is pinned to the multi-arch manifest-list digest: every npm
-# dependency is exact-pinned, so the OS layer must be too — otherwise the image
-# the Trivy gate scanned is not guaranteed to be the image the next build
-# produces. Dependabot (docker ecosystem) bumps the tag and digest together.
-# CI injects org.opencontainers.image.{revision,source,version} at publish;
-# the static identity labels below cover locally built images.
+# `apk upgrade` (below) re-patches the OS on every build regardless of the tag
+# it started from, and the release pipeline's Trivy gate scans the actual
+# image about to publish — so the base tag is left floating rather than
+# digest-pinned. CI injects org.opencontainers.image.{revision,source,version}
+# at publish; the static identity labels below cover locally built images.
 
-FROM node:26.5.0-alpine@sha256:e88a35be04478413b7c71c455cd9865de9b9360e1f43456be5951032d7ac1a66 AS base
+FROM node:26.5.0-alpine AS base
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 LABEL org.opencontainers.image.title="TL Finance" \

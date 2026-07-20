@@ -1,12 +1,23 @@
 # syntax=docker/dockerfile:1
 # Multi-stage build. The runner ships only Next.js standalone output (app + the
 # traced subset of node_modules), so the published image stays small; dev
-# dependencies and the full module tree never reach it. BuildKit cache mounts
-# keep `npm ci` fast across builds without bloating any layer.
+# dependencies and the full module tree never reach it. The migrator installs
+# with --omit=dev so the dev toolchain never reaches a credential-holding image
+# either. BuildKit cache mounts keep `npm ci` fast across builds without
+# bloating any layer.
+#
+# `apk upgrade` (below) re-patches the OS on every build regardless of the tag
+# it started from, and the release pipeline's Trivy gate scans the actual
+# image about to publish — so the base tag is left floating rather than
+# digest-pinned. CI injects org.opencontainers.image.{revision,source,version}
+# at publish; the static identity labels below cover locally built images.
 
 FROM node:26.5.0-alpine AS base
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
+LABEL org.opencontainers.image.title="TL Finance" \
+      org.opencontainers.image.description="Docker-first, privacy-focused, multi-currency household finance application" \
+      org.opencontainers.image.licenses="LicenseRef-Techlotse-Source-Available"
 # Patch OS packages once; reused by every downstream stage that derives from base.
 RUN apk upgrade --no-cache
 
@@ -24,9 +35,17 @@ COPY . .
 RUN npx prisma generate && npm run build
 
 # --- Migrator image (runs `prisma migrate deploy`) ---
-FROM dependencies AS migrator
+# Production dependencies only: the prisma CLI is a runtime dependency of this
+# image (which is why it lives in package.json `dependencies`, not dev), and
+# the dev toolchain must never ship in an image that holds database
+# credentials.
+FROM base AS migrator
 ENV NODE_ENV=production
 ENV HOME=/tmp
+COPY package.json package-lock.json* ./
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --global npm@11.16.0 \
+    && npm ci --omit=dev --no-audit --no-fund --prefer-offline
 COPY prisma ./prisma
 COPY prisma.config.ts ./
 COPY scripts/restore-platform-backup.mjs ./scripts/restore-platform-backup.mjs
@@ -35,15 +54,16 @@ USER node
 CMD ["./node_modules/.bin/prisma", "migrate", "deploy"]
 
 # --- Runtime image (minimal standalone server) ---
-FROM node:26.5.0-alpine AS runner
-WORKDIR /app
+FROM base AS runner
 ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
-RUN apk upgrade --no-cache \
-  && addgroup --system --gid 1001 nodejs \
+RUN addgroup --system --gid 1001 nodejs \
   && adduser --system --uid 1001 nextjs
+# `public` stays root-owned on purpose: it is read-only at runtime, and
+# root-owned files are immutable to the app user. `.next` is chowned because
+# Next.js writes its ISR/prerender cache there (same split as the official
+# Next.js Dockerfile).
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static

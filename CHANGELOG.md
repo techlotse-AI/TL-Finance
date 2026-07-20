@@ -39,6 +39,19 @@ The detailed historical log for v0.1–v0.8 lives in
 
 ### Changed
 
+- **Docker image hardening (#98).** The migrator image now installs with
+  `npm ci --omit=dev` (the `prisma` CLI moved from devDependencies to
+  `dependencies`, where it truthfully belongs as the migrator's runtime
+  tool; the runner is standalone-traced and unaffected) — previously the
+  credential-holding migrate image shipped the entire dev toolchain. The
+  runner stage now derives from `base`, deduplicating the OS-patch layer
+  and telemetry env so they cannot drift. Added static OCI identity labels
+  (CI already injects revision/source/version at publish), a comment
+  documenting the deliberate root-owned `public` vs chowned `.next`
+  ownership split, and a DEPLOYMENT.md note that bare `docker run` users
+  should pass `--init` (the shipped `compose.yaml` already sets
+  `init: true`).
+
 - **Docs — v1 plan realignment (2026-07-18).** `1.0.0-alpha.1` defined as a
   public self-host alpha, and the remaining milestones renumbered so milestone
   numbers equal release tags: v0.9.5 unified planning dashboard → v0.9.6

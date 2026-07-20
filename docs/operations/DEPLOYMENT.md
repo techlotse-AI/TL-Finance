@@ -3,8 +3,10 @@
 ## Cloud Compose deployment
 
 The primary `compose.yaml` is the supported single-instance cloud deployment.
-It contains no source-build instructions and pulls a matching versioned image
-pair from Docker Hub:
+It sets `init: true` on every service; if you run the images with bare
+`docker run` instead, pass `--init` so a proper PID 1 reaps child processes
+and forwards signals. It contains no source-build instructions and pulls a
+matching versioned image pair from Docker Hub:
 
 ```text
 techlotse/tl-finance:vX.Y.Z

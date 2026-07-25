@@ -11,6 +11,13 @@ The detailed historical log for v0.1–v0.8 lives in
 
 ### Added
 
+- **Goal and wealth-plan purpose (#41).** `FinancialGoal` and `WealthPlan`
+  configs gain an optional `purpose` (`GoalPurpose` enum — retirement, house
+  deposit, education, wealth building, other). Descriptive only: no Optimize
+  calculation reads it today, it just records *why* a goal or plan exists.
+  Additive migration `20260725082331_goal_purpose` on `FinancialGoal`; the
+  `WealthPlan` side lives in the existing Zod-validated `config` Json, so no
+  migration is needed there.
 - **Security — TOTP two-factor authentication (v0.9.7 capstone, gate 1a).**
   RFC 6238 TOTP implemented dependency-free on Node `crypto` (HMAC-SHA1, 6
   digits, 30 s steps) and golden-tested against the published RFC 4226/6238

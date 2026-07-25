@@ -58,6 +58,12 @@ the Budget planned money-flow graph.
   both the wealth-projection and drawdown views. All rates are real returns;
   results are recomputed from the stored configuration and never persisted.
   Migration: `20260711000000_v0_9_1_wealth_plans` (additive).
+- `FinancialGoal.purpose` and `WealthPlanConfig.purpose` (`GoalPurpose` enum —
+  RETIREMENT / HOUSE_DEPOSIT / EDUCATION / WEALTH_BUILDING / OTHER): optional,
+  descriptive only. No Optimize calculation reads it; it exists so a goal or
+  plan can record *why* it exists. Migration: `20260725082331_goal_purpose`
+  (additive, `FinancialGoal` only — the `WealthPlan` side lives in the
+  Zod-validated `config` Json, no migration).
 
 All four tables carry `householdId`, soft-delete (`active`/`deletedAt`), and are
 written through audited routes. Migrations:

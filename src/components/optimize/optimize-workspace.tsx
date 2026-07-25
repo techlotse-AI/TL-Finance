@@ -868,6 +868,14 @@ function NetWorthPanel({ currency }: { currency: string }) {
   );
 }
 
+const goalPurposeLabels: Record<string, string> = {
+  RETIREMENT: "Retirement",
+  HOUSE_DEPOSIT: "House deposit",
+  EDUCATION: "Education",
+  WEALTH_BUILDING: "Wealth building",
+  OTHER: "Other",
+};
+
 function goalTone(status: string): "success" | "warning" | "danger" {
   if (status === "reached" || status === "ahead" || status === "on_track") return "success";
   if (status === "no_target_date") return "warning";
@@ -889,6 +897,7 @@ function GoalsPanel({ currency }: { currency: string }) {
     setMessage(null);
     const targetDate = String(form.get("targetDate") ?? "");
     const planned = String(form.get("planned") ?? "");
+    const purpose = String(form.get("purpose") ?? "");
     const { ok, data: payload } = await postJson("/api/optimize/goals", {
       name: String(form.get("name") ?? ""),
       currency: String(form.get("gcurrency") ?? currency).toUpperCase(),
@@ -896,6 +905,7 @@ function GoalsPanel({ currency }: { currency: string }) {
       currentAmount: String(form.get("current") ?? "0"),
       targetDate: targetDate ? targetDate : null,
       plannedMonthlyContribution: planned ? planned : null,
+      purpose: purpose ? purpose : null,
     });
     if (!ok) { setMessage(payload?.error?.message ?? "Could not add goal."); return; }
     await load();
@@ -925,6 +935,14 @@ function GoalsPanel({ currency }: { currency: string }) {
             <Field label="Planned monthly"><input className={inputClass} name="planned" inputMode="decimal" placeholder="optional" /></Field>
           </div>
           <Field label="Target date (optional)"><input className={inputClass} name="targetDate" type="date" min={today} /></Field>
+          <Field label="Purpose (optional)">
+            <select className={inputClass} name="purpose" defaultValue="">
+              <option value="">— none —</option>
+              {Object.entries(goalPurposeLabels).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </Field>
           <Button type="submit">Add goal</Button>
         </form>
         {message ? <p className="mt-3 text-sm text-status-warning">{message}</p> : null}
@@ -945,7 +963,10 @@ function GoalsPanel({ currency }: { currency: string }) {
               {data.goals.map((goal: any) => (
                 <div key={goal.id ?? goal.name} className="rounded border p-3">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="font-medium">{goal.name}</div>
+                    <div className="font-medium">
+                      {goal.name}
+                      {goal.purpose ? <span className="ml-2 text-xs text-subdued">{goalPurposeLabels[goal.purpose] ?? goal.purpose}</span> : null}
+                    </div>
                     <div className="flex items-center gap-2">
                       <Badge tone={goalTone(goal.status) as any}>{String(goal.status).replace(/_/g, " ")}</Badge>
                       {goal.id ? <Button type="button" onClick={() => deleteGoal(goal.id)}>Delete</Button> : null}

@@ -101,6 +101,27 @@ describe("computeGoals — per-goal status", () => {
     expect(g.progressPercent).toBe(25);
   });
 
+  it("echoes purpose back unchanged and defaults to undefined when omitted", () => {
+    const withPurpose = single({
+      name: "House deposit",
+      currency: "CHF",
+      targetAmount: "50000",
+      currentAmount: "0",
+      monthsRemaining: 24,
+      purpose: "HOUSE_DEPOSIT",
+    });
+    expect(withPurpose.purpose).toBe("HOUSE_DEPOSIT");
+
+    const withoutPurpose = single({
+      name: "Rainy day",
+      currency: "CHF",
+      targetAmount: "5000",
+      currentAmount: "0",
+      monthsRemaining: 10,
+    });
+    expect(withoutPurpose.purpose).toBeUndefined();
+  });
+
   it("is unreachable when the date has passed and the goal is unmet", () => {
     const g = single({
       name: "Late goal",

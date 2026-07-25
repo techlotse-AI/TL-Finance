@@ -26,10 +26,12 @@ The authoritative schema is `prisma/schema.prisma`.
 ## Optimize
 
 - `Holding`, `HoldingLot`, `PensionVehicle`
-- `ScenarioComparison`, `FinancialGoal`
+- `ScenarioComparison`, `FinancialGoal` (`purpose`: optional `GoalPurpose`
+  enum — RETIREMENT / HOUSE_DEPOSIT / EDUCATION / WEALTH_BUILDING / OTHER —
+  descriptive only, no calculation reads it)
 - `WealthPlan` (v0.9.1 — shared wealth-planner configuration as Json,
-  validated against `wealthPlanConfigSchema` v1; results are always recomputed,
-  never persisted)
+  validated against `wealthPlanConfigSchema` v1, including the same optional
+  `purpose`; results are always recomputed, never persisted)
 
 All household-owned models carry `householdId`. Money uses
 `Decimal(18, 4)`. Percentage fractions use `Decimal(8, 6)`. Budget models do

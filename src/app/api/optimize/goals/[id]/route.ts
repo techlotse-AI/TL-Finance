@@ -24,6 +24,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           ...(input.plannedMonthlyContribution !== undefined
             ? { plannedMonthlyContribution: input.plannedMonthlyContribution }
             : {}),
+          ...(input.purpose !== undefined ? { purpose: input.purpose } : {}),
           ...(input.notes !== undefined ? { notes: input.notes } : {}),
         },
       });

@@ -45,6 +45,8 @@ export interface GoalInput {
   monthsRemaining: number | null;
   /** The saver's current planned monthly contribution, if any. */
   plannedMonthlyContribution?: string;
+  /** Why the goal exists; descriptive only, echoed back unchanged. */
+  purpose?: string | null;
 }
 
 export interface GoalResult {
@@ -61,6 +63,8 @@ export interface GoalResult {
   /** {@link requiredMonthlyContribution} rounded UP to the nearest step (never undershoots). */
   requiredMonthlyContributionRounded: string | null;
   plannedMonthlyContribution: string | null;
+  /** Why the goal exists; descriptive only, echoed back unchanged. */
+  purpose?: string | null;
   /** planned - required; positive is a surplus, negative a shortfall. null when no date. */
   monthlyShortfall: string | null;
   /** 0..100, current / target. */
@@ -154,6 +158,7 @@ function computeGoal(goal: GoalInput, toleranceUnits: number): GoalResult {
       requiredMonthlyContribution: "0.0000",
       requiredMonthlyContributionRounded: "0.0000",
       plannedMonthlyContribution: planned ? serializeMoney(planned) : null,
+      purpose: goal.purpose,
       monthlyShortfall: null,
       progressPercent,
       status: "reached",
@@ -188,6 +193,7 @@ function computeGoal(goal: GoalInput, toleranceUnits: number): GoalResult {
       requiredMonthlyContribution: null,
       requiredMonthlyContributionRounded: null,
       plannedMonthlyContribution: planned ? serializeMoney(planned) : null,
+      purpose: goal.purpose,
       monthlyShortfall: null,
       progressPercent,
       status: "no_target_date",
@@ -210,6 +216,7 @@ function computeGoal(goal: GoalInput, toleranceUnits: number): GoalResult {
       requiredMonthlyContribution: serializeMoney(remaining),
       requiredMonthlyContributionRounded: serializeMoney(ceilToStep(remaining, ROUNDING_STEP)),
       plannedMonthlyContribution: planned ? serializeMoney(planned) : null,
+      purpose: goal.purpose,
       monthlyShortfall: planned ? serializeMoney(planned.minus(remaining)) : serializeMoney(remaining.negated()),
       progressPercent,
       status: "unreachable",
@@ -257,6 +264,7 @@ function computeGoal(goal: GoalInput, toleranceUnits: number): GoalResult {
     requiredMonthlyContribution: serializeMoney(required),
     requiredMonthlyContributionRounded: serializeMoney(requiredRounded),
     plannedMonthlyContribution: planned ? serializeMoney(planned) : null,
+    purpose: goal.purpose,
     monthlyShortfall: monthlyShortfall ? serializeMoney(monthlyShortfall) : null,
     progressPercent,
     status,

@@ -34,6 +34,7 @@ export async function GET() {
       monthsRemaining: goal.targetDate ? monthsUntil(now, goal.targetDate) : null,
       plannedMonthlyContribution:
         goal.plannedMonthlyContribution !== null ? goal.plannedMonthlyContribution.toString() : undefined,
+      purpose: goal.purpose,
     }));
 
     const result = computeGoals({ reportingCurrency, rates, goals: goalInputs });
@@ -64,6 +65,7 @@ export async function POST(request: Request) {
           currentAmount: input.currentAmount ?? "0",
           targetDate: input.targetDate ?? null,
           plannedMonthlyContribution: input.plannedMonthlyContribution ?? null,
+          purpose: input.purpose ?? null,
           notes: input.notes ?? null,
         },
       });

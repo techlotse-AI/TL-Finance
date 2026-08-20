@@ -361,6 +361,11 @@ export type NetWorthRequest = z.infer<typeof netWorthSchema>;
 
 // --- v0.9.0 D2: financial goals / sinking funds ---
 
+/** Why the goal or plan exists; descriptive only, no calculation reads it. */
+export const goalPurposeValues = ["RETIREMENT", "HOUSE_DEPOSIT", "EDUCATION", "WEALTH_BUILDING", "OTHER"] as const;
+export const goalPurposeSchema = z.enum(goalPurposeValues);
+export type GoalPurpose = z.infer<typeof goalPurposeSchema>;
+
 export const goalCreateSchema = z.object({
   name: nameSchema.max(120),
   currency: currencySchema,
@@ -369,6 +374,7 @@ export const goalCreateSchema = z.object({
   // Target date as an ISO date string (YYYY-MM-DD); null/omitted = open-ended.
   targetDate: z.coerce.date().nullable().optional(),
   plannedMonthlyContribution: nonNegativeMoneySchema.nullable().optional(),
+  purpose: goalPurposeSchema.nullable().optional(),
   notes: z.string().trim().max(500).nullable().optional(),
 });
 
@@ -381,6 +387,7 @@ export const goalUpdateSchema = z
     currentAmount: nonNegativeMoneySchema.optional(),
     targetDate: z.coerce.date().nullable().optional(),
     plannedMonthlyContribution: nonNegativeMoneySchema.nullable().optional(),
+    purpose: goalPurposeSchema.nullable().optional(),
     notes: z.string().trim().max(500).nullable().optional(),
   })
   .refine((value) => Object.keys(value).length > 0, "Provide at least one field to update.");
@@ -446,6 +453,8 @@ export const wealthPlanConfigSchema = z
     currentAge: z.number().int().min(18).max(100),
     targetRetirementAge: z.number().int().min(30).max(100).default(65),
     initialBalance: nonNegativeMoneySchema,
+    /** Why the plan exists; descriptive only, no calculation reads it. */
+    purpose: goalPurposeSchema.nullable().optional(),
     schedule: contributionScheduleSchema,
     /** Real annual return rates for the projection chart (e.g. 0.04/0.05/0.07). */
     projectionRates: z.array(annualReturnRateSchema).min(1).max(6),

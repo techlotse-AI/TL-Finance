@@ -17,6 +17,15 @@ import type { WealthProjectionResult, WealthProjectionSeries } from "@/lib/optim
 
 const inputClass = "min-h-10 w-full rounded border bg-muted px-3 text-sm";
 
+/** Mirrors goalPurposeSchema in src/lib/optimize/schemas.ts. */
+const goalPurposeLabels: Record<string, string> = {
+  RETIREMENT: "Retirement",
+  HOUSE_DEPOSIT: "House deposit",
+  EDUCATION: "Education",
+  WEALTH_BUILDING: "Wealth building",
+  OTHER: "Other",
+};
+
 interface ScheduleRow {
   a: string;
   b: string;
@@ -153,6 +162,7 @@ export function WealthPlannerPanel({ currency }: { currency: string }) {
   const [currentAge, setCurrentAge] = useState("43");
   const [targetAge, setTargetAge] = useState("65");
   const [initialBalance, setInitialBalance] = useState("185000");
+  const [purpose, setPurpose] = useState("");
   const [baseMonthly, setBaseMonthly] = useState("4200");
   const [projectionRates, setProjectionRates] = useState("0.04, 0.05, 0.07");
   const [steps, setSteps] = useState<ScheduleRow[]>([]);
@@ -200,6 +210,7 @@ export function WealthPlannerPanel({ currency }: { currency: string }) {
       currentAge: Number(currentAge),
       targetRetirementAge: Number(targetAge),
       initialBalance: initialBalance || "0",
+      ...(purpose ? { purpose } : {}),
       schedule: schedulePayload(),
       projectionRates: parseRates(projectionRates),
       drawdown: {
@@ -299,6 +310,7 @@ export function WealthPlannerPanel({ currency }: { currency: string }) {
     setCurrentAge(String(config.currentAge));
     setTargetAge(String(config.targetRetirementAge));
     setInitialBalance(config.initialBalance);
+    setPurpose(config.purpose ?? "");
     setBaseMonthly(config.schedule.baseMonthly);
     setSteps(config.schedule.steps.map((row) => ({ a: String(row.fromMonth), b: row.monthlyAmount })));
     setLumps(config.schedule.annualLumpSums.map((row) => ({ a: String(row.monthOfYear), b: row.amount })));
@@ -349,6 +361,14 @@ export function WealthPlannerPanel({ currency }: { currency: string }) {
             </div>
             <Field label={`Initial balance (${currency})`}>
               <input className={inputClass} inputMode="decimal" value={initialBalance} onChange={(event) => setInitialBalance(event.target.value)} />
+            </Field>
+            <Field label="Purpose (optional)">
+              <select className={inputClass} value={purpose} onChange={(event) => setPurpose(event.target.value)}>
+                <option value="">— none —</option>
+                {Object.entries(goalPurposeLabels).map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
             </Field>
             <Field label={`Monthly contribution (${currency})`}>
               <input className={inputClass} inputMode="decimal" value={baseMonthly} onChange={(event) => setBaseMonthly(event.target.value)} />
@@ -480,10 +500,13 @@ export function WealthPlannerPanel({ currency }: { currency: string }) {
               <p className="text-xs text-subdued">No plans loaded. Saving stores the configuration, never results.</p>
             ) : (
               <ul className="space-y-1 text-sm">
-                {plans.map((plan) => (
+                {plans.map((plan) => {
+                  const planPurpose = (plan.config as ReturnType<typeof configPayload> | null)?.purpose;
+                  return (
                   <li className="flex items-center justify-between gap-2" key={plan.id}>
                     <button type="button" className="truncate text-left hover:underline" onClick={() => applyPlan(plan)}>
                       {plan.name}
+                      {planPurpose ? <span className="ml-2 text-xs text-subdued">{goalPurposeLabels[planPurpose] ?? planPurpose}</span> : null}
                     </button>
                     <button
                       type="button"
@@ -494,7 +517,8 @@ export function WealthPlannerPanel({ currency }: { currency: string }) {
                       ✕
                     </button>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             )}
           </Card>

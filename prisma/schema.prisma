@@ -66,6 +66,14 @@ enum IncomeAllocationMethod {
   PERCENTAGE
 }
 
+enum GoalPurpose {
+  RETIREMENT
+  HOUSE_DEPOSIT
+  EDUCATION
+  WEALTH_BUILDING
+  OTHER
+}
+
 enum StatementInstitution {
   UBS
   REVOLUT
@@ -770,6 +778,9 @@ model FinancialGoal {
   targetDate                 DateTime? @db.Date
   // The saver's current planned monthly contribution, if any.
   plannedMonthlyContribution Decimal?  @db.Decimal(18, 4)
+  // Why the goal exists (e.g. retirement, house deposit); descriptive only,
+  // no calculation reads it. Null means unspecified.
+  purpose                    GoalPurpose?
   notes                      String?
   active                     Boolean   @default(true)
   deletedAt                  DateTime?

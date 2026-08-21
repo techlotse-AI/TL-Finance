@@ -9,3 +9,6 @@ dist/
 *.tsbuildinfo
 .DS_Store
 prisma/dev.db
+
+# Local sample statements (real bank data lives here locally; never commit)
+samples/

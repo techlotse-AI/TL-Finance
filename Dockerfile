@@ -25,7 +25,7 @@ RUN apk upgrade --no-cache
 FROM base AS dependencies
 COPY package.json package-lock.json* ./
 RUN --mount=type=cache,target=/root/.npm \
-    npm install --global npm@11.16.0 \
+    npm install --global npm@11.19.0 \
     && npm ci --no-audit --no-fund --prefer-offline
 
 # --- Build the application ---
@@ -44,12 +44,18 @@ ENV NODE_ENV=production
 ENV HOME=/tmp
 COPY package.json package-lock.json* ./
 RUN --mount=type=cache,target=/root/.npm \
-    npm install --global npm@11.16.0 \
+    npm install --global npm@11.19.0 \
     && npm ci --omit=dev --no-audit --no-fund --prefer-offline
 COPY prisma ./prisma
 COPY prisma.config.ts ./
 COPY scripts/restore-platform-backup.mjs ./scripts/restore-platform-backup.mjs
-RUN npx prisma generate
+# npm/npx are build-time only here — the CMD calls the prisma binary directly,
+# so drop the bundled package managers (npm, corepack, yarn) and their vendored
+# dependencies (node-tar & co.) from the shipped layers; they only feed CVE
+# scans on an image that never runs them.
+RUN npx prisma generate \
+  && rm -rf /usr/local/lib/node_modules /usr/local/bin/npm /usr/local/bin/npx \
+    /usr/local/bin/corepack /usr/local/bin/yarn /usr/local/bin/yarnpkg /opt/yarn*
 USER node
 CMD ["./node_modules/.bin/prisma", "migrate", "deploy"]
 
@@ -60,6 +66,11 @@ ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 RUN addgroup --system --gid 1001 nodejs \
   && adduser --system --uid 1001 nextjs
+# The runtime needs only `node` — drop the base image's bundled package
+# managers (npm, corepack, yarn); their vendored dependencies (node-tar & co.)
+# otherwise surface in the Trivy gate on an image that never runs them.
+RUN rm -rf /usr/local/lib/node_modules /usr/local/bin/npm /usr/local/bin/npx \
+  /usr/local/bin/corepack /usr/local/bin/yarn /usr/local/bin/yarnpkg /opt/yarn*
 # `public` stays root-owned on purpose: it is read-only at runtime, and
 # root-owned files are immutable to the app user. `.next` is chowned because
 # Next.js writes its ISR/prerender cache there (same split as the official

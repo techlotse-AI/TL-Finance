@@ -9,6 +9,18 @@ The detailed historical log for v0.1–v0.8 lives in
 
 ## [Unreleased]
 
+### Security
+
+- **Container CVE remediation (#110).** Cleared the Trivy gate's 1 Critical
+  (node-tar gzip-bomb DoS, CVE-2026-59873) and 12 High findings on the nightly
+  images. npm `overrides` now force patched transitive versions
+  (`brace-expansion`, `deepmerge-ts` 8, `fast-uri`, `find-my-way`, `js-yaml`
+  4.3.1, `nanoid`); the Dockerfile pins build-stage npm at 11.19.0 and strips
+  the bundled package managers (npm/corepack/yarn) from the runner and
+  migrator layers — those images only ever run `node`/the prisma binary, so
+  the managers' vendored dependencies (node-tar & co.) no longer ship or feed
+  CVE scans. `npm audit`: 0 critical / 0 high remaining.
+
 ### Added
 
 - **Goal and wealth-plan purpose (#41).** `FinancialGoal` and `WealthPlan`

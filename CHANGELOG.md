@@ -9,6 +9,19 @@ The detailed historical log for v0.1–v0.8 lives in
 
 ## [Unreleased]
 
+### Added
+
+- **Investec CCM statement parser (#86).** `investec-ccm` parses the Investec
+  Corporate Cash Manager "Account statement / Tax invoice" PDF
+  (production-ready: two sanitized fixtures from eight real statements, all
+  eight reconciling opening→closing through the running-balance chain, which
+  is also how row signs are derived — the printed Debit/Credit columns
+  collapse in PDF text extraction). Detection sniffs Investec's
+  statement-generator marker in the PDF's uncompressed metadata so two PDF
+  parsers never tie in the registry (FNB keeps its blanket 0.6 claim).
+  Password-protected PDFs (Investec's emailed default) now fail with an
+  actionable message instead of PDF.js's raw "No password given".
+
 ### Security
 
 - **Container CVE remediation (#110).** Cleared the Trivy gate's 1 Critical

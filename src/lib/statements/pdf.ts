@@ -24,7 +24,18 @@ export function looksLikePdf(content: Uint8Array): boolean {
 
 /** Extracts all pages' text, merged into one string in reading order. */
 export async function extractPdfText(content: Uint8Array): Promise<string> {
-  const pdf = await getDocumentProxy(content);
+  let pdf;
+  try {
+    pdf = await getDocumentProxy(content);
+  } catch (error) {
+    // Some banks (observed: Investec's emailed statements) password-protect
+    // their PDFs; surface an actionable message instead of PDF.js's raw
+    // "No password given".
+    if (error instanceof Error && error.name === "PasswordException") {
+      throw new Error("This PDF is password-protected. Remove the password (or download an unprotected copy from your bank) and upload it again.");
+    }
+    throw error;
+  }
   const { text } = await extractText(pdf, { mergePages: true });
   return text;
 }

@@ -2,6 +2,7 @@ import { listStatementParsers, registerStatementParser } from "@/lib/statements/
 import { fnbCurrentAccountParser } from "@/lib/statements/parsers/fnb-current-account";
 import { fnbTransactionHistoryParser } from "@/lib/statements/parsers/fnb-transaction-history";
 import { genericCsvParser } from "@/lib/statements/parsers/generic-csv";
+import { investecCcmParser } from "@/lib/statements/parsers/investec-ccm";
 import { revolutParser } from "@/lib/statements/parsers/revolut";
 import { ubsAccountParser } from "@/lib/statements/parsers/ubs-account";
 import { ubsCardParser } from "@/lib/statements/parsers/ubs-card";
@@ -48,6 +49,12 @@ export const parserCatalog: ParserCatalogEntry[] = [
     label: "FNB Private Clients Current Account statement (PDF)",
     productionReady: true,
     templateHint: "The \"Tax Invoice/Statement\" PDF from FNB online banking or emailed statements. ZAR only.",
+  },
+  {
+    parser: investecCcmParser,
+    label: "Investec Corporate Cash Manager statement (PDF)",
+    productionReady: true,
+    templateHint: "The CCM \"Account statement / Tax invoice\" PDF. Emailed copies are password-protected — decrypt first or download an unprotected copy.",
   },
   {
     parser: fnbTransactionHistoryParser,

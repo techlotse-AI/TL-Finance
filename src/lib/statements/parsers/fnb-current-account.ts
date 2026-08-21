@@ -142,9 +142,11 @@ export const fnbCurrentAccountParser: StatementParser = {
     if (!looksLikePdf(input.content)) {
       return { confidence: 0, reasons: ["not a PDF"] };
     }
-    // No other registered parser reads PDF content, so this is unambiguous at
-    // detection time; parse() confirms the FNB-specific markers and throws a
-    // clear error if this turns out to be some other institution's PDF.
+    // The default claim on PDF content. The Investec parser outranks this at
+    // 0.7 when its byte-level metadata marker is present (a tie would read as
+    // no detection to the registry); parse() confirms the FNB-specific
+    // markers and throws a clear error if this turns out to be some other
+    // institution's PDF.
     return { confidence: 0.6, reasons: ["PDF content"] };
   },
 

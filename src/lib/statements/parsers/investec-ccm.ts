@@ -167,11 +167,14 @@ export function parseInvestecCcmText(text: string): InvestecParsedStatement {
   return { accountNumber, currency, openingBalance, closingBalance, rows, warnings };
 }
 
-/** Case-insensitive raw-byte sniff for the DocFusion creator marker (detect() cannot await text extraction). */
+/**
+ * Case-insensitive raw-byte sniff for the DocFusion creator marker (detect()
+ * cannot await text extraction). Decoded in one pass — detect() runs
+ * synchronously on upload, so no per-byte string building. latin1's
+ * byte-to-char mapping is identity for the ASCII range both markers live in.
+ */
 function hasInvestecCreatorMarker(content: Uint8Array): boolean {
-  let source = "";
-  for (let index = 0; index < content.length; index += 1) source += String.fromCharCode(content[index]);
-  const lowered = source.toLowerCase();
+  const lowered = new TextDecoder("latin1").decode(content).toLowerCase();
   return lowered.includes(CREATOR_MARKER_HEX) || lowered.includes(CREATOR_MARKER_ASCII);
 }
 

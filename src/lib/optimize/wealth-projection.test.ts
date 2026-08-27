@@ -166,6 +166,53 @@ describe("projectWealth", () => {
     });
     expect(result.horizonMonths).toBe(264);
   });
+
+  it("applies an optional de-risk glide path through the projection horizon", () => {
+    const fixed = projectWealth({
+      currency: "CHF",
+      currentAge: 60,
+      targetAge: 65,
+      initialBalance: "100000",
+      schedule: { baseMonthly: "0" },
+      annualReturnRates: ["0.07"],
+    });
+    const linear = projectWealth({
+      currency: "CHF",
+      currentAge: 60,
+      targetAge: 65,
+      initialBalance: "100000",
+      schedule: { baseMonthly: "0" },
+      annualReturnRates: ["0.07"],
+      deRiskSchedule: {
+        startAge: 60,
+        startAnnualReturnRate: "0.07",
+        endAge: 63,
+        endAnnualReturnRate: "0.02",
+        interpolationMode: "linear",
+      },
+    });
+    const step = projectWealth({
+      currency: "CHF",
+      currentAge: 60,
+      targetAge: 65,
+      initialBalance: "100000",
+      schedule: { baseMonthly: "0" },
+      annualReturnRates: ["0.07"],
+      deRiskSchedule: {
+        startAge: 60,
+        startAnnualReturnRate: "0.07",
+        endAge: 63,
+        endAnnualReturnRate: "0.02",
+        interpolationMode: "step",
+      },
+    });
+
+    expectWithinHalfPercent(fixed.series[0]!.endingBalance, "140255");
+    expectWithinHalfPercent(step.series[0]!.endingBalance, "127453");
+    expectWithinHalfPercent(linear.series[0]!.endingBalance, "118930");
+    expect(new Decimal(step.series[0]!.endingBalance).lessThan(fixed.series[0]!.endingBalance)).toBe(true);
+    expect(new Decimal(step.series[0]!.endingBalance).greaterThan(linear.series[0]!.endingBalance)).toBe(true);
+  });
 });
 
 describe("wealthProjectionRequestSchema", () => {
@@ -225,6 +272,43 @@ describe("wealthProjectionRequestSchema", () => {
         initialBalance: "0",
         schedule: { baseMonthly: "100" },
         annualReturnRates: ["0.05"],
+      }),
+    ).toThrow();
+  });
+
+  it("accepts optional de-risk schedules and rejects non-de-risking ones", () => {
+    expect(() =>
+      wealthProjectionRequestSchema.parse({
+        currency: "CHF",
+        currentAge: 43,
+        targetAge: 65,
+        initialBalance: "0",
+        schedule: { baseMonthly: "100" },
+        annualReturnRates: ["0.05"],
+        deRiskSchedule: {
+          startAge: 55,
+          startAnnualReturnRate: "0.05",
+          endAge: 65,
+          endAnnualReturnRate: "0.02",
+          interpolationMode: "step",
+        },
+      }),
+    ).not.toThrow();
+    expect(() =>
+      wealthProjectionRequestSchema.parse({
+        currency: "CHF",
+        currentAge: 43,
+        targetAge: 65,
+        initialBalance: "0",
+        schedule: { baseMonthly: "100" },
+        annualReturnRates: ["0.05"],
+        deRiskSchedule: {
+          startAge: 65,
+          startAnnualReturnRate: "0.02",
+          endAge: 55,
+          endAnnualReturnRate: "0.05",
+          interpolationMode: "linear",
+        },
       }),
     ).toThrow();
   });

@@ -26,6 +26,35 @@ const annualReturnRateSchema = z
     }
   }, "Annual return must be greater than -1 and at most 1.");
 
+const deRiskInterpolationModeSchema = z.enum(["linear", "step"]);
+
+export const deRiskScheduleSchema = z
+  .object({
+    startAge: z.number().int().min(18).max(120),
+    startAnnualReturnRate: annualReturnRateSchema,
+    endAge: z.number().int().min(18).max(120),
+    endAnnualReturnRate: annualReturnRateSchema,
+    interpolationMode: deRiskInterpolationModeSchema,
+  })
+  .superRefine((value, context) => {
+    if (value.endAge <= value.startAge) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "De-risk end age must be greater than the start age.",
+        path: ["endAge"],
+      });
+    }
+    if (money(value.endAnnualReturnRate).greaterThan(money(value.startAnnualReturnRate))) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "De-risk end return must be less than or equal to the start return.",
+        path: ["endAnnualReturnRate"],
+      });
+    }
+  });
+
+export type DeRiskSchedule = z.infer<typeof deRiskScheduleSchema>;
+
 const fractionSchema = z
   .string()
   .trim()
@@ -456,6 +485,7 @@ export const wealthPlanConfigSchema = z
     /** Why the plan exists; descriptive only, no calculation reads it. */
     purpose: goalPurposeSchema.nullable().optional(),
     schedule: contributionScheduleSchema,
+    deRiskSchedule: deRiskScheduleSchema.optional(),
     /** Real annual return rates for the projection chart (e.g. 0.04/0.05/0.07). */
     projectionRates: z.array(annualReturnRateSchema).min(1).max(6),
     drawdown: z.object({
@@ -494,6 +524,7 @@ export const wealthProjectionRequestSchema = z
     initialBalance: nonNegativeMoneySchema,
     schedule: contributionScheduleSchema,
     annualReturnRates: z.array(annualReturnRateSchema).min(1).max(6),
+    deRiskSchedule: deRiskScheduleSchema.optional(),
     /** Lever scenarios compared against the baseline (same rates). */
     levers: z
       .array(
@@ -548,6 +579,7 @@ export const drawdownRequestSchema = z
     startingCapital: nonNegativeMoneySchema,
     startAge: z.number().int().min(40).max(100),
     annualReturnRates: z.array(annualReturnRateSchema).min(1).max(6),
+    deRiskSchedule: deRiskScheduleSchema.optional(),
     depleteAtAges: z.array(z.number().int().min(41).max(120)).min(1).max(4),
     /** Fixed-expense mode: monthly draw whose depletion age is computed. */
     monthlyExpense: positiveAmountSchema.optional(),

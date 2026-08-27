@@ -135,6 +135,55 @@ describe("computeDrawdown", () => {
       foreverDisplayCapAge: 120,
     });
   });
+
+  it("applies a de-risk glide path to fixed-horizon, endowment, and fixed-expense drawdown", () => {
+    const fixed = computeDrawdown({
+      currency: "CHF",
+      startingCapital: "120000",
+      startAge: 65,
+      annualReturnRates: ["0.05"],
+      depleteAtAges: [85],
+      monthlyExpense: "650",
+    });
+    const linear = computeDrawdown({
+      currency: "CHF",
+      startingCapital: "120000",
+      startAge: 65,
+      annualReturnRates: ["0.05"],
+      deRiskSchedule: {
+        startAge: 65,
+        startAnnualReturnRate: "0.05",
+        endAge: 75,
+        endAnnualReturnRate: "0.02",
+        interpolationMode: "linear",
+      },
+      depleteAtAges: [85],
+      monthlyExpense: "650",
+    });
+    const step = computeDrawdown({
+      currency: "CHF",
+      startingCapital: "120000",
+      startAge: 65,
+      annualReturnRates: ["0.05"],
+      deRiskSchedule: {
+        startAge: 65,
+        startAnnualReturnRate: "0.05",
+        endAge: 75,
+        endAnnualReturnRate: "0.02",
+        interpolationMode: "step",
+      },
+      depleteAtAges: [85],
+      monthlyExpense: "650",
+    });
+
+    expectWithinHalfPercent(fixed.byRate[0]!.depleteBy[0]!.monthlyDraw, "785");
+    expectWithinHalfPercent(step.byRate[0]!.depleteBy[0]!.monthlyDraw, "743");
+    expectWithinHalfPercent(linear.byRate[0]!.depleteBy[0]!.monthlyDraw, "682");
+    expectWithinHalfPercent(fixed.byRate[0]!.endowmentMonthlyDraw, "489");
+    expectWithinHalfPercent(linear.byRate[0]!.endowmentMonthlyDraw, "198");
+    expect(linear.byRate[0]!.fixedExpense!.depletionAge).toBeLessThan(fixed.byRate[0]!.fixedExpense!.depletionAge!);
+    expect(step.byRate[0]!.fixedExpense!.depletionAge).toBeGreaterThan(linear.byRate[0]!.fixedExpense!.depletionAge!);
+  });
 });
 
 describe("drawdownRequestSchema", () => {
@@ -155,6 +204,41 @@ describe("drawdownRequestSchema", () => {
         startAge: 65,
         annualReturnRates: ["0.03"],
         depleteAtAges: [85, 85],
+      }),
+    ).toThrow();
+  });
+
+  it("validates optional de-risk schedules", () => {
+    expect(() =>
+      drawdownRequestSchema.parse({
+        currency: "CHF",
+        startingCapital: "1000000",
+        startAge: 65,
+        annualReturnRates: ["0.03"],
+        deRiskSchedule: {
+          startAge: 65,
+          startAnnualReturnRate: "0.04",
+          endAge: 75,
+          endAnnualReturnRate: "0.02",
+          interpolationMode: "linear",
+        },
+        depleteAtAges: [85],
+      }),
+    ).not.toThrow();
+    expect(() =>
+      drawdownRequestSchema.parse({
+        currency: "CHF",
+        startingCapital: "1000000",
+        startAge: 65,
+        annualReturnRates: ["0.03"],
+        deRiskSchedule: {
+          startAge: 65,
+          startAnnualReturnRate: "0.02",
+          endAge: 75,
+          endAnnualReturnRate: "0.04",
+          interpolationMode: "linear",
+        },
+        depleteAtAges: [85],
       }),
     ).toThrow();
   });

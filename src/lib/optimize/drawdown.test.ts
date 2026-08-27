@@ -241,5 +241,21 @@ describe("drawdownRequestSchema", () => {
         depleteAtAges: [85],
       }),
     ).toThrow();
+    expect(() =>
+      drawdownRequestSchema.parse({
+        currency: "CHF",
+        startingCapital: "1000000",
+        startAge: 65,
+        annualReturnRates: ["0.01"],
+        deRiskSchedule: {
+          startAge: 70,
+          startAnnualReturnRate: "0.04",
+          endAge: 75,
+          endAnnualReturnRate: "0.02",
+          interpolationMode: "linear",
+        },
+        depleteAtAges: [85],
+      }),
+    ).toThrow();
   });
 });

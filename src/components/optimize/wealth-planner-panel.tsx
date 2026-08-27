@@ -220,6 +220,7 @@ export function WealthPlannerPanel({ currency }: { currency: string }) {
   }
 
   function configPayload() {
+    const deRisk = deRiskPayload();
     return {
       version: 1,
       currentAge: Number(currentAge),
@@ -227,7 +228,7 @@ export function WealthPlannerPanel({ currency }: { currency: string }) {
       initialBalance: initialBalance || "0",
       ...(purpose ? { purpose } : {}),
       schedule: schedulePayload(),
-      ...(deRiskPayload() ? { deRiskSchedule: deRiskPayload() } : {}),
+      ...(deRisk ? { deRiskSchedule: deRisk } : {}),
       projectionRates: parseRates(projectionRates),
       drawdown: {
         annualReturnRates: parseRates(drawdownRates),
@@ -254,6 +255,7 @@ export function WealthPlannerPanel({ currency }: { currency: string }) {
 
   async function runProjection() {
     setMessage(null);
+    const deRisk = deRiskPayload();
     const { ok, data } = await requestJson("/api/optimize/wealth/projection", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -264,7 +266,7 @@ export function WealthPlannerPanel({ currency }: { currency: string }) {
         initialBalance: initialBalance || "0",
         schedule: schedulePayload(),
         annualReturnRates: parseRates(projectionRates),
-        ...(deRiskPayload() ? { deRiskSchedule: deRiskPayload() } : {}),
+        ...(deRisk ? { deRiskSchedule: deRisk } : {}),
         ...(levers.some((lever) => lever.name)
           ? {
               levers: levers
@@ -289,6 +291,7 @@ export function WealthPlannerPanel({ currency }: { currency: string }) {
 
   async function runDrawdown() {
     setMessage(null);
+    const deRisk = deRiskPayload();
     const { ok, data } = await requestJson("/api/optimize/wealth/drawdown", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -297,7 +300,7 @@ export function WealthPlannerPanel({ currency }: { currency: string }) {
         startingCapital: startingCapital || "0",
         startAge: Number(targetAge),
         annualReturnRates: parseRates(drawdownRates),
-        ...(deRiskPayload() ? { deRiskSchedule: deRiskPayload() } : {}),
+        ...(deRisk ? { deRiskSchedule: deRisk } : {}),
         depleteAtAges: parseAges(depleteAges),
         ...(monthlyExpense ? { monthlyExpense } : {}),
       }),

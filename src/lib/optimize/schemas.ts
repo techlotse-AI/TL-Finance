@@ -55,6 +55,35 @@ export const deRiskScheduleSchema = z
 
 export type DeRiskSchedule = z.infer<typeof deRiskScheduleSchema>;
 
+function validateFallbackRatesAgainstDeRiskStart({
+  context,
+  path,
+  fallbackAnnualReturnRates,
+  startAge,
+  deRiskSchedule,
+}: {
+  context: z.RefinementCtx;
+  path: (string | number)[];
+  fallbackAnnualReturnRates: string[];
+  startAge: number;
+  deRiskSchedule?: DeRiskSchedule;
+}) {
+  if (!deRiskSchedule || deRiskSchedule.startAge <= startAge) {
+    return;
+  }
+  const glideStartRate = money(deRiskSchedule.startAnnualReturnRate);
+  fallbackAnnualReturnRates.forEach((rate, index) => {
+    if (money(rate).lessThan(glideStartRate)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "Fallback return rates before the de-risk schedule starts must be greater than or equal to the glide-path start return.",
+        path: [...path, index],
+      });
+    }
+  });
+}
+
 const fractionSchema = z
   .string()
   .trim()
@@ -512,6 +541,20 @@ export const wealthPlanConfigSchema = z
         });
       }
     }
+    validateFallbackRatesAgainstDeRiskStart({
+      context,
+      path: ["projectionRates"],
+      fallbackAnnualReturnRates: value.projectionRates,
+      startAge: value.currentAge,
+      deRiskSchedule: value.deRiskSchedule,
+    });
+    validateFallbackRatesAgainstDeRiskStart({
+      context,
+      path: ["drawdown", "annualReturnRates"],
+      fallbackAnnualReturnRates: value.drawdown.annualReturnRates,
+      startAge: value.targetRetirementAge,
+      deRiskSchedule: value.deRiskSchedule,
+    });
   });
 
 export type WealthPlanConfig = z.infer<typeof wealthPlanConfigSchema>;
@@ -569,6 +612,13 @@ export const wealthProjectionRequestSchema = z
         });
       }
     }
+    validateFallbackRatesAgainstDeRiskStart({
+      context,
+      path: ["annualReturnRates"],
+      fallbackAnnualReturnRates: value.annualReturnRates,
+      startAge: value.currentAge,
+      deRiskSchedule: value.deRiskSchedule,
+    });
   });
 
 export type WealthProjectionRequest = z.infer<typeof wealthProjectionRequestSchema>;
@@ -601,6 +651,13 @@ export const drawdownRequestSchema = z
         path: ["depleteAtAges"],
       });
     }
+    validateFallbackRatesAgainstDeRiskStart({
+      context,
+      path: ["annualReturnRates"],
+      fallbackAnnualReturnRates: value.annualReturnRates,
+      startAge: value.startAge,
+      deRiskSchedule: value.deRiskSchedule,
+    });
   });
 
 export type DrawdownRequest = z.infer<typeof drawdownRequestSchema>;

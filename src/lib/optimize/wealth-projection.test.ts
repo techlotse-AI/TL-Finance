@@ -311,5 +311,22 @@ describe("wealthProjectionRequestSchema", () => {
         },
       }),
     ).toThrow();
+    expect(() =>
+      wealthProjectionRequestSchema.parse({
+        currency: "CHF",
+        currentAge: 43,
+        targetAge: 65,
+        initialBalance: "0",
+        schedule: { baseMonthly: "100" },
+        annualReturnRates: ["0.01"],
+        deRiskSchedule: {
+          startAge: 55,
+          startAnnualReturnRate: "0.05",
+          endAge: 65,
+          endAnnualReturnRate: "0.02",
+          interpolationMode: "linear",
+        },
+      }),
+    ).toThrow();
   });
 });

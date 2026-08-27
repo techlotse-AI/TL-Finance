@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Optimize: the wealth planner now supports an optional de-risk glide path on
+  saved plans and ad-hoc projection/drawdown requests. A schedule can reduce
+  the real return assumption from a start age/rate to an end age/rate using a
+  linear or step transition, and drawdown now switches to month-by-month
+  simulation when that schedule is active so fixed-horizon and fixed-expense
+  results stay consistent with the glide path.
+
 ## v0.8.8 - 2026-06-26
 
 - Security/CI: documented and suppressed the non-reachable undici WebSocket-client

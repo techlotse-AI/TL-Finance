@@ -42,7 +42,7 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "recharts": "3.9.2",
-    "unpdf": "1.6.2",
+    "unpdf": "1.8.1",
     "zod": "4.4.3"
   },
   "devDependencies": {

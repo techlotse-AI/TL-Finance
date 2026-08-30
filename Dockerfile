@@ -12,7 +12,7 @@
 # digest-pinned. CI injects org.opencontainers.image.{revision,source,version}
 # at publish; the static identity labels below cover locally built images.
 
-FROM node:26.7.0-alpine AS base
+FROM node:26.8.1-alpine AS base
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 LABEL org.opencontainers.image.title="TL Finance" \

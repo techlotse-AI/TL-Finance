@@ -9,6 +9,37 @@ The detailed historical log for v0.1–v0.8 lives in
 
 ## [Unreleased]
 
+### Security
+
+- **September dependency CVE sweep (#137).** Evaluated every open Dependabot
+  PR against `npm audit`/GHSA advisories and applied the ones that closed a
+  real vulnerability, beyond what the individual Dependabot PRs offered:
+  - `next` 16.3.1 → 16.3.5 (GHSA-p293-qw3h-jr36, unauthenticated RCE on
+    Windows-hosted servers; GHSA-2xp9-vwfh-vxw4, unauthenticated RCE in the
+    Image Optimization API for AVIF — both Critical). The open Dependabot PR
+    only targeted 16.3.3, the minimum patched version; went to the latest
+    16.3.x patch instead.
+  - `nodemailer` 9.0.5 → 9.1.1 (GHSA-8m3c-c648-2xjj, GHSA-wmmp-3585-3rmp,
+    GHSA-2x7j-588g-ccc2 quadratic-time `addressparser` DoS, GHSA-cc9r-2j5m-2m83
+    — High/Moderate). The open Dependabot PR only targeted 9.0.6, which
+    predates all four fixes.
+  - `overrides.fast-uri` 3.1.5 → 3.1.7 and `overrides.js-yaml` 4.3.1 → 4.3.2:
+    the versions pinned by the prior CVE sweep (#110) sat at the top of the
+    still-vulnerable range for four newer High advisories (SSRF/host-confusion
+    in `fast-uri` via `ajv`; unbounded merge-key CPU use in `js-yaml` via
+    `eslint`'s `@eslint/eslintrc`).
+  - Added `overrides.mysql2` pinned to 3.24.4 (was 3.15.3, bundled
+    transitively by `prisma`'s dev CLI for MySQL-driver support, which this
+    Postgres-only app never loads) to clear GHSA-3f6p-5ww8-9rcr (auth-plugin
+    downgrade leaking plaintext credentials) and GHSA-rgwj-5xj2-c3m3
+    (decompression-bomb DoS), both High.
+  - Left the other open Dependabot PRs (`lucide-react`, `@types/node`,
+    `@aws-sdk/client-s3`, `unpdf`, `pg`/`@types/pg`, routine `prisma`/
+    `@prisma/client`/`eslint-config-next` patch bumps, and the
+    `node:26.7.0-alpine` → `26.8-alpine` base image bump) untouched: none of
+    them close a flagged advisory (`npm audit`: 0 vulnerabilities after this
+    sweep, down from 1 Critical / 5 High / 1 Moderate).
+
 ### Added
 
 - **Investec CCM statement parser (#86).** `investec-ccm` parses the Investec

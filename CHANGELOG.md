@@ -71,6 +71,15 @@ The detailed historical log for v0.1–v0.8 lives in
 
 ### Changed
 
+- **Documentation cleanup.** Historical roadmap prose, the improvement-roadmap
+  proposal, the daily briefings, the v0.1 and v0.3/v0.4 status reports,
+  `BUILD_PROMPT.md` and `MIGRATION.md` are folded into a short
+  `docs/strategy/HISTORY.md` (timeline plus superseded plans).
+  `docs/strategy/ROADMAP.md` is reduced to an inventory of open work pending a
+  new plan. `AGENTS.md` is trimmed to rules only (no release tables, status
+  prose, code-layout tree or required-documents list; every rule is kept).
+  `TL-Project.MD`, `docs/README.md`, `CLAUDE.md` and the README intro are
+  rewritten to match. No behaviour change.
 - **Docker image hardening (#98).** The migrator image now installs with
   `npm ci --omit=dev` (the `prisma` CLI moved from devDependencies to
   `dependencies`, where it truthfully belongs as the migrator's runtime

@@ -7,7 +7,7 @@ const lockVersion = packageLock.version;
 const lockRootVersion = packageLock.packages?.[""]?.version;
 
 // Accept a stable `x.y.z` or a pre-release `x.y.z-alpha.N` / `x.y.z-beta.N` /
-// `x.y.z-rc.N` (the public-alpha channel — MIGRATION.md §2).
+// `x.y.z-rc.N` (the public-alpha channel).
 const SEMVER = /^\d+\.\d+\.\d+(?:-(?:alpha|beta|rc)\.\d+)?$/;
 if (!SEMVER.test(packageVersion)) {
   throw new Error(
@@ -15,7 +15,7 @@ if (!SEMVER.test(packageVersion)) {
   );
 }
 
-// The top-level VERSION file is the single source of truth (MIGRATION.md §2);
+// The top-level VERSION file is the single source of truth;
 // package.json must match it.
 const versionFile = (await readFile(new URL("../VERSION", import.meta.url), "utf8")).trim();
 if (versionFile !== packageVersion) {

@@ -5,12 +5,14 @@
 [![Security gate: Trivy CRITICAL](https://img.shields.io/badge/security%20gate-Trivy%20CRITICAL-2ea44f?logo=aquasec&logoColor=white)](https://github.com/techlotse-AI/TL-Finance/actions/workflows/ci.yml)
 [![License: Source-Available](https://img.shields.io/badge/license-Source--Available-blue)](LICENSE.md)
 
-TL Finance is a Docker-first, privacy-focused household finance application.
-The Budget and Analyze tiers are implemented. Optimize includes deterministic
-scenarios, emergency-fund sizing, Swiss Pillar 3a calculations, and explainable
-recommendations. v0.4.0 adds public-auth flows, shared rate limiting, session
-controls, scheduled backups, offline restore, and public deployment runbooks.
-v0.5.0 adds tag-driven, vulnerability-gated Docker Hub releases.
+TL Finance is a Docker-first, privacy-focused household finance application
+with three tiers. **Budget** plans money routes without balances or forecasts.
+**Analyze** imports bank statements (UBS, Revolut, FNB, Investec, generic CSV)
+and reconciles them against the plan. **Optimize** runs deterministic,
+explainable planning: scenarios, emergency fund, debt payoff, net worth, goals,
+Swiss pensions and retirement readiness. Releases are versioned,
+vulnerability-gated Docker Hub images with public-auth, rate limiting, TOTP
+two-factor authentication, scheduled backups and offline restore.
 
 Budget models planned money routes without account balances or forecasts:
 

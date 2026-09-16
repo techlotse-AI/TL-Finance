@@ -1,9 +1,10 @@
 # Manual end-to-end checklist
 
-Release gate #3 for `1.0.0-alpha.1` (see `docs/strategy/ROADMAP.md`, v0.9.7),
-and the working script for owner testing passes before that. Run it top to
-bottom on a **real deployment** (Docker, live Postgres) — not the dev shell.
-Every unchecked box at the end is either a filed issue or a release blocker.
+The owner's weekly test script on the road to 1.0.0 (see
+`docs/strategy/ROADMAP.md`: each sprint names the section to run) and the
+full release gate for the 1.0.0 candidate. Run it on a **real deployment**
+(Docker, live Postgres) — not the dev shell. Every unchecked box at the end is
+either a filed issue or a release blocker.
 
 Conventions: work in a fresh household unless a step says otherwise. Amounts
 display whole (rounded to nearest 5); reconciliation tolerates ±5. Note the

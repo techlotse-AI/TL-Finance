@@ -9,6 +9,16 @@ The detailed historical log for v0.1–v0.8 lives in
 
 ## [Unreleased]
 
+### Changed
+
+- **Six-sprint plan to 1.0.0.** `docs/strategy/ROADMAP.md` now carries the
+  agreed plan: one PR and one tagged release per weekly sprint (v0.9.5,
+  v0.10.0 to v0.14.0, then 1.0.0 on 2026-10-28 as a public self-host
+  release). Paid plans leave the product surface in sprint 1; the entitlement
+  code stays. `TL-Project.MD` and the E2E checklist header follow the plan.
+
+## [0.9.5] - 2026-09-18 — "Security capstone, Investec & dependency refresh"
+
 ### Security
 
 - **September dependency CVE sweep (#137).** Evaluated every open Dependabot
@@ -102,6 +112,17 @@ The detailed historical log for v0.1–v0.8 lives in
 
 ### Changed
 
+- **Dependency refresh (sprint 0).** Folded the open Dependabot PRs (#127,
+  #129 to #136) into one verified bump and took each to its latest stable
+  release within the current major: `@prisma/client`, `prisma` and
+  `@prisma/adapter-pg` 7.10.0; `eslint-config-next` 16.3.5 (matching `next`);
+  `pg` 8.23.0 and `@types/pg` 8.23.1; `lucide-react` 1.46.0; `@types/node`
+  26.6.1; `unpdf` 1.8.1; `@aws-sdk/client-s3` 3.1133.0. Node runtime
+  `26.7.0-alpine` → `26.8.2-alpine` in the Dockerfile, and the CI runner to
+  26.8.2 to match. Lockfile regenerated with the declared npm 11.19.0. The
+  `next` (#126) and `nodemailer` (#128) Dependabot PRs were already superseded
+  by #138. `prisma` 8 (release candidate) and `nodemailer` 10 are majors and
+  were not taken. `npm audit`: 0 vulnerabilities; full gate green.
 - **Documentation cleanup.** Historical roadmap prose, the improvement-roadmap
   proposal, the daily briefings, the v0.1 and v0.3/v0.4 status reports,
   `BUILD_PROMPT.md` and `MIGRATION.md` are folded into a short

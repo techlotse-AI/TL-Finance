@@ -1,50 +1,28 @@
-# Codex Instructions - TL Finance
+# AGENTS.md — TL Finance engineering rules
 
-You are building and maintaining **TL Finance**, a Docker-first,
-privacy-focused, multi-currency household finance application.
+TL Finance is a Docker-first, privacy-focused, multi-currency household finance
+application. This file is the canonical rule set for anyone, human or agent,
+changing the repository. Read it first every session, then the relevant
+`docs/**/*.md` before changing load-bearing behaviour.
 
-Repository: `TL-Finance`
-
-This is a full new-repository build. Do not copy source files, migrations, or
-historical architecture from TL Finance Core. Prior projects may inform product
-lessons, but this repository owns a new domain model, migration history, tests,
-and documentation.
-
-Read this file first every session. Then read the relevant `docs/**/*.md`
-before changing load-bearing behavior.
+What has shipped is recorded in `VERSION`, `CHANGELOG.md` and git tags. What is
+planned is in `docs/strategy/ROADMAP.md`. Do not hardcode version or status
+here.
 
 ---
 
 ## Product Contract
 
-TL Finance has three progressively capable tiers:
+Three progressively capable tiers:
 
-| Tier | Scope |
-| --- | --- |
-| Budget | Planned income, payment-route accounts, transfers, budget items, and planned money-flow graph |
-| Analyze | Statement imports, actual transactions, allocation, adherence, transfer/FX matching, cash, and money-leak discovery |
-| Optimize | Forecasts, calculations, scenarios, recommendations, and predictions |
-
-Release sequence:
-
-| Version | Required outcome |
-| --- | --- |
-| v0.1.0 | Complete Budget tier and planned money-flow graph |
-| v0.2.0 | Complete Analyze tier and budget adherence |
-| v0.3.0 | Complete Optimize calculations, recommendations, and predictions |
-| v0.4.0 | Full security audit and public-ready auth/operations |
-| v0.5.0 | Versioned, vulnerability-gated Docker Hub releases |
+| Tier | Owns | Must not own |
+| --- | --- | --- |
+| Budget | Planned income, payment-route accounts, transfers, categories, budget items, planned money-flow graph | Actual transactions, balances, predictions |
+| Analyze | Statement imports, actual transactions, allocation, adherence, transfer/FX matching, cash, money-leak findings | Forecast calculations |
+| Optimize | Forecasts, calculations, scenarios, recommendations, predictions, holdings and performance imports | Raw statement parsing |
 
 Unavailable paid tiers remain visible as locked or "Coming later." Server-side
 entitlements are authoritative; client-side hiding is never authorization.
-
-For the shipped version, `VERSION`, `package.json`, and git tags are
-authoritative (see `CLAUDE.md`) — do not hardcode a version here. As of this
-writing Budget and Analyze are implemented, Optimize deterministic tools are
-implemented, Phase D (emergency fund, financial goals, debt, net-worth) is
-complete, and public-ready security and operations controls are implemented.
-Tagged releases (`vX.Y.Z`) publish versioned containers only after the release
-verification and container security gates.
 
 ---
 
@@ -56,58 +34,34 @@ Budget accounts are planned payment-route containers only. Currency-specific
 `AccountPocket` rows are the actual flow nodes. A single-currency account has
 one pocket; a multi-currency account may have several.
 
-Budget must not contain:
+Budget must not contain: current balances, balance snapshots, net worth,
+forecasts, expected returns, future values, debt payoff calculations, actual
+transactions, statement imports, recommendations or predictions.
 
-- Current balances
-- Balance snapshots
-- Net worth
-- Forecasts
-- Expected returns
-- Future values
-- Debt payoff calculations
-- Actual transactions
-- Statement imports
-- Recommendations or predictions
+Account types: `personal`, `savings`, `investment`, `retirement`,
+`credit_card`, `cash`, `other`.
 
-Budget supports these account types:
-
-```text
-personal
-savings
-investment
-retirement
-credit_card
-cash
-other
-```
-
-Income sources route to one or more receiving account pockets.
-
-Planned account transfers move money between household accounts and are not
-income or spending.
-
-Income allocations, planned transfers, and budget-item payment routes reference
-account-pocket IDs. Do not add balances to accounts or pockets in Budget.
+Income sources route to one or more receiving account pockets. Planned account
+transfers move money between household accounts and are not income or
+spending. Income allocations, planned transfers, and budget-item payment routes
+reference account-pocket IDs.
 
 Expense budget items may have a paying account. Unallocated expense items remain
-valid but must be visibly flagged.
+valid but must be visibly flagged. Saving, investment, and retirement items
+require both a paid-from and a paid-to account; they are planned allocations,
+not spending.
 
-Saving, investment, and retirement items require both a paid-from account and a
-paid-to account. They are planned allocations, not spending.
-
-The planned monthly money-flow graph must represent:
+The planned monthly money-flow graph represents:
 
 ```text
-Income Source
-  -> Receiving Account
-  -> Planned Account Transfers
-  -> Destination Accounts
-  -> Payment Category
-  -> Budget Item
+Income Source -> Receiving Account -> Planned Account Transfers
+              -> Destination Accounts -> Payment Category -> Budget Item
 ```
 
-Graph totals must reconcile exactly to the normalized monthly budget table.
-Internal transfers must never be double-counted.
+Graph totals must reconcile to the normalized monthly budget table (whole-amount
+budget: figures presented rounded to the nearest 5, reconciliation tolerates
+±5, stored money stays exact; see `src/lib/money/rounding.ts`). Internal
+transfers must never be double-counted.
 
 ### Monthly Normalization
 
@@ -122,167 +76,67 @@ Use Decimal arithmetic.
 | custom selected months | `amount * selectedMonthCount / 12`; preserve selected months as metadata |
 | once | show separately; exclude from recurring monthly baseline |
 
-Do not add arbitrary per-month amount overrides in v0.1.0.
+No arbitrary per-month amount overrides.
 
 ### Analyze
 
-Analyze begins in v0.2.0 and owns:
+Owns statement import preview and commit, normalized actual transactions,
+original source-row preservation, category and budget-item allocation, split
+allocations, the review queue, deterministic allocation rules, internal
+transfer and FX matching, cash allocation, planned-versus-actual adherence,
+actual and comparison money-flow graphs, and deterministic money-leak findings.
 
-- Statement import preview and commit
-- Normalized actual transactions
-- Original source-row preservation
-- Category and budget-item allocation
-- Split allocations
-- Review queue
-- Deterministic allocation rules
-- Internal transfer and FX matching
-- Cash allocation
-- Planned-versus-actual adherence
-- Actual/comparison money-flow graphs
-- Deterministic money-leak findings
-
-Unknown actual transactions must enter review. Never silently assign them to
-"Other."
-
-High-confidence transfer/FX matches may auto-confirm. Medium-confidence matches
-require user confirmation. Low-confidence candidates remain unmatched.
-
-ATM withdrawals are transfers into a Cash account. Users allocate subsequent
-cash spending manually. Unallocated cash remains visible.
-
-Use structured statement formats first. Do not implement PDF/OCR ingestion
-before structured parsers are production-ready.
+- Unknown actual transactions must enter review. Never silently assign them to
+  "Other."
+- High-confidence transfer/FX matches may auto-confirm. Medium-confidence
+  matches require user confirmation. Low-confidence candidates remain
+  unmatched. Confirmed matches are excluded from income, spending and
+  adherence totals.
+- ATM withdrawals are transfers into a Cash account. Users allocate subsequent
+  cash spending manually. Unallocated cash remains visible.
+- Structured statement formats first. PDF ingestion is allowed only where an
+  institution's real workflow is PDF and the structured parsers are already
+  production-ready; no OCR.
 
 ### Optimize
 
-Optimize begins in v0.3.0 and owns:
+Owns account balance forecasts, savings and retirement projections,
+emergency-fund calculations, scenario comparison, Swiss pension calculations
+(AHV, pillars 2/3a/3b), holdings and net worth, goals, debt payoff, explainable
+recommendations, and optional privacy-safe AI recommendations.
 
-- Account balance forecasts
-- Savings and retirement projections
-- Emergency-fund calculations
-- Scenario comparison
-- Swiss Pillar 3a calculations
-- Explainable recommendations
-- Optional privacy-safe AI recommendations
-
-Optimize must not automatically change a user's budget. Raw transaction
-descriptions, counterparties, and account identifiers must not be sent to an
-external AI provider by default.
+Optimize must not automatically change a user's budget. Every output cites its
+inputs. Raw transaction descriptions, counterparties, and account identifiers
+must not be sent to an external AI provider by default.
 
 ---
 
-## Visual Style - Locked
+## Visual Style — Locked
 
-`docs/design/UI_SPEC.md` is the source of truth.
-
-Quick reference:
-
-- Dark mode first
-- Background `#0B0F14`
-- Card `#0F151C`
-- Muted surface `#161D27`
-- Brand gradient `#7A3CFF` to `#00D1C7`, 135 degrees
-- Inter typography
-- 8px grid
-- Maximum width 1200px
-- Lucide line icons with consistent 1.5 stroke
-- Radius 8px or less
-- Technical, precise copy without marketing language
-
-Use semantic Tailwind theme tokens. Do not hard-code raw hex values in
-components.
-
-Build the usable workflow as the first screen. Prefer tables and dense
-operational lists over promotional cards. Charts require clear empty states,
-reconciliation warnings, keyboard access, and tabular alternatives.
+`docs/design/UI_SPEC.md` is the source of truth; `STYLING.md` is the quick
+reference. Dark mode first, semantic Tailwind theme tokens only (no raw hex in
+components), dense operational tables over promotional cards, and every chart
+has an empty state, reconciliation warnings, keyboard access, and a tabular
+alternative.
 
 ---
 
-## Stack - Locked
+## Stack — Locked
 
-- Next.js App Router
-- React
-- TypeScript strict mode
-- Tailwind CSS and custom primitives
-- PostgreSQL 16
-- Prisma ORM
-- Zod
-- decimal.js
-- Recharts or another React-compatible chart library with Sankey support
-- Lucide React
-- Node `crypto`
-- Vitest
-- ESLint
-- Docker multi-stage build
+Next.js App Router, React, TypeScript strict mode, Tailwind CSS and custom
+primitives, PostgreSQL 16, Prisma ORM, Zod, decimal.js, Recharts (or another
+React chart library with Sankey support), Lucide React, Node `crypto`, Vitest,
+ESLint, Docker multi-stage build.
 
-**Exception:** `unpdf` (v0.9.5) — PDF text extraction for the FNB Private
-Clients Current Account statement parser. Every other statement parser is
-dependency-free by design (see `csv.ts`'s and `ofx.ts`'s own module doc
-comments), but there is no dependency-free way to read a PDF's content
-stream, and FNB's real emailed statement format is PDF, not CSV/OFX. `unpdf`
-wraps PDF.js for serverless/Node runtimes with zero required runtime
-dependencies of its own and no native binaries for text extraction (its only
-peer dependency, a canvas renderer for page-image rendering, is optional and
-unused here). Keep PDF parsers thin: extract text via `pdf.ts`, then do all
-real parsing logic in a pure, fixture-testable function operating on that
-text, exactly like `ofx.ts`'s tag/value reader.
+**Exception:** `unpdf` for PDF text extraction in statement parsers. Every
+other parser is dependency-free by design; there is no dependency-free way to
+read a PDF content stream. Keep PDF parsers thin: extract text via
+`src/lib/statements/pdf.ts`, then do all parsing in a pure, fixture-testable
+function over that text.
 
-Keep this as one application and one database schema. Do not introduce
-microservices without measured evidence that the single-application design is
-insufficient.
-
-Pin exact dependency versions in the lockfile.
-
----
-
-## Expected Code Layout
-
-```text
-src/
-  middleware.ts
-  app/
-    api/
-    admin/
-    budget/
-    accounts/
-    transfers/
-    analysis/
-    optimize/
-    settings/
-  components/
-    ui/
-    charts/
-  lib/
-    auth/
-    audit/
-    entitlements/
-    money/
-    budget/
-    statements/
-    analysis/
-    optimize/
-    country-profiles/
-prisma/
-  schema.prisma
-  migrations/
-  seed.ts
-docs/
-  architecture/
-  design/
-  operations/
-  product/
-  reference/
-  strategy/
-  release/
-```
-
-Keep module ownership clear:
-
-| Module | Owns | Must not own |
-| --- | --- | --- |
-| Budget | Planned sources, accounts, transfers, categories, and items | Actual transactions or predictions |
-| Analyze | Imported actuals, allocation, adherence, and reconciliation | Forecast calculations |
-| Optimize | Scenarios, calculations, and recommendations | Raw statement parsing |
+One application, one database schema. No microservices without measured
+evidence that the single-application design is insufficient. Pin exact
+dependency versions in the lockfile.
 
 ---
 
@@ -303,18 +157,11 @@ source rows.
 
 ---
 
-## Tenancy and Authorization - Mandatory
+## Tenancy and Authorization — Mandatory
 
 The primary tenant boundary is `Household`. Users access households through
-`HouseholdMember` roles:
-
-```text
-owner
-admin
-member
-```
-
-Every household-owned table contains `householdId`.
+`HouseholdMember` roles: `owner`, `admin`, `member`. Every household-owned table
+contains `householdId`.
 
 For every request:
 
@@ -326,10 +173,7 @@ For every request:
 
 For `[id]` mutations, find the row with both `id` and `householdId` before
 updating, or use household-scoped `updateMany`/`deleteMany` and verify the row
-count.
-
-Client-side entitlement state is presentational only. Every paid API route must
-enforce its capability server-side.
+count. Every paid API route enforces its capability server-side.
 
 ---
 
@@ -350,34 +194,17 @@ enforce its capability server-side.
 
 ## Soft Delete and Audit
 
-User financial records default to soft delete:
+User financial records default to soft delete (`active = false`,
+`deletedAt = now()`). Live queries filter `deletedAt: null`. Reject hard delete
+while referenced rows remain.
 
-```text
-active = false
-deletedAt = now()
-```
-
-Live queries filter `deletedAt: null`.
-
-Reject hard delete while referenced rows remain.
-
-Every state-changing route writes an append-only audit event with:
-
-- user
-- household
-- action
-- resource type
-- resource ID
-- timestamp
-- redacted or hashed request metadata
-
-Never store raw IP addresses or secrets in audit data.
+Every state-changing route writes an append-only audit event with user,
+household, action, resource type, resource ID, timestamp, and redacted or
+hashed request metadata. Never store raw IP addresses or secrets in audit data.
 
 ---
 
 ## Statement Ingestion Rules
-
-These rules apply when v0.2.0 work begins.
 
 Parser contract:
 
@@ -391,66 +218,43 @@ interface StatementParser {
 }
 ```
 
-Parser requirements:
-
 1. Require at least two sanitized real fixtures before production-ready status.
+   Real statements are used locally only and never committed; fixtures carry
+   fabricated identities.
 2. Fail closed when dates, signs, currency, or account identity are ambiguous.
 3. Never silently drop rows.
 4. Return structured warnings and confidence.
 5. Preserve source row JSON and parser version.
 6. Reconcile statement balances when the source supports it.
-7. Make preview write no transactions.
-8. Make commit idempotent by file hash and row dedupe hash.
-9. Batch writes; do not perform per-row Prisma mutations in parser loops.
+7. Preview writes no transactions.
+8. Commit is idempotent by file hash and row dedupe hash.
+9. Batch writes; no per-row Prisma mutations in parser loops.
 10. Keep AI out of parsing, allocation, dedupe, transfer matching, and FX
     matching.
 
-Initial parser priority:
-
-```text
-UBS account CSV
-UBS card CSV
-Revolut CSV
-Zuger Kantonalbank structured export
-FNB Private Clients Current Account (PDF statement) — shipped v0.9.5
-Standard Bank structured export
-Investec structured export
-Frankly and VIAC contributions/withdrawals
-Saxo contributions/withdrawals
-```
-
-Holdings and performance imports belong to Optimize, not Analyze.
+Shipped and pending parsers are listed in `src/lib/statements/parsers/index.ts`
+and `docs/strategy/ROADMAP.md`.
 
 ---
 
 ## Security
 
-Baseline security is required from v0.1.0:
+Required at all times:
 
-- Strong password hashing
-- Database-backed revocable sessions
-- HTTP-only, secure, same-site cookies
-- Tenant-scoped authorization
-- Role and entitlement checks
+- Strong password hashing; TOTP secrets encrypted at rest, everything else
+  hashed
+- Database-backed revocable sessions; HTTP-only, secure, same-site cookies
+- Tenant-scoped authorization with role and entitlement checks
 - CSRF and trusted-origin checks for unsafe requests
-- Authentication rate limits
+- Authentication rate limits and account lockout with escalating backoff
 - Mutation and security-event audit logs
-- Sealed server-side secrets
-- Safe security headers
+- Sealed server-side secrets; safe security headers
 - No secret or raw financial-data logging
-
-v0.4.0 completes public-ready hardening:
-
-- Full access-control and security audit
+- Email verification and password-reset delivery; password reset revokes all
+  sessions
+- Secret rotation, backup scheduling, and tested restore
 - Cross-household and privilege-escalation tests
-- Email verification and password-reset delivery
-- Session-management and forced revocation
-- Secret rotation
-- Backup scheduling and tested restore
-- Dependency and container vulnerability review
-- Threat model, incident response, privacy, and deployment documentation
-
-Do not defer basic security until v0.4.0.
+- Dependency and container vulnerability review (Trivy gate on releases)
 
 ---
 
@@ -468,71 +272,31 @@ Do not defer basic security until v0.4.0.
 
 ## Testing
 
-Test depth scales with risk and blast radius.
+Test depth scales with risk and blast radius. Minimum required coverage:
+Decimal money arithmetic; recurrence normalization; graph reconciliation golden
+tests; Zod validation; household isolation; foreign-key ownership; role and
+entitlement enforcement; audit emission; soft delete; parser golden fixtures;
+import idempotency and dedupe; allocation reconciliation; transfer and FX
+matching; cash allocation; planned-versus-actual aggregation; Optimize
+calculation golden tests; public auth and security tests.
 
-Minimum required coverage:
-
-- Decimal money arithmetic
-- Recurrence monthly normalization
-- Graph reconciliation golden tests
-- Zod validation
-- Household isolation
-- Foreign-key ownership
-- Role and entitlement enforcement
-- Audit emission
-- Soft delete
-- Parser golden fixtures when Analyze begins
-- Import idempotency and dedupe
-- Allocation reconciliation
-- Transfer and FX matching
-- Cash allocation
-- Planned-versus-actual aggregation
-- Optimize calculation golden tests when Optimize begins
-- Public auth and security tests for v0.4.0
-
-Before declaring work complete, run the relevant subset and always run:
-
-```text
-typecheck
-lint
-tests
-production build
-```
+Before declaring work complete, run the relevant subset and always run
+`typecheck`, `lint`, `tests`, and the production `build`.
 
 ---
 
 ## Documentation
 
-Required documents:
-
-```text
-README.md
-AGENTS.md
-docs/README.md
-docs/architecture/ARCHITECTURE.md
-docs/architecture/DATA_MODEL.md
-docs/design/UI_SPEC.md
-docs/operations/DEPLOYMENT.md
-docs/operations/SECURITY.md
-docs/product/USER_GUIDE.md
-docs/reference/API.md
-docs/reference/DATABASE_SCHEMA.md
-docs/reference/DEFAULT_CATEGORIES.md
-docs/strategy/ROADMAP.md
-docs/strategy/STATEMENT_INGESTION.md
-docs/strategy/TRANSFER_AND_FX_MATCHING.md
-docs/release/CHANGELOG.md
-```
-
-Update relevant documentation in the same change as behavior. Documentation
-must describe implemented behavior, not aspirations presented as complete.
+`docs/README.md` is the index. Update relevant documentation in the same change
+as behaviour. Documentation describes implemented behaviour, not aspirations
+presented as complete. Keep `CHANGELOG.md` `[Unreleased]` current.
 
 ---
 
 ## When Making a Change
 
-1. Read `AGENTS.md` and relevant `docs/**/*.md`.
-2. Confirm the change belongs to the active release and correct tier.
+1. Read this file and the relevant `docs/**/*.md`.
+2. Confirm the change belongs to the correct tier and the active plan.
 3. Preserve household scoping, ownership checks, entitlements, and audit.
 4. Add or extend Zod schemas for API changes.
 5. Add an additive Prisma migration for schema changes.
@@ -562,4 +326,4 @@ must describe implemented behavior, not aspirations presented as complete.
 - Send raw transaction descriptions to AI by default.
 - Auto-apply Optimize recommendations.
 - Introduce microservices without measured need.
-- Present future roadmap behavior as already implemented.
+- Present future roadmap behaviour as already implemented.

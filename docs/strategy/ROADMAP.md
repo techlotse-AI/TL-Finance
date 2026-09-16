@@ -38,8 +38,8 @@ Carried over from the closed plan. Nothing here is scheduled yet.
 
 - Cut a release for the unreleased changelog (TOTP, device alerts, Investec
   parser, CVE remediation).
-- Merge or close the open Dependabot PRs (#126 to #136) and the security PR
-  #138 for issue #137.
+- Merge or close the open Dependabot PRs (#126 to #136). The security PR
+  #138 for issue #137 merged on 2026-09-16.
 
 ### Fixture-blocked parsers
 

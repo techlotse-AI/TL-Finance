@@ -28,7 +28,8 @@ date. Early milestones (v0.1 to v0.4) were not tagged.
 | unreleased | 2026-07-18 to 08-27 | v1 plan realignment and E2E checklist; TOTP 2FA and new-device alerts; goal and wealth-plan purpose (#41); migrator and runner image slimming; CVE remediation; Investec CCM PDF parser (#86); dependency bumps |
 
 Activity after 2026-08-27 was limited to Dependabot PRs and a bot-authored
-security PR (#138 for issue #137). No release has been cut since v0.9.4.
+security PR (#138 for issue #137, merged 2026-09-16). No release has been cut
+since v0.9.4.
 
 ## Superseded plans
 

@@ -31,6 +31,14 @@ interface ScheduleRow {
   b: string;
 }
 
+interface DeRiskScheduleForm {
+  startAge: string;
+  startAnnualReturnRate: string;
+  endAge: string;
+  endAnnualReturnRate: string;
+  interpolationMode: "linear" | "step";
+}
+
 interface SavedPlan {
   id: string;
   name: string;
@@ -168,6 +176,13 @@ export function WealthPlannerPanel({ currency }: { currency: string }) {
   const [steps, setSteps] = useState<ScheduleRow[]>([]);
   const [lumps, setLumps] = useState<ScheduleRow[]>([]);
   const [injections, setInjections] = useState<ScheduleRow[]>([]);
+  const [deRiskSchedule, setDeRiskSchedule] = useState<DeRiskScheduleForm>({
+    startAge: "",
+    startAnnualReturnRate: "",
+    endAge: "",
+    endAnnualReturnRate: "",
+    interpolationMode: "linear",
+  });
   const [levers, setLevers] = useState<Array<{ name: string; baseMonthly: string }>>([]);
 
   // Drawdown settings.
@@ -205,6 +220,7 @@ export function WealthPlannerPanel({ currency }: { currency: string }) {
   }
 
   function configPayload() {
+    const deRisk = deRiskPayload();
     return {
       version: 1,
       currentAge: Number(currentAge),
@@ -212,6 +228,7 @@ export function WealthPlannerPanel({ currency }: { currency: string }) {
       initialBalance: initialBalance || "0",
       ...(purpose ? { purpose } : {}),
       schedule: schedulePayload(),
+      ...(deRisk ? { deRiskSchedule: deRisk } : {}),
       projectionRates: parseRates(projectionRates),
       drawdown: {
         annualReturnRates: parseRates(drawdownRates),
@@ -221,8 +238,24 @@ export function WealthPlannerPanel({ currency }: { currency: string }) {
     };
   }
 
+  function deRiskPayload() {
+    const { startAge, startAnnualReturnRate, endAge, endAnnualReturnRate, interpolationMode } =
+      deRiskSchedule;
+    if (!startAge || !startAnnualReturnRate || !endAge || !endAnnualReturnRate) {
+      return null;
+    }
+    return {
+      startAge: Number(startAge),
+      startAnnualReturnRate,
+      endAge: Number(endAge),
+      endAnnualReturnRate,
+      interpolationMode,
+    };
+  }
+
   async function runProjection() {
     setMessage(null);
+    const deRisk = deRiskPayload();
     const { ok, data } = await requestJson("/api/optimize/wealth/projection", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -233,6 +266,7 @@ export function WealthPlannerPanel({ currency }: { currency: string }) {
         initialBalance: initialBalance || "0",
         schedule: schedulePayload(),
         annualReturnRates: parseRates(projectionRates),
+        ...(deRisk ? { deRiskSchedule: deRisk } : {}),
         ...(levers.some((lever) => lever.name)
           ? {
               levers: levers
@@ -257,6 +291,7 @@ export function WealthPlannerPanel({ currency }: { currency: string }) {
 
   async function runDrawdown() {
     setMessage(null);
+    const deRisk = deRiskPayload();
     const { ok, data } = await requestJson("/api/optimize/wealth/drawdown", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -265,6 +300,7 @@ export function WealthPlannerPanel({ currency }: { currency: string }) {
         startingCapital: startingCapital || "0",
         startAge: Number(targetAge),
         annualReturnRates: parseRates(drawdownRates),
+        ...(deRisk ? { deRiskSchedule: deRisk } : {}),
         depleteAtAges: parseAges(depleteAges),
         ...(monthlyExpense ? { monthlyExpense } : {}),
       }),
@@ -315,6 +351,13 @@ export function WealthPlannerPanel({ currency }: { currency: string }) {
     setSteps(config.schedule.steps.map((row) => ({ a: String(row.fromMonth), b: row.monthlyAmount })));
     setLumps(config.schedule.annualLumpSums.map((row) => ({ a: String(row.monthOfYear), b: row.amount })));
     setInjections(config.schedule.oneTimeInjections.map((row) => ({ a: String(row.month), b: row.amount })));
+    setDeRiskSchedule({
+      startAge: config.deRiskSchedule ? String(config.deRiskSchedule.startAge) : "",
+      startAnnualReturnRate: config.deRiskSchedule?.startAnnualReturnRate ?? "",
+      endAge: config.deRiskSchedule ? String(config.deRiskSchedule.endAge) : "",
+      endAnnualReturnRate: config.deRiskSchedule?.endAnnualReturnRate ?? "",
+      interpolationMode: config.deRiskSchedule?.interpolationMode ?? "linear",
+    });
     setProjectionRates(config.projectionRates.join(", "));
     setDrawdownRates(config.drawdown.annualReturnRates.join(", "));
     setDepleteAges(config.drawdown.depleteAtAges.join(", "));
@@ -376,6 +419,73 @@ export function WealthPlannerPanel({ currency }: { currency: string }) {
             <Field label="Projection real return rates (decimals, comma-separated)">
               <input className={inputClass} value={projectionRates} onChange={(event) => setProjectionRates(event.target.value)} />
             </Field>
+            <div className="rounded border bg-muted/20 p-3">
+              <div className="mb-2">
+                <p className="text-sm font-medium">Optional de-risk glide path</p>
+                <p className="text-xs text-subdued">
+                  Switch from the fixed-rate assumption to a retirement glide path shared by projection and drawdown.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Start age">
+                  <input
+                    className={inputClass}
+                    inputMode="numeric"
+                    value={deRiskSchedule.startAge}
+                    onChange={(event) => setDeRiskSchedule((current) => ({ ...current, startAge: event.target.value }))}
+                  />
+                </Field>
+                <Field label="Start real return">
+                  <input
+                    className={inputClass}
+                    inputMode="decimal"
+                    value={deRiskSchedule.startAnnualReturnRate}
+                    onChange={(event) =>
+                      setDeRiskSchedule((current) => ({
+                        ...current,
+                        startAnnualReturnRate: event.target.value,
+                      }))
+                    }
+                  />
+                </Field>
+                <Field label="End age">
+                  <input
+                    className={inputClass}
+                    inputMode="numeric"
+                    value={deRiskSchedule.endAge}
+                    onChange={(event) => setDeRiskSchedule((current) => ({ ...current, endAge: event.target.value }))}
+                  />
+                </Field>
+                <Field label="End real return">
+                  <input
+                    className={inputClass}
+                    inputMode="decimal"
+                    value={deRiskSchedule.endAnnualReturnRate}
+                    onChange={(event) =>
+                      setDeRiskSchedule((current) => ({
+                        ...current,
+                        endAnnualReturnRate: event.target.value,
+                      }))
+                    }
+                  />
+                </Field>
+              </div>
+              <Field label="Interpolation">
+                <select
+                  className={inputClass}
+                  value={deRiskSchedule.interpolationMode}
+                  onChange={(event) =>
+                    setDeRiskSchedule((current) => ({
+                      ...current,
+                      interpolationMode: event.target.value as DeRiskScheduleForm["interpolationMode"],
+                    }))
+                  }
+                >
+                  <option value="linear">Linear glide path</option>
+                  <option value="step">Step change at end age</option>
+                </select>
+              </Field>
+            </div>
             <RowEditor
               title="Contribution steps"
               columnA="From month"

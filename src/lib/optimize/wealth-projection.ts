@@ -1,5 +1,7 @@
 import Decimal from "decimal.js";
 
+import type { DeRiskScheduleInput } from "@/lib/optimize/de-risk";
+import { resolveMonthlyReturnRateAtAge } from "@/lib/optimize/de-risk";
 import { money, serializeMoney, serializeRate } from "@/lib/money/decimal";
 
 // Wealth projection with a contribution schedule (v0.9.1 wealth planner).
@@ -36,6 +38,7 @@ export interface WealthProjectionInput {
   initialBalance: string;
   schedule: ContributionScheduleInput;
   annualReturnRates: string[];
+  deRiskSchedule?: DeRiskScheduleInput;
   /** Lever scenarios compared against the baseline at every rate. */
   levers?: Array<{
     name: string;
@@ -102,6 +105,7 @@ export function projectWealth(input: WealthProjectionInput): WealthProjectionRes
       schedule: input.schedule,
       currentAge: input.currentAge,
       horizonMonths,
+      deRiskSchedule: input.deRiskSchedule,
       baselineEndingBalance: null,
     });
     series.push(baseline);
@@ -115,6 +119,7 @@ export function projectWealth(input: WealthProjectionInput): WealthProjectionRes
           schedule: lever.schedule ?? input.schedule,
           currentAge: input.currentAge,
           horizonMonths,
+          deRiskSchedule: input.deRiskSchedule,
           baselineEndingBalance: money(baseline.endingBalance),
         }),
       );
@@ -145,6 +150,7 @@ function projectSeries({
   schedule,
   currentAge,
   horizonMonths,
+  deRiskSchedule,
   baselineEndingBalance,
 }: {
   name: string;
@@ -153,11 +159,15 @@ function projectSeries({
   schedule: ContributionScheduleInput;
   currentAge: number;
   horizonMonths: number;
+  deRiskSchedule?: DeRiskScheduleInput;
   baselineEndingBalance: Decimal | null;
 }): WealthProjectionSeries {
   const annualRate = money(annualReturnRate);
-  const monthlyRate = annualRate.plus(1).pow(new Decimal(1).dividedBy(12)).minus(1);
-  const monthlyFactor = monthlyRate.plus(1);
+  const monthlyRate = resolveMonthlyReturnRateAtAge({
+    age: currentAge,
+    fallbackAnnualReturnRate: annualReturnRate,
+    deRiskSchedule,
+  });
 
   // Steps are absolute replacements; sort ascending so the latest step wins.
   const steps = [...(schedule.steps ?? [])].sort((a, b) => a.fromMonth - b.fromMonth);
@@ -186,6 +196,11 @@ function projectSeries({
   let growthMatchesPayIn: WealthProjectionSeries["growthMatchesPayIn"] = null;
 
   for (let month = 1; month <= horizonMonths; month += 1) {
+    const resolvedMonthlyRate = resolveMonthlyReturnRateAtAge({
+      age: currentAge + (month - 1) / 12,
+      fallbackAnnualReturnRate: annualReturnRate,
+      deRiskSchedule,
+    });
     const injection = injectionsByMonth.get(month);
     if (injection) {
       balance = balance.plus(injection);
@@ -193,7 +208,10 @@ function projectSeries({
     }
 
     const contribution = contributionAt(month);
-    if (growthMatchesPayIn === null && balance.times(monthlyRate).greaterThanOrEqualTo(contribution)) {
+    if (
+      growthMatchesPayIn === null &&
+      balance.times(resolvedMonthlyRate).greaterThanOrEqualTo(contribution)
+    ) {
       growthMatchesPayIn = {
         month,
         age: currentAge + month / 12,
@@ -201,7 +219,7 @@ function projectSeries({
       };
     }
 
-    balance = balance.times(monthlyFactor).plus(contribution);
+    balance = balance.times(resolvedMonthlyRate.plus(1)).plus(contribution);
     payIns = payIns.plus(contribution);
 
     for (const lump of lumps) {

@@ -54,9 +54,10 @@ the Budget planned money-flow graph.
 - `WealthPlan` (v0.9.1): a saved wealth-planner configuration, unique per
   household name. The `config` Json column holds the shared plan (validated
   against `wealthPlanConfigSchema` version 1 — ages, initial balance,
-  contribution schedule, projection rates, and drawdown settings) that drives
-  both the wealth-projection and drawdown views. All rates are real returns;
-  results are recomputed from the stored configuration and never persisted.
+  contribution schedule, optional de-risk glide path, projection rates, and
+  drawdown settings) that drives both the wealth-projection and drawdown views.
+  All rates are real returns; results are recomputed from the stored
+  configuration and never persisted.
   Migration: `20260711000000_v0_9_1_wealth_plans` (additive).
 - `FinancialGoal.purpose` and `WealthPlanConfig.purpose` (`GoalPurpose` enum —
   RETIREMENT / HOUSE_DEPOSIT / EDUCATION / WEALTH_BUILDING / OTHER): optional,

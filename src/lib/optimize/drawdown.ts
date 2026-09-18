@@ -1,5 +1,12 @@
 import Decimal from "decimal.js";
 
+import type { DeRiskScheduleInput } from "@/lib/optimize/de-risk";
+import {
+  minimumFutureAnnualReturnRate,
+  monthlyRateFromAnnualRate,
+  resolveAnnualReturnRateAtAge,
+  resolveMonthlyReturnRateAtAge,
+} from "@/lib/optimize/de-risk";
 import { money, serializeMoney, serializeRate } from "@/lib/money/decimal";
 
 // Retirement drawdown planner (v0.9.1 wealth planner).
@@ -29,6 +36,7 @@ export interface DrawdownInput {
   startingCapital: string;
   startAge: number;
   annualReturnRates: string[];
+  deRiskSchedule?: DeRiskScheduleInput;
   depleteAtAges: number[];
   /** Fixed-expense mode: monthly draw whose depletion age is computed. */
   monthlyExpense?: string;
@@ -97,6 +105,7 @@ export function computeDrawdown(input: DrawdownInput): DrawdownResult {
         capital,
         startAge: input.startAge,
         depleteAtAges: input.depleteAtAges,
+        deRiskSchedule: input.deRiskSchedule,
         monthlyExpense: input.monthlyExpense,
       }),
     ),
@@ -108,46 +117,61 @@ function computeRate({
   capital,
   startAge,
   depleteAtAges,
+  deRiskSchedule,
   monthlyExpense,
 }: {
   annualReturnRate: string;
   capital: Decimal;
   startAge: number;
   depleteAtAges: number[];
+  deRiskSchedule?: DeRiskScheduleInput;
   monthlyExpense?: string;
 }): DrawdownRateResult {
   const annualRate = money(annualReturnRate);
-  const monthlyRate = annualRate.plus(1).pow(new Decimal(1).dividedBy(12)).minus(1);
-  const monthlyGrowth = capital.times(monthlyRate);
+  const monthlyRate = resolveMonthlyReturnRateAtAge({
+    age: startAge,
+    fallbackAnnualReturnRate: annualReturnRate,
+    deRiskSchedule,
+  });
+  const endowmentAnnualRate = minimumFutureAnnualReturnRate({
+    startAge,
+    fallbackAnnualReturnRate: annualReturnRate,
+    deRiskSchedule,
+  });
+  const endowmentMonthlyRate = monthlyRateFromAnnualRate(endowmentAnnualRate);
+  const monthlyGrowth = capital.times(endowmentMonthlyRate);
 
   const depleteBy = depleteAtAges.map((targetAge) => {
     const months = (targetAge - startAge) * 12;
     return {
       targetAge,
       months,
-      monthlyDraw: serializeMoney(annuityDraw(capital, monthlyRate, months)),
+      monthlyDraw: serializeMoney(
+        deRiskSchedule
+          ? solveFixedHorizonDraw({
+              capital,
+              annualReturnRate,
+              deRiskSchedule,
+              startAge,
+              months,
+            })
+          : annuityDraw(capital, monthlyRate, months),
+      ),
     };
   });
 
   let fixedExpense: DrawdownRateResult["fixedExpense"] = null;
   if (monthlyExpense !== undefined) {
     const draw = money(monthlyExpense);
-    const sustainable = monthlyGrowth.greaterThanOrEqualTo(draw);
-    let depletionMonths: number | null = null;
-    if (!sustainable) {
-      if (monthlyRate.isZero()) {
-        // No growth: the capital simply divides into equal draws.
-        depletionMonths = capital.dividedBy(draw).toNumber();
-      } else {
-        // n = −ln(1 − V·i/PMT) / ln(1+i)
-        depletionMonths = money(1)
-          .minus(monthlyGrowth.dividedBy(draw))
-          .ln()
-          .negated()
-          .dividedBy(monthlyRate.plus(1).ln())
-          .toNumber();
-      }
-    }
+    const { sustainable, depletionMonths } = deRiskSchedule
+      ? computeFixedExpenseWithSchedule({
+          capital,
+          annualReturnRate,
+          deRiskSchedule,
+          startAge,
+          monthlyDraw: draw,
+        })
+      : computeFixedExpenseConstantRate({ capital, monthlyRate, draw });
     fixedExpense = {
       monthlyExpense: serializeMoney(draw),
       sustainable,
@@ -161,13 +185,27 @@ function computeRate({
       mode: "endowment",
       label: "Endowment (capital preserved)",
       monthlyDraw: serializeMoney(monthlyGrowth),
-      points: simulateCurve(capital, monthlyRate, monthlyGrowth, startAge, FOREVER_DISPLAY_CAP_AGE),
+      points: simulateCurve({
+        capital,
+        annualReturnRate,
+        deRiskSchedule,
+        monthlyDraw: monthlyGrowth,
+        startAge,
+        endAge: FOREVER_DISPLAY_CAP_AGE,
+      }),
     },
     ...depleteBy.map((entry) => ({
       mode: `deplete_${entry.targetAge}` as const,
       label: `Deplete by ${entry.targetAge}`,
       monthlyDraw: entry.monthlyDraw,
-      points: simulateCurve(capital, monthlyRate, money(entry.monthlyDraw), startAge, entry.targetAge),
+      points: simulateCurve({
+        capital,
+        annualReturnRate,
+        deRiskSchedule,
+        monthlyDraw: money(entry.monthlyDraw),
+        startAge,
+        endAge: entry.targetAge,
+      }),
     })),
   ];
   if (fixedExpense) {
@@ -175,13 +213,14 @@ function computeRate({
       mode: "fixed_expense",
       label: `Fixed expense ${fixedExpense.monthlyExpense}/mo`,
       monthlyDraw: fixedExpense.monthlyExpense,
-      points: simulateCurve(
+      points: simulateCurve({
         capital,
-        monthlyRate,
-        money(fixedExpense.monthlyExpense),
+        annualReturnRate,
+        deRiskSchedule,
+        monthlyDraw: money(fixedExpense.monthlyExpense),
         startAge,
-        FOREVER_DISPLAY_CAP_AGE,
-      ),
+        endAge: FOREVER_DISPLAY_CAP_AGE,
+      }),
     });
   }
 
@@ -204,25 +243,144 @@ function annuityDraw(capital: Decimal, monthlyRate: Decimal, months: number): De
   return capital.times(monthlyRate).dividedBy(discount);
 }
 
+function computeFixedExpenseConstantRate({
+  capital,
+  monthlyRate,
+  draw,
+}: {
+  capital: Decimal;
+  monthlyRate: Decimal;
+  draw: Decimal;
+}): { sustainable: boolean; depletionMonths: number | null } {
+  const monthlyGrowth = capital.times(monthlyRate);
+  const sustainable = monthlyGrowth.greaterThanOrEqualTo(draw);
+  if (sustainable) {
+    return { sustainable, depletionMonths: null };
+  }
+  if (monthlyRate.isZero()) {
+    return { sustainable, depletionMonths: capital.dividedBy(draw).toNumber() };
+  }
+  return {
+    sustainable,
+    depletionMonths: money(1)
+      .minus(monthlyGrowth.dividedBy(draw))
+      .ln()
+      .negated()
+      .dividedBy(monthlyRate.plus(1).ln())
+      .toNumber(),
+  };
+}
+
+function computeFixedExpenseWithSchedule({
+  capital,
+  annualReturnRate,
+  deRiskSchedule,
+  startAge,
+  monthlyDraw,
+}: {
+  capital: Decimal;
+  annualReturnRate: string;
+  deRiskSchedule: DeRiskScheduleInput;
+  startAge: number;
+  monthlyDraw: Decimal;
+}): { sustainable: boolean; depletionMonths: number | null } {
+  const transitionAge = Math.max(startAge, deRiskSchedule.endAge);
+  const transitionMonths = (transitionAge - startAge) * 12;
+  const transition = simulateBalance({
+    capital,
+    annualReturnRate,
+    deRiskSchedule,
+    monthlyDraw,
+    startAge,
+    months: transitionMonths,
+  });
+  if (transition.depletedMonth !== null) {
+    return { sustainable: false, depletionMonths: transition.depletedMonth };
+  }
+
+  const postTransitionAnnualRate = resolveAnnualReturnRateAtAge({
+    age: transitionAge,
+    fallbackAnnualReturnRate: annualReturnRate,
+    deRiskSchedule,
+  });
+  const postTransitionMonthlyRate = monthlyRateFromAnnualRate(postTransitionAnnualRate);
+  const postTransition = computeFixedExpenseConstantRate({
+    capital: transition.endingBalance,
+    monthlyRate: postTransitionMonthlyRate,
+    draw: monthlyDraw,
+  });
+  if (postTransition.sustainable) {
+    return postTransition;
+  }
+  return {
+    sustainable: false,
+    depletionMonths: transitionMonths + postTransition.depletionMonths!,
+  };
+}
+
+function solveFixedHorizonDraw({
+  capital,
+  annualReturnRate,
+  deRiskSchedule,
+  startAge,
+  months,
+}: {
+  capital: Decimal;
+  annualReturnRate: string;
+  deRiskSchedule: DeRiskScheduleInput;
+  startAge: number;
+  months: number;
+}): Decimal {
+  let growthFactor = new Decimal(1);
+  let withdrawalWeight = new Decimal(0);
+
+  for (let month = 1; month <= months; month += 1) {
+    const monthlyRate = resolveMonthlyReturnRateAtAge({
+      age: startAge + (month - 1) / 12,
+      fallbackAnnualReturnRate: annualReturnRate,
+      deRiskSchedule,
+    });
+    const monthlyFactor = monthlyRate.plus(1);
+    growthFactor = growthFactor.times(monthlyFactor);
+    withdrawalWeight = withdrawalWeight.times(monthlyFactor).plus(1);
+  }
+
+  return capital.times(growthFactor).dividedBy(withdrawalWeight);
+}
+
 /**
  * Simulate the balance month by month (growth, then end-of-month draw) and
  * sample yearly. Stops at the cap age or when the capital runs out, whichever
  * comes first; a depleted curve ends on an explicit zero point.
  */
 function simulateCurve(
-  capital: Decimal,
-  monthlyRate: Decimal,
-  monthlyDraw: Decimal,
-  startAge: number,
-  endAge: number,
+  {
+    capital,
+    annualReturnRate,
+    deRiskSchedule,
+    monthlyDraw,
+    startAge,
+    endAge,
+  }: {
+    capital: Decimal;
+    annualReturnRate: string;
+    deRiskSchedule?: DeRiskScheduleInput;
+    monthlyDraw: Decimal;
+    startAge: number;
+    endAge: number;
+  },
 ): DrawdownCurvePoint[] {
-  const monthlyFactor = monthlyRate.plus(1);
   const horizonMonths = (Math.min(endAge, FOREVER_DISPLAY_CAP_AGE) - startAge) * 12;
   let balance = capital;
   const points: DrawdownCurvePoint[] = [{ age: startAge, balance: serializeMoney(balance) }];
 
   for (let month = 1; month <= horizonMonths; month += 1) {
-    balance = balance.times(monthlyFactor).minus(monthlyDraw);
+    const monthlyRate = resolveMonthlyReturnRateAtAge({
+      age: startAge + (month - 1) / 12,
+      fallbackAnnualReturnRate: annualReturnRate,
+      deRiskSchedule,
+    });
+    balance = balance.times(monthlyRate.plus(1)).minus(monthlyDraw);
     if (balance.lessThanOrEqualTo(0)) {
       points.push({ age: startAge + month / 12, balance: serializeMoney(0) });
       return points;
@@ -233,4 +391,34 @@ function simulateCurve(
   }
 
   return points;
+}
+
+function simulateBalance({
+  capital,
+  annualReturnRate,
+  deRiskSchedule,
+  monthlyDraw,
+  startAge,
+  months,
+}: {
+  capital: Decimal;
+  annualReturnRate: string;
+  deRiskSchedule?: DeRiskScheduleInput;
+  monthlyDraw: Decimal;
+  startAge: number;
+  months: number;
+}): { endingBalance: Decimal; depletedMonth: number | null } {
+  let balance = capital;
+  for (let month = 1; month <= months; month += 1) {
+    const monthlyRate = resolveMonthlyReturnRateAtAge({
+      age: startAge + (month - 1) / 12,
+      fallbackAnnualReturnRate: annualReturnRate,
+      deRiskSchedule,
+    });
+    balance = balance.times(monthlyRate.plus(1)).minus(monthlyDraw);
+    if (balance.lessThanOrEqualTo(0)) {
+      return { endingBalance: balance, depletedMonth: month };
+    }
+  }
+  return { endingBalance: balance, depletedMonth: null };
 }

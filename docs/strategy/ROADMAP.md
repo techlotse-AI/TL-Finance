@@ -16,8 +16,10 @@ backend for a possible later return.
 - One sprint per week. The builder (an agent session) works a sprint in a day;
   the owner spends about 30 minutes a week on it.
 - Each sprint delivers **one PR** and, once merged, **one tagged release**
-  (Trivy-gated, Docker-published). The owner upgrades their real deployment
-  and runs that sprint's section of `docs/operations/E2E_CHECKLIST.md`.
+  (Trivy-gated, Docker-published), cut by running the CI workflow on `main`
+  with the version as input (see `docs/operations/DEPLOYMENT.md`). The owner
+  upgrades their real deployment and runs that sprint's section of
+  `docs/operations/E2E_CHECKLIST.md`.
   Findings become issues and are fixed in the next sprint before new work.
 - Every release lands the full gate green (`typecheck`, `lint`, `test`,
   `build`) and changes nothing in a lower tier.

@@ -122,7 +122,7 @@ jobs:
             on && /^## \[/ { exit }
             on { print }
           ' CHANGELOG.md > release-notes.md
-          title="$(grep -m1 "^## \[${RELEASE_VERSION}\]" CHANGELOG.md | sed -E 's/^## \[[^]]+\] - [0-9-]+ *(—|-)? *//; s/^"//; s/"$//')"
+          title="$({ grep -m1 "^## \[${RELEASE_VERSION}\]" CHANGELOG.md || true; } | sed -E 's/^## \[[^]]+\] - [0-9-]+ *(—|-)? *//; s/^"//; s/"$//')"
           [ -n "${title}" ] && title="${tag} — ${title}" || title="${tag}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

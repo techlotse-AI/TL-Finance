@@ -5,12 +5,21 @@ on:
   push:
     branches: [main]
     tags: ["v*.*.*"]
+  # Release from the Actions UI or API: run on `main` with the version to cut.
+  # verify → tag (creates the annotated git tag + GitHub Release) → publish,
+  # all in this one run. A tag pushed by hand still works exactly as before.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, without the v prefix (must equal VERSION)"
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -63,15 +72,109 @@ jobs:
       - run: docker build .
       - run: docker build --target migrator .
 
+  # Release cut from the Actions UI/API (workflow_dispatch on `main`). Runs only
+  # after verify passes on the dispatched commit, then creates the annotated
+  # `vX.Y.Z` tag and a GitHub Release with the CHANGELOG section as notes.
+  # A tag created with the workflow token does not trigger a second CI run,
+  # which is why publish runs in this same run (see its `if`).
+  tag:
+    if: github.event_name == 'workflow_dispatch'
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.cut.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - id: cut
+        name: Create annotated tag and GitHub Release
+        env:
+          GH_TOKEN: "${{ github.token }}"
+          RELEASE_VERSION: "${{ inputs.version }}"
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+            echo "Releases are cut from main only (dispatched on ${GITHUB_REF})." >&2
+            exit 1
+          fi
+          if ! printf '%s' "${RELEASE_VERSION}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)\.[0-9]+)?$'; then
+            echo "Version must be x.y.z or x.y.z-(alpha|beta|rc).N, received '${RELEASE_VERSION}'." >&2
+            exit 1
+          fi
+          file_version="$(tr -d '[:space:]' < VERSION)"
+          if [ "${file_version}" != "${RELEASE_VERSION}" ]; then
+            echo "VERSION file is ${file_version} but ${RELEASE_VERSION} was requested; bump VERSION/package.json first." >&2
+            exit 1
+          fi
+          tag="v${RELEASE_VERSION}"
+          # Release notes: the CHANGELOG section for this version, else the tag itself.
+          # Computed unconditionally (cheap, pure file reads) so both the tag
+          # and release steps below can use it regardless of which already exist.
+          awk -v v="${RELEASE_VERSION}" '
+            $0 ~ "^## \\[" v "\\]" { on = 1; next }
+            on && /^## \[/ { exit }
+            on { print }
+          ' CHANGELOG.md > release-notes.md
+          title="$({ grep -m1 "^## \[${RELEASE_VERSION}\]" CHANGELOG.md || true; } | sed -E 's/^## \[[^]]+\] - [0-9-]+ *(—|-)? *//; s/^"//; s/"$//')"
+          [ -n "${title}" ] && title="${tag} — ${title}" || title="${tag}"
+          prerelease=""
+          case "${RELEASE_VERSION}" in *-*) prerelease="--prerelease" ;; esac
+
+          # Idempotent: a retried dispatch (e.g. after `publish` failed its
+          # Trivy gate on the images this same tag already names) must not
+          # reject on an already-existing tag/release from the earlier
+          # attempt, or the release could never recover. Only a tag that
+          # exists and points somewhere ELSE is a real conflict.
+          tag_refs="$(git ls-remote --tags origin "refs/tags/${tag}" 2>/dev/null || true)"
+          if [ -n "${tag_refs}" ]; then
+            peeled_sha="$(printf '%s\n' "${tag_refs}" | awk '$2 ~ /\^\{\}$/ {print $1}')"
+            direct_sha="$(printf '%s\n' "${tag_refs}" | awk -v r="refs/tags/${tag}" '$2 == r {print $1}')"
+            tag_commit="${peeled_sha:-${direct_sha}}"
+            if [ "${tag_commit}" != "${GITHUB_SHA}" ]; then
+              echo "Tag ${tag} already exists and points at ${tag_commit}, not this commit (${GITHUB_SHA})." >&2
+              exit 1
+            fi
+            echo "Tag ${tag} already points at this commit — retry after an earlier publish failure, reusing it."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag -a "${tag}" -m "${title}" -m "See CHANGELOG.md [${RELEASE_VERSION}]."
+            git push origin "refs/tags/${tag}"
+          fi
+
+          if gh release view "${tag}" >/dev/null 2>&1; then
+            echo "GitHub Release ${tag} already exists — leaving it as is."
+          elif [ -s release-notes.md ]; then
+            gh release create "${tag}" --title "${title}" --notes-file release-notes.md ${prerelease}
+          else
+            gh release create "${tag}" --title "${title}" --generate-notes ${prerelease}
+          fi
+          echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
+
   # Single parametric publish job. It only runs on pushes (never PRs) and only
   # after verify succeeds. Tag pushes (vX.Y.Z) publish the versioned image plus
-  # `latest`; main pushes publish a `nightly` image plus the commit SHA. Both
+  # `latest`; main pushes publish a `nightly` image plus the commit SHA; a
+  # workflow_dispatch release publishes the version it just tagged. All
   # channels are Trivy-scanned and blocked on Critical vulnerabilities.
   publish:
+    # `tag` is skipped on every ordinary push (its own `if` only matches
+    # workflow_dispatch); GitHub Actions' default "all needs succeeded" check
+    # would then skip this job outright on every push/tag release. `always()`
+    # forces this custom condition to be evaluated on its own terms instead —
+    # `!cancelled()` still excludes an actually-cancelled run, and each event
+    # branch below checks only the needed job's own result.
     if: >-
-      github.event_name == 'push' &&
-      (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
-    needs: verify
+      always() && !cancelled() && needs.verify.result == 'success' && (
+        (github.event_name == 'push' &&
+          (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')) ||
+        (github.event_name == 'workflow_dispatch' && needs.tag.result == 'success')
+      )
+    needs: [verify, tag]
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     permissions:
@@ -88,11 +191,21 @@ jobs:
 
       - id: meta
         name: Resolve publish channel and image tags
+        env:
+          DISPATCHED_TAG: "${{ needs.tag.outputs.tag }}"
         shell: bash
         run: |
-          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+          ref_name="${GITHUB_REF_NAME}"
+          ref_type="${GITHUB_REF_TYPE}"
+          if [ -n "${DISPATCHED_TAG}" ]; then
+            # Release cut by the tag job in this run: the tag it created is the
+            # source of truth, and GITHUB_SHA is the main commit it points at.
+            ref_name="${DISPATCHED_TAG}"
+            ref_type="tag"
+          fi
+          if [ "${ref_type}" = "tag" ]; then
             # Release: tag is the source of truth for the version.
-            version="${GITHUB_REF_NAME#v}"
+            version="${ref_name#v}"
             case "${version}" in
               *-alpha.*) channel="prerelease"; moving="alpha" ;;
               *-beta.*)  channel="prerelease"; moving="beta" ;;
@@ -103,7 +216,7 @@ jobs:
             echo "version=${version}" >> "${GITHUB_OUTPUT}"
             # Versioned image + the moving channel tag: pre-releases move `:alpha`
             # (never `:latest`), stable releases move `:latest`.
-            echo "tags=${GITHUB_REF_NAME} ${moving}" >> "${GITHUB_OUTPUT}"
+            echo "tags=${ref_name} ${moving}" >> "${GITHUB_OUTPUT}"
           else
             # Nightly: built from main, never tagged `latest`.
             short_sha="${GITHUB_SHA:0:12}"

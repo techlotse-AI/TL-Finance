@@ -22,6 +22,7 @@ export async function POST(request: Request) {
       marginalTaxRate: input.marginalTaxRate,
       yearsToRetirement: input.yearsToRetirement,
       annualReturnRate: input.annualReturnRate,
+      assumedInflationRate: input.assumedInflationRate,
     });
     return json(result);
   } catch (error) {

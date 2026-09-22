@@ -51,4 +51,32 @@ describe("computeRetirementReadiness", () => {
     // 420000 capital / (20*12) months = 1750/month
     expect(result.requiredMonthlySaving).toBe("1750.0000");
   });
+
+  it("adds real-terms figures when assumedInflationRate is given, nominal figures unchanged", () => {
+    const nominal = computeRetirementReadiness({ ...base, targetAnnualIncome: "80000" });
+    const withInflation = computeRetirementReadiness({
+      ...base,
+      targetAnnualIncome: "80000",
+      assumedInflationRate: "0.02",
+    });
+    expect(withInflation.projectedAnnualIncome).toBe(nominal.projectedAnnualIncome);
+    expect(withInflation.annualGap).toBe(nominal.annualGap);
+    expect(withInflation.additionalCapitalNeeded).toBe(nominal.additionalCapitalNeeded);
+    expect(withInflation.requiredMonthlySaving).toBe(nominal.requiredMonthlySaving);
+    // Deflated by 1.02^20, hand-verified.
+    expect(withInflation.realTermsProjectedAnnualIncome).toBe("39705.3087");
+    expect(withInflation.realTermsAnnualGap).toBe("14132.3980");
+    expect(withInflation.realTermsAdditionalCapitalNeeded).toBe("282647.9599");
+    expect(withInflation.assumptions.ignoresInflation).toBe(false);
+    expect(withInflation.assumptions.realTermsInflationRate).toBe("0.020000");
+  });
+
+  it("omits real-terms figures when assumedInflationRate is not given", () => {
+    const result = computeRetirementReadiness({ ...base, targetAnnualIncome: "80000" });
+    expect(result.realTermsProjectedAnnualIncome).toBeUndefined();
+    expect(result.realTermsAnnualGap).toBeUndefined();
+    expect(result.realTermsAdditionalCapitalNeeded).toBeUndefined();
+    expect(result.assumptions.ignoresInflation).toBe(true);
+    expect(result.assumptions.realTermsInflationRate).toBeUndefined();
+  });
 });

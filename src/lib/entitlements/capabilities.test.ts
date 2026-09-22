@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { hasCapability } from "@/lib/entitlements/capabilities";
+import { hasCapability, resolveEffectiveTier } from "@/lib/entitlements/capabilities";
 
 describe("hasCapability", () => {
   it("provides Budget capabilities to every product tier", () => {
@@ -15,5 +15,13 @@ describe("hasCapability", () => {
     expect(hasCapability("optimize", "optimize.run")).toBe(true);
     expect(hasCapability("optimize", "admin.tiers.manage")).toBe(false);
     expect(hasCapability("budget", "admin.tiers.manage", true)).toBe(true);
+  });
+});
+
+describe("resolveEffectiveTier", () => {
+  it("forces every stored tier to optimize while paid plans are off the surface (sprint 1)", () => {
+    expect(resolveEffectiveTier("budget")).toBe("optimize");
+    expect(resolveEffectiveTier("analyze")).toBe("optimize");
+    expect(resolveEffectiveTier("optimize")).toBe("optimize");
   });
 });

@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 
 import { ApiError } from "@/lib/api/errors";
 import { hashSessionToken, SESSION_COOKIE_NAME } from "@/lib/auth/session-token";
-import { hasCapability } from "@/lib/entitlements/capabilities";
+import { hasCapability, resolveEffectiveTier } from "@/lib/entitlements/capabilities";
 import { prisma } from "@/lib/db/prisma";
 
 export interface AuthenticatedSession {
@@ -117,9 +117,10 @@ export async function requireAuthenticatedContext(
   }
 
   const entitlement = session.activeHousehold.entitlement;
-  const tier = entitlementIsActive(entitlement)
+  const storedTier = entitlementIsActive(entitlement)
     ? entitlement.tier.toLowerCase() as ProductTier
     : "budget";
+  const tier = resolveEffectiveTier(storedTier);
 
   if (capability && !hasCapability(tier, capability, session.user.instanceAdmin)) {
     throw new ApiError(403, "entitlement_required", "This household tier does not provide access.");

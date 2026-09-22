@@ -1,5 +1,4 @@
 import { AnalysisWorkspace } from "@/components/analysis/analysis-workspace";
-import { LockedTierPage } from "@/components/locked-tier-page";
 import { PageHeader } from "@/components/ui/page-header";
 import { requirePageContext } from "@/lib/auth/page-context";
 import { productionReadyParsers } from "@/lib/statements/parsers";
@@ -9,24 +8,6 @@ export const dynamic = "force-dynamic";
 
 export default async function AnalysisPage() {
   const context = await requirePageContext();
-
-  if (context.tier === "budget") {
-    return (
-      <LockedTierPage
-        capabilities={[
-          "Statement import",
-          "Actual transactions",
-          "Review queue and allocation",
-          "Transfer and FX matching",
-          "Budget adherence",
-          "Money-leak findings",
-        ]}
-        description="Actual activity, allocation, reconciliation, planned-versus-actual adherence, and money-leak findings are part of the Analyze tier."
-        tier="Analyze"
-        title="Analyze"
-      />
-    );
-  }
 
   const [pocketRows, categoryRows, budgetItemRows, imports, transactions, review] = await Promise.all([
     prisma.accountPocket.findMany({

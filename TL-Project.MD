@@ -10,21 +10,25 @@
 |---|---|
 | Product | Docker-first, privacy-focused household finance app (Budget / Analyze / Optimize) |
 | Repo | `techlotse-AI/TL-Finance` |
-| Released version | v0.9.4 (2026-07-16). Unreleased on `main`: TOTP 2FA, new-device alerts, goal purpose, Investec parser, CVE remediation |
+| Released version | v0.9.5 (2026-09-21, tag on `9d90006`; images published, Trivy clean). Unreleased on `main`: the workflow_dispatch release job (PR #151, open) |
 | Deployment | Production-ready self-host: versioned, vulnerability-gated Docker Hub images; public-auth, rate limiting, scheduled backups, runbooks |
 | Target | **1.0.0 public self-host release on 2026-10-28**, six weekly sprints, one PR and one tag per sprint |
 | Tracking owner | Ruan |
 
 ## Next task
 
-**Sprint 0 — dependency refresh and v0.9.5.** Fold the 12 open Dependabot
-PRs into one verified PR, release the work unreleased since v0.9.4 as v0.9.5.
-Owner test: E2E checklist §5 (TOTP enrolment, recovery code, new-device
-email) on the upgraded deployment.
+**Sprint 1 delivered, awaiting review/merge.** Paid plans removed from the
+surface (every household resolves to Optimize); real-terms toggle shipped
+for Pillar 3a and retirement readiness. Owner: approve and merge PR #151
+(release workflow, still open) and the sprint 1 PR from GrAv3n-Code, then
+release v0.10.0 via the CI workflow once #151 is in. Owner test: E2E
+checklist §4 (every Optimize tab open on a fresh household; the inflation
+field on Pillar 3a and Retirement changes their real-terms figures
+consistently).
 
 ## Due date
 
-2026-09-18
+2026-09-25
 
 ## Sprint calendar
 
@@ -40,6 +44,15 @@ email) on the upgraded deployment.
 
 ## Status log
 
+- 2026-09-22 — **v0.9.5 released** (tag on `9d90006`, images published,
+  Trivy clean). **Sprint 1 delivered**: paid plans removed from the surface
+  (locked-tier pages, upgrade badges, admin tier-assignment UI gone;
+  entitlement checks, `TierEntitlement` model, admin API kept); real-terms
+  toggle shipped for Pillar 3a and retirement readiness (pension-vehicle
+  projections, goals, debt payoff and balance forecasts deferred — see
+  ROADMAP.md's sprint 1 scope note). Full gate green: typecheck, lint, 333
+  tests, build. PR #151 (release-from-Actions workflow, sprint 0 follow-up)
+  still open awaiting review.
 - 2026-09-16 — **Plan agreed.** Public self-host 1.0.0 in six weekly sprints;
   paid plans removed from the surface, entitlement code kept; must-haves are
   the Plan dashboard with net-worth trend, de-risk glide path and inflation

@@ -1,6 +1,7 @@
 import Decimal from "decimal.js";
 
-import { money, serializeMoney } from "@/lib/money/decimal";
+import { money, serializeMoney, serializeRate } from "@/lib/money/decimal";
+import { serializeRealValue } from "@/lib/optimize/real-terms";
 
 /**
  * Swiss Pillar 3a annual maximum deductible contribution, by year.
@@ -27,6 +28,14 @@ export interface Pillar3aInput {
   marginalTaxRate: string;
   yearsToRetirement: number;
   annualReturnRate: string;
+  /**
+   * Optional assumed annual inflation rate (0.02 = 2%). When provided, the
+   * projection additionally reports `endingBalanceRealTerms`: the ending
+   * balance deflated to today's purchasing power (sprint 1, see
+   * `real-terms.ts`). Omitted, the projection is nominal only, unchanged
+   * from before this option existed.
+   */
+  assumedInflationRate?: string;
 }
 
 export interface Pillar3aResult {
@@ -44,9 +53,17 @@ export interface Pillar3aResult {
     totalContributions: string;
     totalGrowth: string;
     endingBalance: string;
+    /** Ending balance in today's purchasing power; present only when `assumedInflationRate` was given. */
+    endingBalanceRealTerms?: string;
     totalTaxSaved: string;
   };
-  assumptions: { contributionTiming: "end_of_year"; compounding: "annual"; ignoresInflation: true };
+  assumptions: {
+    contributionTiming: "end_of_year";
+    compounding: "annual";
+    ignoresInflation: boolean;
+    /** The rate used for `endingBalanceRealTerms`, echoed back; present only when it was given. */
+    realTermsInflationRate?: string;
+  };
 }
 
 export function pillar3aMaxContribution(input: {
@@ -77,6 +94,7 @@ export function computePillar3a(input: Pillar3aInput): Pillar3aResult {
   const endingBalance = currentBalance.times(growthFactor).plus(annualContribution.times(annuityFactor));
   const totalContributions = annualContribution.times(years);
   const totalGrowth = endingBalance.minus(currentBalance).minus(totalContributions);
+  const hasInflationAssumption = input.assumedInflationRate !== undefined;
 
   return {
     currency: input.currency,
@@ -93,8 +111,16 @@ export function computePillar3a(input: Pillar3aInput): Pillar3aResult {
       totalContributions: serializeMoney(totalContributions),
       totalGrowth: serializeMoney(totalGrowth),
       endingBalance: serializeMoney(endingBalance),
+      ...(hasInflationAssumption
+        ? { endingBalanceRealTerms: serializeRealValue(endingBalance, years, input.assumedInflationRate!) }
+        : {}),
       totalTaxSaved: serializeMoney(max.times(marginalRate).times(years)),
     },
-    assumptions: { contributionTiming: "end_of_year", compounding: "annual", ignoresInflation: true },
+    assumptions: {
+      contributionTiming: "end_of_year",
+      compounding: "annual",
+      ignoresInflation: !hasInflationAssumption,
+      ...(hasInflationAssumption ? { realTermsInflationRate: serializeRate(input.assumedInflationRate!) } : {}),
+    },
   };
 }

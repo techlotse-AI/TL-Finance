@@ -1,6 +1,7 @@
 import Decimal from "decimal.js";
 
-import { money, serializeMoney } from "@/lib/money/decimal";
+import { money, serializeMoney, serializeRate } from "@/lib/money/decimal";
+import { serializeRealValue } from "@/lib/optimize/real-terms";
 
 export type ReadinessStatus = "on_track" | "at_risk" | "shortfall";
 
@@ -27,6 +28,16 @@ export interface RetirementReadinessInput {
   yearsToRetirement: number;
   /** Assumed annual return while still saving (e.g. 0.03). */
   preRetirementReturnRate: string;
+  /**
+   * Optional assumed annual inflation rate (0.02 = 2%). When provided, the
+   * projected income, gap, and additional capital needed are additionally
+   * reported deflated to today's purchasing power over `yearsToRetirement`
+   * (sprint 1, see `real-terms.ts`). `requiredMonthlySaving` is not deflated:
+   * it is paid progressively in nominal terms between now and retirement,
+   * not received as a single amount at a future date, so the same one-shot
+   * discount does not apply to it.
+   */
+  assumedInflationRate?: string;
 }
 
 export interface RetirementReadinessResult {
@@ -43,11 +54,19 @@ export interface RetirementReadinessResult {
   additionalCapitalNeeded: string;
   /** Level monthly saving from now to retirement to reach that capital. */
   requiredMonthlySaving: string;
+  /** `projectedAnnualIncome` in today's purchasing power; present only when `assumedInflationRate` was given. */
+  realTermsProjectedAnnualIncome?: string;
+  /** `annualGap` in today's purchasing power; present only when `assumedInflationRate` was given. */
+  realTermsAnnualGap?: string;
+  /** `additionalCapitalNeeded` in today's purchasing power; present only when `assumedInflationRate` was given. */
+  realTermsAdditionalCapitalNeeded?: string;
   basis: string[];
   assumptions: {
     compounding: "annual_capital_monthly_saving";
-    ignoresInflation: true;
+    ignoresInflation: boolean;
     drawdown: "fixed_rate";
+    /** The rate used for the realTerms* figures, echoed back; present only when it was given. */
+    realTermsInflationRate?: string;
   };
 }
 
@@ -56,7 +75,10 @@ export interface RetirementReadinessResult {
  * guaranteed AHV income, annuitized pension capital, and a sustainable drawdown
  * on private investments. Any gap to the target is sized as the capital needed
  * to fund the gap over the retirement horizon, then converted to a level
- * monthly saving using an end-of-month annuity. Inflation is ignored. No AI.
+ * monthly saving using an end-of-month annuity. Nominal by default; an
+ * optional `assumedInflationRate` additionally reports the projected income,
+ * gap, and additional capital in today's purchasing power (see
+ * `real-terms.ts`). No AI.
  */
 export function computeRetirementReadiness(
   input: RetirementReadinessInput,
@@ -86,6 +108,9 @@ export function computeRetirementReadiness(
   else if (coveragePercent !== null && coveragePercent >= 80) status = "at_risk";
   else status = "shortfall";
 
+  const hasInflationAssumption = input.assumedInflationRate !== undefined;
+  const yearsToRetirement = input.yearsToRetirement;
+
   return {
     currency: input.currency,
     targetAnnualIncome: serializeMoney(target),
@@ -98,6 +123,21 @@ export function computeRetirementReadiness(
     status,
     additionalCapitalNeeded: serializeMoney(additionalCapital),
     requiredMonthlySaving: serializeMoney(requiredMonthlySaving),
+    ...(hasInflationAssumption
+      ? {
+          realTermsProjectedAnnualIncome: serializeRealValue(
+            projected,
+            yearsToRetirement,
+            input.assumedInflationRate!,
+          ),
+          realTermsAnnualGap: serializeRealValue(positiveGap, yearsToRetirement, input.assumedInflationRate!),
+          realTermsAdditionalCapitalNeeded: serializeRealValue(
+            additionalCapital,
+            yearsToRetirement,
+            input.assumedInflationRate!,
+          ),
+        }
+      : {}),
     basis: [
       "ahvAnnualIncome",
       "pensionCapitalAtRetirement",
@@ -106,8 +146,9 @@ export function computeRetirementReadiness(
     ],
     assumptions: {
       compounding: "annual_capital_monthly_saving",
-      ignoresInflation: true,
+      ignoresInflation: !hasInflationAssumption,
       drawdown: "fixed_rate",
+      ...(hasInflationAssumption ? { realTermsInflationRate: serializeRate(input.assumedInflationRate!) } : {}),
     },
   };
 }

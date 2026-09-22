@@ -106,7 +106,7 @@ export default async function MonthlyPlanPage() {
       ) : null}
 
       <BudgetInsightsSummaryCard householdId={context.householdId} />
-      <AdherenceCrossLinkCard tier={context.tier} />
+      <AdherenceCrossLinkCard />
     </div>
   );
 }

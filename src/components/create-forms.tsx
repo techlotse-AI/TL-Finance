@@ -349,15 +349,6 @@ export function MemberAddForm() {
   </ApiCreateForm>;
 }
 
-export function TierAssignForm({ households }: { households: Array<{ id: string; name: string }> }) {
-  return <ApiCreateForm endpoint="/api/admin/tiers" title="Assign household tier" buildBody={(d) => ({
-    householdId: d.get("householdId"), tier: d.get("tier"), active: true,
-  })}>
-    <select className={input} name="householdId">{households.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}</select>
-    <select className={input} name="tier"><option value="budget">budget</option><option value="analyze">analyze</option><option value="optimize">optimize</option></select>
-  </ApiCreateForm>;
-}
-
 export function HouseholdImportForm() {
   const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);

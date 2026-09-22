@@ -11,6 +11,40 @@ The detailed historical log for v0.1–v0.8 lives in
 
 ### Changed
 
+- **Sprint 1: paid plans off the surface, real-terms toggle (v0.10.0).**
+  Every household is now served the Optimize tier regardless of its stored
+  entitlement (`resolveEffectiveTier` in `capabilities.ts`, the single call
+  site is `requireAuthenticatedContext`): no more locked Analyze/Optimize
+  pages, no upgrade badges, no admin tier-assignment form. The
+  `TierEntitlement` model, the entitlement lookup, `hasCapability`, and the
+  `/api/admin/tiers` API are unchanged, so restoring tiering later is a
+  one-line revert. `LockedTierPage` and the `TierAssignForm` UI component are
+  removed as dead code.
+  Pillar 3a and retirement-readiness gain an optional `assumedInflationRate`
+  input (a new shared `real-terms.ts` deflator: `real = nominal /
+  (1+rate)^years`); when given, each additionally reports its projected
+  figures in today's purchasing power alongside the unchanged nominal ones.
+  Scoped deliberately to the two calculators that project a nominal amount
+  forward to a fixed retirement horizon with no persistence involved:
+  `wealth-projection.ts`/`drawdown.ts` already assume real returns
+  permanently (no toggle needed), AHV is a current-year calculation with no
+  horizon, and pension-vehicle projections are persisted entities that would
+  need a migration to carry a per-vehicle rate — left for a later sprint,
+  along with goals, debt payoff, and balance forecasts, whose horizons or
+  semantics don't fit the same one-shot deflation. Golden-tested
+  (`real-terms.test.ts`, `pillar3a.test.ts` — new — and additions to
+  `retirement.test.ts`); pillar3a.ts had no prior tests, now does.
+
+- **Releases can be cut from the Actions UI or API.** `ci.yml` gains a
+  `workflow_dispatch` trigger with a `version` input. Run on `main`, it runs
+  `verify`, then a new `tag` job creates the annotated `vX.Y.Z` tag and a
+  GitHub Release (notes taken from that version's `CHANGELOG.md` section,
+  marked pre-release for `-alpha/-beta/-rc`), then `publish` ships the images
+  in the same run. The job refuses a version that does not match `VERSION`,
+  an existing tag, or a branch other than `main`. Hand-pushed tags publish
+  exactly as before. Dispatch runs get their own concurrency group so they
+  never cancel a running nightly.
+
 - **Six-sprint plan to 1.0.0.** `docs/strategy/ROADMAP.md` now carries the
   agreed plan: one PR and one tagged release per weekly sprint (v0.9.5,
   v0.10.0 to v0.14.0, then 1.0.0 on 2026-10-28 as a public self-host

@@ -136,17 +136,24 @@ nothing. Cloud Compose deployments must pin a versioned `vX.Y.Z` tag, never
 `latest` or `nightly`.
 
 Configure the GitHub organization secrets `DOCKERHUB_USER` and
-`DOCKERHUB_TOKEN` once. To cut a release:
+`DOCKERHUB_TOKEN` once. To cut a release, bump `VERSION`, `package.json` and
+`package-lock.json` to the new version and move the `Unreleased` changelog
+notes into a dated `[x.y.z]` section on `main`, then either:
 
-```bash
-git tag v0.8.2
-git push origin v0.8.2
-```
+- **Run the CI workflow** (Actions → CI → Run workflow, branch `main`, input
+  `version` = `x.y.z`). After `verify` passes, the `tag` job creates the
+  annotated `vx.y.z` tag and a GitHub Release whose notes are that changelog
+  section, and `publish` ships the images in the same run. The job refuses a
+  version that does not match `VERSION`, an existing tag, or any branch other
+  than `main`. This is the path the sprint sessions use, since their push
+  access is limited to their own branch.
+- **Push the tag by hand**, which publishes exactly as before but creates no
+  GitHub Release:
 
-The tag-triggered workflow owns publishing. Optionally first move the
-`Unreleased` changelog notes into a dated `v0.8.2` section and keep
-`package.json`/`package-lock.json` consistent with each other (the version
-check enforces that), but neither is required for the tag to publish.
+  ```bash
+  git tag -a v0.8.2 -m "v0.8.2"
+  git push origin v0.8.2
+  ```
 
 ## S3-compatible platform backups
 

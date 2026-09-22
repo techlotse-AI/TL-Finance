@@ -25,6 +25,7 @@ export async function POST(request: Request) {
       yearsInRetirement: input.yearsInRetirement,
       yearsToRetirement: input.yearsToRetirement,
       preRetirementReturnRate: input.preRetirementReturnRate,
+      assumedInflationRate: input.assumedInflationRate,
     });
     return json(result);
   } catch (error) {

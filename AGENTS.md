@@ -21,8 +21,15 @@ Three progressively capable tiers:
 | Analyze | Statement imports, actual transactions, allocation, adherence, transfer/FX matching, cash, money-leak findings | Forecast calculations |
 | Optimize | Forecasts, calculations, scenarios, recommendations, predictions, holdings and performance imports | Raw statement parsing |
 
-Unavailable paid tiers remain visible as locked or "Coming later." Server-side
-entitlements are authoritative; client-side hiding is never authorization.
+The three tiers are an architectural and functional split of the product
+surface, not a paywall: from sprint 1 (2026-09-25, see
+`docs/strategy/ROADMAP.md`) every household is served the Optimize tier
+regardless of its stored entitlement, so locked pages and upgrade wording are
+off the surface. The entitlement checks, the `TierEntitlement` model, and the
+admin entitlement API are unchanged in the codebase for a possible later
+return (`src/lib/entitlements/capabilities.ts`'s `resolveEffectiveTier`).
+Server-side entitlements are authoritative; client-side hiding is never
+authorization.
 
 ---
 

@@ -21,7 +21,10 @@ authentication, authorization, audit, money arithmetic, and Budget behavior.
   strings at API and component boundaries.
 - Manual administrator assignment is the only implemented entitlement source.
   `BillingProvider` defines the boundary for a future payment integration, but
-  v0.1.0 does not ship a provider implementation or webhook route.
+  v0.1.0 does not ship a provider implementation or webhook route. From
+  sprint 1 (2026-09-25) `resolveEffectiveTier` in `capabilities.ts` overrides
+  every stored entitlement to Optimize while paid plans are off the product
+  surface; the admin API for manual assignment is unchanged underneath it.
 - Platform operations own instance-level user state, audit export, protected
   reset, scheduled S3-compatible snapshots, and offline full-platform restore.
   User backups remain

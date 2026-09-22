@@ -30,12 +30,19 @@ backend for a possible later return.
 | Sprint | Due | Tag | Scope | Owner test |
 |---|---|---|---|---|
 | 0 | 2026-09-18 | v0.9.5 | Dependency refresh (the 12 open Dependabot PRs folded into one verified PR). Release the work unreleased since v0.9.4: TOTP 2FA, new-device alerts, goal purpose, Investec parser, CVE remediation | §5 security: enrol TOTP, recovery code, new-device email |
-| 1 | 2026-09-25 | v0.10.0 | **Remove paid plans from the surface.** Every household resolves to the Optimize tier; locked-tier pages, upgrade badges, admin tier assignment UI and tier wording in docs and `AGENTS.md` removed; entitlement checks, `TierEntitlement` model and admin API kept. **Inflation / real-terms toggle** across all Optimize calculators | §4 Optimize: every tab open for a fresh household; real-terms toggle changes projections consistently |
+| 1 | 2026-09-25 | v0.10.0 | **Shipped, PR pending merge.** Paid plans removed from the surface (every household resolves to Optimize; locked-tier pages, upgrade badges, admin tier-assignment UI and tier wording removed; entitlement checks, `TierEntitlement` model and admin API kept, see CHANGELOG.md). Real-terms toggle shipped for **Pillar 3a and retirement readiness** (the two nominal calculators with a fixed forward horizon and no persistence); pension-vehicle projections, goals, debt payoff and balance forecasts deferred — see CHANGELOG.md for why each doesn't fit the same one-shot deflation | §4 Optimize: every tab open for a fresh household; Pillar 3a and Retirement's inflation field changes their real-terms figures consistently |
 | 2 | 2026-10-02 | v0.11.0 | **De-risk glide path (#70):** age-indexed return schedule through wealth projection and drawdown, starting from draft PR #124 if it holds up. **Holdings import, part 1:** Frankly/VIAC parser from owner-supplied fixtures. **FNB CSV** flipped to production-ready when the second sample lands | §3 Analyze: import the real Frankly/VIAC and FNB CSV files; §4: glide path on a wealth plan |
 | 3 | 2026-10-09 | v0.12.0 | **Plan dashboard, part 1:** persisted net-worth snapshots (additive migration, the first new table since `WealthPlan`), shared assumptions panel, dashboard shell with cross-links into every engine | §4: take snapshots, change an assumption and see every card follow |
 | 4 | 2026-10-16 | v0.13.0 | **Plan dashboard, part 2:** net-worth trend from snapshots, goal progress alongside it, recommendations surfaced on the dashboard. **Holdings import, part 2:** Saxo parser from owner fixtures | §4: full dashboard walk-through; §3: Saxo import |
 | 5 | 2026-10-23 | v0.14.0 | **Docs gate:** self-host guide (compose quickstart, env-var reference, first run, upgrade, backup and restore walkthrough), end-user guide per tier including statement imports, README refresh. E2E checklist gains a Plan dashboard section. Fix everything found in weeks 1 to 4 | §1 install from the guide on a clean machine; §6 backup and restore rehearsal |
 | 6 | 2026-10-28 | 1.0.0 | **Stabilise and release.** Fix week-5 findings, tidy `LICENSE.md` wording, remove the alpha-channel scaffolding (1.0.0 publishes `:latest`), bump `VERSION`, tag | Full checklist, sign-off |
+
+**Sprint 1 scope note.** The real-terms toggle covers Pillar 3a and
+retirement readiness only, not pension-vehicle projections (persisted
+entities — would need a migration to carry a per-vehicle rate), goals, debt
+payoff, or balance forecasts (short horizons or a target the user already set
+in their own terms, where a single deflator doesn't cleanly apply). Revisit
+in a later sprint if wanted; not currently scheduled.
 
 ## What the owner supplies
 

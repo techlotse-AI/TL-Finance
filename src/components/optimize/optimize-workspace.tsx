@@ -182,6 +182,7 @@ function Pillar3aPanel({ currency }: { currency: string }) {
       marginalTaxRate: String(form.get("rate") ?? "0.25"),
       yearsToRetirement: Number(form.get("years") ?? 25),
       annualReturnRate: String(form.get("return") ?? "0.03"),
+      assumedInflationRate: form.get("inflation") ? String(form.get("inflation")) : undefined,
     });
     if (!ok) { setMessage(data?.error?.message ?? "Calculation failed."); return; }
     setResult(data);
@@ -201,6 +202,7 @@ function Pillar3aPanel({ currency }: { currency: string }) {
             <Field label="Years to retirement"><input className={inputClass} name="years" type="number" min={1} max={50} defaultValue={25} /></Field>
             <Field label="Annual return (0.03)"><input className={inputClass} name="return" inputMode="decimal" defaultValue="0.03" /></Field>
           </div>
+          <Field label="Assumed inflation (optional, 0.02 = 2%)"><input className={inputClass} name="inflation" inputMode="decimal" placeholder="Leave blank for nominal only" /></Field>
           <Button type="submit">Calculate</Button>
         </form>
         {message ? <p className="mt-3 text-sm text-status-warning">{message}</p> : null}
@@ -221,6 +223,11 @@ function Pillar3aPanel({ currency }: { currency: string }) {
               <Metric label="Of which growth" value={fmt(result.projection.totalGrowth, currency)} />
               <Metric label="Lifetime tax saved" value={fmt(result.projection.totalTaxSaved, currency)} />
             </div>
+            {result.projection.endingBalanceRealTerms ? (
+              <div className="mt-3 border-t pt-3">
+                <Metric label="Ending balance (today's money)" value={fmt(result.projection.endingBalanceRealTerms, currency)} />
+              </div>
+            ) : null}
           </div>
         </Card>
       ) : <Placeholder text="The 2026 maximum is CHF 7,258 with a pension fund, or 20% of income up to CHF 36,288 without." />}
@@ -532,6 +539,7 @@ function RetirementPanel({ currency }: { currency: string }) {
       yearsInRetirement: Number(form.get("yearsIn") ?? 25),
       yearsToRetirement: Number(form.get("yearsTo") ?? 20),
       preRetirementReturnRate: String(form.get("return") ?? "0.03"),
+      assumedInflationRate: form.get("inflation") ? String(form.get("inflation")) : undefined,
     });
     if (!ok) { setMessage(data?.error?.message ?? "Calculation failed."); return; }
     setResult(data);
@@ -557,6 +565,7 @@ function RetirementPanel({ currency }: { currency: string }) {
             <Field label="Years in"><input className={inputClass} name="yearsIn" type="number" min={1} max={50} defaultValue={25} /></Field>
             <Field label="Return"><input className={inputClass} name="return" inputMode="decimal" defaultValue="0.03" /></Field>
           </div>
+          <Field label="Assumed inflation (optional, 0.02 = 2%)"><input className={inputClass} name="inflation" inputMode="decimal" placeholder="Leave blank for nominal only" /></Field>
           <Button type="submit">Assess</Button>
         </form>
         {message ? <p className="mt-3 text-sm text-status-warning">{message}</p> : null}
@@ -574,7 +583,22 @@ function RetirementPanel({ currency }: { currency: string }) {
             <Metric label="Annual gap" value={fmt(result.annualGap, currency)} tone={Number(result.annualGap) > 0 ? "danger" : "success"} />
             <Metric label="Required / month" value={fmt(result.requiredMonthlySaving, currency)} />
           </div>
-          <p className="text-xs text-subdued">Deterministic, inflation-ignored. Combines AHV income, annuitized pension capital, and a sustainable investment drawdown.</p>
+          {result.realTermsAnnualGap ? (
+            <div className="rounded border bg-muted/30 p-4">
+              <p className="text-xs uppercase tracking-wide text-subdued">In today&apos;s money, at {Number(result.assumptions?.realTermsInflationRate ?? 0) * 100}% assumed inflation</p>
+              <div className="mt-2 grid gap-3 sm:grid-cols-3">
+                <Metric label="Projected income" value={fmt(result.realTermsProjectedAnnualIncome, currency)} />
+                <Metric label="Annual gap" value={fmt(result.realTermsAnnualGap, currency)} tone={Number(result.realTermsAnnualGap) > 0 ? "danger" : "success"} />
+                <Metric label="Additional capital needed" value={fmt(result.realTermsAdditionalCapitalNeeded, currency)} />
+              </div>
+            </div>
+          ) : null}
+          <p className="text-xs text-subdued">
+            Combines AHV income, annuitized pension capital, and a sustainable investment drawdown.
+            {result.assumptions?.ignoresInflation
+              ? " Nominal — leave the inflation field blank on purpose, or set it to also see today's money."
+              : " The required monthly saving stays nominal: it is paid progressively, not received as a single future amount."}
+          </p>
         </Card>
       ) : <Placeholder text="Combine AHV, pension capital, and investments into a readiness view with the monthly saving needed to close any gap." />}
     </div>

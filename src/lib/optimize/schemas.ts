@@ -116,6 +116,8 @@ export const pillar3aSchema = z
     marginalTaxRate: fractionSchema,
     yearsToRetirement: z.number().int().min(1).max(50),
     annualReturnRate: annualReturnRateSchema,
+    /** Optional assumed annual inflation rate for an additional real-terms ending balance. */
+    assumedInflationRate: fractionSchema.optional(),
   })
   .superRefine((value, context) => {
     if (!value.hasPensionFund && value.netAnnualIncome === undefined) {
@@ -299,6 +301,8 @@ export const retirementSchema = z
     yearsInRetirement: z.number().int().min(1).max(50),
     yearsToRetirement: z.number().int().min(0).max(50),
     preRetirementReturnRate: annualReturnRateSchema,
+    /** Optional assumed annual inflation rate for additional real-terms figures. */
+    assumedInflationRate: fractionSchema.optional(),
   })
   .superRefine((value, context) => {
     if (

@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 export default async function SettingsPage() {
   const context = await requirePageContext();
   const [household, members, memberships, sessions, me] = await Promise.all([
-    prisma.household.findUniqueOrThrow({ where: { id: context.householdId }, include: { entitlement: true } }),
+    prisma.household.findUniqueOrThrow({ where: { id: context.householdId } }),
     prisma.householdMember.findMany({ where: { householdId: context.householdId }, include: { user: { select: { email: true, displayName: true } } }, orderBy: { createdAt: "asc" } }),
     prisma.householdMember.findMany({ where: { userId: context.userId, active: true, household: { active: true } }, select: { household: { select: { id: true, name: true } } }, orderBy: { household: { name: "asc" } } }),
     prisma.session.findMany({ where: { userId: context.userId, revokedAt: null, expiresAt: { gt: new Date() } }, select: { id: true, createdAt: true, expiresAt: true }, orderBy: { createdAt: "desc" } }),
@@ -27,7 +27,7 @@ export default async function SettingsPage() {
   return (
     <div className="mx-auto max-w-app space-y-6">
       <PageHeader
-        description="Household profile, membership, tier, and data portability. Budget categories moved to their own page."
+        description="Household profile, membership, and data portability. Budget categories moved to their own page."
         title="Settings"
       />
       <div className="grid gap-6 lg:grid-cols-2">
@@ -37,7 +37,6 @@ export default async function SettingsPage() {
             <div><dt className="text-subdued">Name</dt><dd className="mt-1">{household.name}</dd></div>
             <div><dt className="text-subdued">Base currency</dt><dd className="mt-1">{household.baseCurrency}</dd></div>
             <div><dt className="text-subdued">Country profile</dt><dd className="mt-1">{household.countryProfile}</dd></div>
-            <div><dt className="text-subdued">Tier</dt><dd className="mt-1"><Badge>{household.entitlement?.tier.toLowerCase() ?? "budget"}</Badge></dd></div>
           </dl>
           <Link className="mt-4 inline-block text-sm font-medium text-brand-teal hover:underline" href="/categories">
             Manage budget categories →

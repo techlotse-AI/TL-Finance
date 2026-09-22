@@ -45,8 +45,8 @@ app version and date at the bottom when you finish a pass.
 
 ## 3. Analyze tier
 
-- [ ] Entitlement gate: a Budget-tier household sees Analyze locked; an
-      entitled one sees the workspace.
+- [ ] A fresh household opens Analyze directly — no upgrade or locked
+      messaging anywhere (paid plans are off the surface, sprint 1).
 - [ ] Import a **real FNB PDF statement** → preview shows correct rows/warnings,
       account suggestion matches by masked reference → commit → re-import the
       same file → **0 new transactions** (idempotent).

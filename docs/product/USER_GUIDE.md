@@ -60,9 +60,9 @@ remain linked to the deleted account for historical reporting.
 An Essential budget item identifies required household spending for adherence
 and future emergency-fund calculations. It does not change normalized totals.
 
-Instance administrators use Platform settings for user management, household
-tier assignment, S3-compatible platform backup uploads, audit-log CSV export,
-and the protected platform-database reset. Reset preserves the current
+Instance administrators use Platform settings for user management,
+S3-compatible platform backup uploads, audit-log CSV export, and the
+protected platform-database reset. Reset preserves the current
 administrator, current session, and append-only audit history while removing
 other platform operational and financial data.
 

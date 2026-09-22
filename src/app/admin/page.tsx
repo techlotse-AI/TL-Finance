@@ -2,7 +2,6 @@ import { Download, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { TierAssignForm } from "@/components/create-forms";
 import { DatabaseResetForm, HouseholdMembershipForm, PasswordResetForm, PlatformBackupButton, UserManagementForm } from "@/components/platform-admin-forms";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -61,7 +60,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     toDate: dayBound(auditQuery.to, "end"),
   });
   const [households, users, auditTotal, auditActionRows, auditResourceRows] = await Promise.all([
-    prisma.household.findMany({ where: { active: true }, include: { entitlement: true, members: { where: { active: true }, select: { id: true, role: true, user: { select: { id: true, email: true } } }, orderBy: { createdAt: "asc" } } }, orderBy: { name: "asc" } }),
+    prisma.household.findMany({ where: { active: true }, include: { members: { where: { active: true }, select: { id: true, role: true, user: { select: { id: true, email: true } } }, orderBy: { createdAt: "asc" } } }, orderBy: { name: "asc" } }),
     prisma.user.findMany({ select: { id: true, email: true, active: true, instanceAdmin: true, failedLoginCount: true, lockedUntil: true, createdAt: true }, orderBy: { email: "asc" } }),
     prisma.auditEvent.count({ where: auditWhere }),
     prisma.auditEvent.findMany({ distinct: ["action"], select: { action: true }, orderBy: { action: "asc" } }),
@@ -78,7 +77,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   return (
     <div className="mx-auto max-w-app space-y-6">
       <PageHeader
-        description="User management, platform backups, audit logs, tier assignment, and destructive maintenance."
+        description="User management, platform backups, audit logs, and destructive maintenance."
         eyebrow="Platform"
         title="Platform settings"
       />
@@ -99,7 +98,6 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           </dl>
           <div className="mt-5"><PlatformBackupButton configured={s3.configured} /></div>
         </Card>
-        <TierAssignForm households={households.map(({ id, name }) => ({ id, name }))} />
         <DatabaseResetForm />
       </div>
       <HouseholdMembershipForm
@@ -111,18 +109,6 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         users={users.map((user) => ({ id: user.id, email: user.email }))}
       />
       <PasswordResetForm users={users.map((user) => ({ id: user.id, email: user.email, instanceAdmin: user.instanceAdmin }))} />
-      <Card>
-        <DataTable
-          caption="Household tier assignments"
-          headers={["Household", "Base currency", "Tier", "Source", "Status"]}
-          rows={households.map((household) => [
-            household.name, household.baseCurrency,
-            <Badge key={`${household.id}:tier`}>{household.entitlement?.tier.toLowerCase() ?? "budget"}</Badge>,
-            household.entitlement?.source ?? "default",
-            <Badge key={`${household.id}:status`} tone={household.entitlement?.active === false ? "danger" : "success"}>{household.entitlement?.active === false ? "Inactive" : "Active"}</Badge>,
-          ])}
-        />
-      </Card>
       <Card id="audit">
         <div className="flex items-center justify-between gap-3 border-b px-5 py-4">
           <h2 className="font-semibold">Audit events</h2>
